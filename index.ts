@@ -80,10 +80,10 @@ class ByteTracker extends JSHDLModule {
     this.syncBlock(this.clk, Edge.Positive, [
       If (this.selected.eq(LOW), [
         If (this.up.eq(HIGH), [ this.doubleByte.setTo(this.doubleByte.plus(0x01)) ]),
-        If (this.down.eq(HIGH), [ this.doubleByte.setTo(this.doubleByte.plus(0x01)) ]),
+        If (this.down.eq(HIGH), [ this.doubleByte.setTo(this.doubleByte.minus(0x01)) ]),
       ]). Else ([
         If (this.up.eq(HIGH), [ this.doubleByte.setTo(this.doubleByte.plus(0x10)) ]),
-        If (this.down.eq(HIGH), [ this.doubleByte.setTo(this.doubleByte.plus(0x10)) ]),
+        If (this.down.eq(HIGH), [ this.doubleByte.setTo(this.doubleByte.minus(0x10)) ]),
       ]),
 
       If (this.toggleEditable.eq(HIGH), [
