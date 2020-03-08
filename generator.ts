@@ -44,25 +44,6 @@ export const mapNamesToSignals = (map:Map<Port, string>) => {
   }, {});
 };
 
-export const createModuleSignalDescriptorGetter = (signalMap:SignalMap) => (s:SignalT):ModuleSignalDescriptor => {
-  const inputSignal = signalMap.input.get(s);
-  if (inputSignal) {
-    return { type: 'input', name: inputSignal, signal: s };
-  }
-
-  const internalSignal = signalMap.internal.get(s);
-  if (internalSignal) {
-    return { type: 'internal', name: internalSignal, signal: s };
-  }
-
-  const outputSignal = signalMap.output.get(s);
-  if (outputSignal) {
-    return { type: 'output', name: outputSignal, signal: s };
-  }
-
-  throw new Error(`Unable to find signal ${s}`);
-}
-
 const getRegSize = (s:Port) => s.width > 1 ? `[${s.width-1}:0] ` : '';
 
 const parenthize = (s:SignalLike, fn:(s:SignalLikeOrValue) => string):string =>
