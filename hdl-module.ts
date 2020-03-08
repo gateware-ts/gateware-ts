@@ -50,25 +50,44 @@ export abstract class JSHDLModule {
     return new this.constructor() as T;
   }
 
+  private checkIfSignalWasPreviouslyAdded(s:SignalT) {
+    try {
+      this.getModuleSignalDescriptor(s);
+      return true;
+    } catch (ex) {
+      return false;
+    }
+  }
+
   input(s:SignalT) : SignalT {
-    // TODO: Assert the same signal is not registered more than once
+    if (this.checkIfSignalWasPreviouslyAdded(s)) {
+      throw new Error(`Cannot register the same signal more than once`);
+    }
+
     this.inputs.push(s);
     return s;
   }
 
   wire(width:number = 1) : WireT {
-    // TODO: Assert the same signal is not registered more than once
     const w = new WireT(width);
     this.wires.push(w);
     return w;
   }
 
   output(s:SignalT) : SignalT {
+    if (this.checkIfSignalWasPreviouslyAdded(s)) {
+      throw new Error(`Cannot register the same signal more than once`);
+    }
+
     this.outputs.push(s);
     return s;
   }
 
   internal(s:SignalT) : SignalT {
+    if (this.checkIfSignalWasPreviouslyAdded(s)) {
+      throw new Error(`Cannot register the same signal more than once`);
+    }
+
     this.internals.push(s);
     return s;
   }
@@ -94,7 +113,7 @@ export abstract class JSHDLModule {
   createSignalMap():void {
     const allSignals = [];
 
-    const createSignalMap = (signals:Port[], namePrefix:string) => {
+    const createSignalMap = (signals:Port[]) => {
       const map = new Map<Port, string>();
 
       signals.forEach(signal => {
@@ -112,9 +131,7 @@ export abstract class JSHDLModule {
         });
 
         if (!foundSignalName) {
-          // TODO: Not sure about this...maybe it should just be an error if a signal is not
-          // properly tied to the object
-          map.set(signal, `${namePrefix}_${Math.random().toString(36).slice(2)}`);
+          throw new Error(`Unable to find the name associated with a signal.`);
         }
       });
 
@@ -122,10 +139,10 @@ export abstract class JSHDLModule {
     }
 
     this.signalMap = {
-      input: createSignalMap(this.getInputSignals(), 'input'),
-      output: createSignalMap(this.getOutputSignals(), 'output'),
-      internal: createSignalMap(this.getInternalSignals(), 'internal'),
-      wire: createSignalMap(this.getWires(), 'wire')
+      input: createSignalMap(this.getInputSignals()),
+      output: createSignalMap(this.getOutputSignals()),
+      internal: createSignalMap(this.getInternalSignals()),
+      wire: createSignalMap(this.getWires())
     };
   }
 
