@@ -249,8 +249,9 @@ export const toVerilog = (m:JSHDLModule) => {
     return `${t.l()}${type} ${getRegSize(signal)}${signalName}`
   };
 
-  const generateVerilogCodeForModule = (m:JSHDLModule, isTopLevelModule:boolean):GeneratedVerilogObject => {
+  const generateVerilogCodeForModule = (m:JSHDLModule):GeneratedVerilogObject => {
     const t = new TabLevel('  ', 1);
+    const thisModuleHasSubmodules = m.getSubmodules().length > 0;
 
     const signalMap = m.getSignalMap();
     const namesToSignals = {
@@ -418,19 +419,18 @@ export const toVerilog = (m:JSHDLModule) => {
       }
     });
 
-    // Not sure about this solution. might be more correct to check if a module has submodules
     const wireDeclarations = [
       // TODO: Be careful here that user-defined wires don't have the same names
       // as ones I generate
-      ...(isTopLevelModule ? inputWires : []),
-      ...(isTopLevelModule ? globalOutputWires : [])
+      ...(thisModuleHasSubmodules ? inputWires : []),
+      ...(thisModuleHasSubmodules ? globalOutputWires : [])
     ].map(([w, regSize]) => `${t.l()}wire ${regSize}${w};`).concat(internalWires).join('\n');
 
     const allAssignments = [
-      ...(isTopLevelModule ? globalOutputAssignments : []),
-      ...(isTopLevelModule ? globalInputAssignments : []),
-      ...(isTopLevelModule ? secondaryAssignments : []),
-      ...(isTopLevelModule ? tiedWiresAssignments : []),
+      ...(thisModuleHasSubmodules ? globalOutputAssignments : []),
+      ...(thisModuleHasSubmodules ? globalInputAssignments : []),
+      ...(thisModuleHasSubmodules ? secondaryAssignments : []),
+      ...(thisModuleHasSubmodules ? tiedWiresAssignments : []),
       ...continuousAssignments
     ].join('\n');
 
@@ -472,10 +472,9 @@ export const toVerilog = (m:JSHDLModule) => {
 
   const allCode = [];
   const moduleQueue = [m];
-  let firstModule = true;
   while (moduleQueue.length) {
     const nextM = moduleQueue.pop();
-    const generated = generateVerilogCodeForModule(nextM, firstModule);
+    const generated = generateVerilogCodeForModule(nextM);
     allCode.push(generated.code);
 
     generated.submodules.forEach(m => {
@@ -484,7 +483,6 @@ export const toVerilog = (m:JSHDLModule) => {
         verilogModulesGenerated.push(m.moduleName);
       }
     });
-    firstModule = false;
   }
 
   return '`default_nettype none\n\n' + allCode.join('\n\n');
