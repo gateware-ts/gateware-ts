@@ -17,7 +17,9 @@ import {
   SwitchExpression,
   SubjectiveCaseExpression,
   TernaryExpression,
-  Port
+  Port,
+  SignalMap,
+  GeneratedVerilogObject
 } from "./main-types";
 import {
   ASSIGNMENT_EXPRESSION,

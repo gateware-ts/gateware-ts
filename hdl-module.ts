@@ -1,33 +1,7 @@
-import { SyncBlock, CombinationalBlock, BlockExpression, Edge, SignalLikeOrValue, AssignmentExpression, ModuleSignalDescriptor, Port } from './main-types';
+import { SyncBlock, CombinationalBlock, BlockExpression, Edge, SignalLikeOrValue, AssignmentExpression, ModuleSignalDescriptor, Port, SubmoduleReference, SignalMap, ParentModuleSignalDescriptorObject, SubmodulePortMappping } from './main-types';
 import { SignalT, WireT } from './signals';
 import { ASSIGNMENT_EXPRESSION } from './constants';
 import { mapNamesToSignals } from './generator';
-
-type SubmodulePortMappping = {
-  inputs: { [input:string]: Port };
-  outputs: { [output:string]: Port[] };
-};
-type SubmoduleReference = {
-  m: JSHDLModule;
-  mapping: SubmodulePortMappping;
-  submoduleName: string;
-};
-
-type ParentModuleSignalDescriptorObject = {
-  m:JSHDLModule,
-  descriptor:ModuleSignalDescriptor,
-  submoduleRef?:SubmoduleReference;
-}
-
-type SignalMap = {
-  input: Map<Port, string>,
-  internal: Map<Port, string>,
-  output: Map<Port, string>,
-  wire: Map<Port, string>
-};
-
-// 4. Make sure that the SubmoduleReference includes a direct reference to the parent module
-// 5. Move typings to the appropriate places
 
 export abstract class JSHDLModule {
   abstract describe():void;

@@ -1,5 +1,6 @@
 import { IfExpression } from './block-expressions';
 import { SignalT, ConstantT, SliceT, WireT } from './signals';
+import { JSHDLModule } from './hdl-module';
 
 export enum Signedness {
   Signed,
@@ -110,9 +111,37 @@ export type InternallyShadowedRegister = {
   originalName: string;
 };
 
-
 export type ModuleSignalDescriptor = {
   type: 'input' | 'internal' | 'output' | 'wire';
   signal: Port;
   name: string;
+};
+
+export type GeneratedVerilogObject = {
+  code:string;
+  submodules: JSHDLModule[];
+};
+
+export type SubmodulePortMappping = {
+  inputs: { [input:string]: Port };
+  outputs: { [output:string]: Port[] };
+};
+
+export type SubmoduleReference = {
+  m: JSHDLModule;
+  mapping: SubmodulePortMappping;
+  submoduleName: string;
+};
+
+export type ParentModuleSignalDescriptorObject = {
+  m:JSHDLModule,
+  descriptor:ModuleSignalDescriptor,
+  submoduleRef?:SubmoduleReference;
+};
+
+export type SignalMap = {
+  input: Map<Port, string>,
+  internal: Map<Port, string>,
+  output: Map<Port, string>,
+  wire: Map<Port, string>
 };
