@@ -37,48 +37,6 @@ import {
 } from './constants';
 import { TabLevel, flatten } from './helpers';
 
-type SignalMap = {input: Map<SignalT, string>, internal: Map<SignalT, string>, output: Map<SignalT, string>};
-type GeneratedVerilogObject = {
-  code:string;
-  submodules: JSHDLModule[];
-};
-
-
-export const mapSignalsToNames = (m:JSHDLModule):SignalMap => {
-  const allSignals = [];
-
-  const createSignalMap = (signals:SignalT[], namePrefix:string) => {
-    const map = new Map<SignalT, string>();
-
-    signals.forEach(signal => {
-      if (allSignals.includes(signal)) {
-        throw new Error('Found duplicate signal');
-      } else {
-        allSignals.push(signal);
-      }
-
-      const foundSignalName = Object.entries(m).some(([potentionalSignalName, value]) => {
-        if (signal === value) {
-          map.set(signal, potentionalSignalName);
-          return true;
-        }
-      });
-
-      if (!foundSignalName) {
-        map.set(signal, `${namePrefix}_${Math.random().toString(36).slice(2)}`);
-      }
-    });
-
-    return map;
-  }
-
-  return {
-    input: createSignalMap(m.getInputSignals(), 'input'),
-    output: createSignalMap(m.getOutputSignals(), 'output'),
-    internal: createSignalMap(m.getInternalSignals(), 'internal'),
-  }
-}
-
 export const mapNamesToSignals = (map:Map<Port, string>) => {
   return [...map.entries()].reduce<{ [name:string]: Port }>((acc, [signal, name]) => {
     acc[name] = signal;
@@ -313,8 +271,7 @@ export const toVerilog = (m:JSHDLModule) => {
   const generateVerilogCodeForModule = (m:JSHDLModule, isTopLevelModule:boolean):GeneratedVerilogObject => {
     const t = new TabLevel('  ', 1);
 
-    // TODO: Wasteful if a map has been created already - may have happened during .addSubmodule in both cases
-    const signalMap = mapSignalsToNames(m);
+    const signalMap = m.getSignalMap();
     const namesToSignals = {
       input: mapNamesToSignals(signalMap.input),
       output: mapNamesToSignals(signalMap.output),
