@@ -96,10 +96,13 @@ export abstract class JSHDLModule {
     this.syncBlocks.push({signal, edge, block});
   }
 
+  // TODO: Should just be a way to add combinationalLogic, not a block.
+  // Need to make sure we don't generate driver-driver conflicts
   combinationalBlock(block:BlockExpression[]):void {
     this.combinationalBlocks.push(block);
   }
 
+  // TODO: Think about doing this combinational statements instead of some special case
   assignContinuous(signal:SignalT, value:SignalLikeOrValue):void {
     // TODO: Assert that this is indeed sensible
     this.assignments.push({
@@ -146,6 +149,7 @@ export abstract class JSHDLModule {
     };
   }
 
+  // TODO: Rename all things that should be called port*
   getModuleSignalDescriptor(s:Port):ModuleSignalDescriptor {
     const inputSignal = this.signalMap.input.get(s);
     if (inputSignal) {
@@ -212,8 +216,10 @@ export abstract class JSHDLModule {
     throw new Error(`Unable to find signal ${s} in this module or any of it's submodules.`);
   }
 
+  // TODO: If I reset before I call init/describe, then I should be able to use the same instance
+  // of a module multiple times. Combined with an automatic name detection like for the signals, this
+  // would make working with submodules quite a bit easier
   addSubmodule(m:JSHDLModule, submoduleName:string, signalMapping:SubmodulePortMappping):void {
-    // TODO: Make this way less ugly somehow
     m.init();
     m.describe();
 

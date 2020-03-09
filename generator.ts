@@ -237,6 +237,8 @@ const createEvaluateFn = (
   }
 };
 
+// TODO: Turn the code generator into a class that can be used in a more modular way
+// ready for being to able to generate simulator code
 export const toVerilog = (m:JSHDLModule) => {
   // Reset module before describing in case describe was previously called somehow
   m.reset();

@@ -133,6 +133,8 @@ export type SubmoduleReference = {
   submoduleName: string;
 };
 
+// TODO: This type is pretty weird... twake a second look to see if the code using it
+// can be refactored to be less weird
 export type ParentModuleSignalDescriptorObject = {
   m:JSHDLModule,
   descriptor:ModuleSignalDescriptor,

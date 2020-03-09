@@ -19,6 +19,8 @@ import {
   WIRE
 } from "./constants";
 
+// TODO: Base class, with operations like shifts
+
 export class ConstantT {
   value:number;
   signedness:Signedness;
@@ -38,11 +40,6 @@ export class SliceT {
   toBit: number;
   a: SignalLike;
   readonly type:string = SLICE;
-
-  //  3  2  1  0
-  // [] [] [] []
-  //    F      T
-  // Width = (From - To) + 1
 
   constructor(a:SignalLike, fromBit:number, toBit:number) {
     // TODO: Assert logical stuff like bit ranges being valid
