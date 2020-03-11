@@ -154,3 +154,8 @@ export type SignalMap = {
   output: Map<Port, string>,
   wire: Map<Port, string>
 };
+
+export type DrivenSignal = {
+  signal: SignalT;
+  name: string;
+};
