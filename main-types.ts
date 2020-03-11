@@ -1,6 +1,6 @@
 import { IfExpression } from './block-expressions';
 import { SignalT, ConstantT, SliceT, WireT } from './signals';
-import { JSHDLModule } from './hdl-module';
+import { TSHDLModule } from './hdl-module';
 
 export enum Signedness {
   Signed,
@@ -119,7 +119,7 @@ export type ModuleSignalDescriptor = {
 
 export type GeneratedVerilogObject = {
   code:string;
-  submodules: JSHDLModule[];
+  submodules: TSHDLModule[];
 };
 
 export type SubmodulePortMappping = {
@@ -127,8 +127,10 @@ export type SubmodulePortMappping = {
   outputs: { [output:string]: Port[] };
 };
 
+export type PortWiring = { [portName:string]: string; };
+
 export type SubmoduleReference = {
-  m: JSHDLModule;
+  m: TSHDLModule;
   mapping: SubmodulePortMappping;
   submoduleName: string;
 };
@@ -136,7 +138,7 @@ export type SubmoduleReference = {
 // TODO: This type is pretty weird... twake a second look to see if the code using it
 // can be refactored to be less weird
 export type ParentModuleSignalDescriptorObject = {
-  m:JSHDLModule,
+  m:TSHDLModule,
   descriptor:ModuleSignalDescriptor,
   submoduleRef?:SubmoduleReference;
 };

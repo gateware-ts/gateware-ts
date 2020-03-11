@@ -1,9 +1,9 @@
 import { SyncBlock, CombinationalBlock, BlockExpression, Edge, SignalLikeOrValue, AssignmentExpression, ModuleSignalDescriptor, Port, SubmoduleReference, SignalMap, ParentModuleSignalDescriptorObject, SubmodulePortMappping } from './main-types';
 import { SignalT, WireT } from './signals';
 import { ASSIGNMENT_EXPRESSION } from './constants';
-import { mapNamesToSignals } from './generator';
+import { mapNamesToSignals } from './generator/common';
 
-export abstract class JSHDLModule {
+export abstract class TSHDLModule {
   abstract describe():void;
   moduleName:string;
 
@@ -219,7 +219,7 @@ export abstract class JSHDLModule {
   // TODO: If I reset before I call init/describe, then I should be able to use the same instance
   // of a module multiple times. Combined with an automatic name detection like for the signals, this
   // would make working with submodules quite a bit easier
-  addSubmodule(m:JSHDLModule, submoduleName:string, signalMapping:SubmodulePortMappping):void {
+  addSubmodule(m:TSHDLModule, submoduleName:string, signalMapping:SubmodulePortMappping):void {
     m.init();
     m.describe();
 

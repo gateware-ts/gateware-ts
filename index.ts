@@ -1,14 +1,14 @@
-import { JSHDLModule } from "./hdl-module";
+import { TSHDLModule } from "./hdl-module";
 import { Signal, Constant, LOW, HIGH } from "./signals";
 import { Edge } from "./main-types";
-import { toVerilog } from './generator';
+import { CodeGenerator } from './generator/index';
 import { Bit, Not, Ternary } from './operational-expressions';
 import { Switch, Case, Default, If } from "./block-expressions";
 
 enum OneShotStates { Waiting, DebouncePush, Emit, DebounceRelease };
 const COUNTER_BITS = 17;
 
-class OneShotDebouncer extends JSHDLModule {
+class OneShotDebouncer extends TSHDLModule {
   clk = this.input(Signal());
   in = this.input(Signal());
   o = this.output(Signal());
@@ -62,7 +62,7 @@ class OneShotDebouncer extends JSHDLModule {
   }
 }
 
-class ByteTracker extends JSHDLModule {
+class ByteTracker extends TSHDLModule {
   clk = this.input(Signal());
   up = this.input(Signal());
   down = this.input(Signal());
@@ -93,7 +93,7 @@ class ByteTracker extends JSHDLModule {
   }
 }
 
-const Mux2xN = N => class extends JSHDLModule {
+const Mux2xN = N => class extends TSHDLModule {
   sel = this.input(Signal());
   a = this.input(Signal(N));
   b = this.input(Signal(N));
@@ -111,7 +111,7 @@ const Mux2xN = N => class extends JSHDLModule {
 const Mux2x4 = Mux2xN(4);
 
 const SevenSegValues = [1, 79, 18, 6, 76, 36, 32, 15, 0, 4, 8, 96, 49, 66, 48, 56].map(n => Constant(7, n));
-class SevenSegmentDriver extends JSHDLModule {
+class SevenSegmentDriver extends TSHDLModule {
   clk = this.input(Signal());
   byte = this.input(Signal(4));
 
@@ -146,7 +146,7 @@ class SevenSegmentDriver extends JSHDLModule {
   }
 }
 
-class Selector extends JSHDLModule {
+class Selector extends TSHDLModule {
   clk = this.input(Signal());
   o = this.output(Signal());
 
@@ -157,7 +157,7 @@ class Selector extends JSHDLModule {
   }
 }
 
-class Top extends JSHDLModule {
+class Top extends TSHDLModule {
   CLK = this.input(Signal());
   BTN1 = this.input(Signal());
   BTN2 = this.input(Signal());
@@ -251,6 +251,7 @@ class Top extends JSHDLModule {
 }
 
 const m = new Top('top');
-// m.init();
-// m.describe();
-console.log(toVerilog(m));
+
+
+const cg = new CodeGenerator(m);
+console.log(cg.toVerilog());

@@ -5,12 +5,18 @@ export class TabLevel {
   constructor(ts:string = '  ', level:number) {
     this.level = level;
     this.ts = ts;
+
+    this.indent = this.indent.bind(this);
   }
 
   l() { return this.ts.repeat(this.level); }
 
   push() { this.level++; }
   pop() { this.level--; }
+
+  indent(text) {
+    return `${this.l()}${text}`;
+  }
 };
 
 export const flatten = a => a.reduce((acc, c) => {
