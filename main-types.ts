@@ -96,7 +96,12 @@ export type Slicable = SignalT | SliceT | UnaryExpression | ConstantT | Operatio
 export type CaseExpression = SubjectiveCaseExpression | DefaultCaseExpression;
 export type LogicExpression = IfExpression | SwitchExpression;
 export type BlockExpression = LogicExpression | AssignmentExpression;
-export type CombinationalBlock = BlockExpression[];
+
+// TODO: In future, support generically-typed Switch and If expressions
+// e.g. Switch<'combinational'> vs Switch<'sync'>
+// not sure if this is possible
+export type CombinationalLogic = AssignmentExpression;
+
 
 export type SyncBlock  = {
   signal: SignalT;

@@ -74,8 +74,10 @@ class ByteTracker extends TSHDLModule {
   selected = this.internal(Signal());
 
   describe() {
-    this.assignContinuous(this.byte1, this.doubleByte.slice(3, 0));
-    this.assignContinuous(this.byte2, this.doubleByte.slice(7, 4));
+    this.combinationalLogic([
+      this.byte1.setTo(this.doubleByte.slice(3, 0)),
+      this.byte2.setTo(this.doubleByte.slice(7, 4))
+    ]);
 
     this.syncBlock(this.clk, Edge.Positive, [
       If (this.selected.eq(LOW), [
@@ -100,11 +102,12 @@ const Mux2xN = N => class extends TSHDLModule {
   o = this.output(Signal(N));
 
   describe() {
-    this.assignContinuous(this.o, Ternary(
-      this.sel.eq(LOW),
-      this.a,
-      this.b
-    ));
+    this.combinationalLogic([
+      this.o.setTo(Ternary(this.sel.eq(LOW),
+        this.a,
+        this.b
+      ))
+    ]);
   }
 }
 
@@ -126,13 +129,15 @@ class SevenSegmentDriver extends TSHDLModule {
   g = this.output(Signal());
 
   describe() {
-    this.assignContinuous(this.a, Bit(this.o, 6));
-    this.assignContinuous(this.b, Bit(this.o, 5));
-    this.assignContinuous(this.c, Bit(this.o, 4));
-    this.assignContinuous(this.d, Bit(this.o, 3));
-    this.assignContinuous(this.e, Bit(this.o, 2));
-    this.assignContinuous(this.f, Bit(this.o, 1));
-    this.assignContinuous(this.g, Bit(this.o, 0));
+    this.combinationalLogic([
+      this.a.setTo(Bit(this.o, 6)),
+      this.b.setTo(Bit(this.o, 5)),
+      this.c.setTo(Bit(this.o, 4)),
+      this.d.setTo(Bit(this.o, 3)),
+      this.e.setTo(Bit(this.o, 2)),
+      this.f.setTo(Bit(this.o, 1)),
+      this.g.setTo(Bit(this.o, 0)),
+    ]);
 
     this.syncBlock(this.clk, Edge.Positive, [
       Switch(this.byte, [

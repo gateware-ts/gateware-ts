@@ -1,6 +1,16 @@
-import { SyncBlock, CombinationalBlock, BlockExpression, Edge, SignalLikeOrValue, AssignmentExpression, ModuleSignalDescriptor, Port, SubmoduleReference, SignalMap, ParentModuleSignalDescriptorObject, SubmodulePortMappping } from './main-types';
+import {
+  SyncBlock,
+  BlockExpression,
+  Edge,
+  ModuleSignalDescriptor,
+  Port,
+  SubmoduleReference,
+  SignalMap,
+  ParentModuleSignalDescriptorObject,
+  SubmodulePortMappping,
+  CombinationalLogic
+} from './main-types';
 import { SignalT, WireT } from './signals';
-import { ASSIGNMENT_EXPRESSION } from './constants';
 import { mapNamesToSignals } from './generator/common';
 
 export abstract class TSHDLModule {
@@ -11,20 +21,18 @@ export abstract class TSHDLModule {
   private outputs: SignalT[] = [];
   private internals: SignalT[] = [];
   private submodules: SubmoduleReference[] = [];
-  private assignments: AssignmentExpression[] = [];
   private wires: WireT[] = [];
 
   private syncBlocks: SyncBlock[] = [];
-  private combinationalBlocks: CombinationalBlock[] = [];
+  private combinational: CombinationalLogic[] = [];
   private signalMap: SignalMap;
 
   getInputSignals() { return this.inputs; }
   getOutputSignals() { return this.outputs; }
   getInternalSignals() { return this.internals; }
   getSyncBlocks() { return this.syncBlocks; }
-  getCombinationalBlocks() { return this.combinationalBlocks; }
+  getCombinationalLogic() { return this.combinational; }
   getSubmodules() { return this.submodules; }
-  getContinuousAssignments() { return this.assignments; }
   getSignalMap() { return this.signalMap; }
   getWires() { return this.wires; }
 
@@ -38,9 +46,8 @@ export abstract class TSHDLModule {
 
   reset() {
     this.submodules = [];
-    this.assignments = [];
     this.syncBlocks = [];
-    this.combinationalBlocks = [];
+    this.combinational = [];
     return this;
   }
 
@@ -96,21 +103,8 @@ export abstract class TSHDLModule {
     this.syncBlocks.push({signal, edge, block});
   }
 
-  // TODO: Should just be a way to add combinationalLogic, not a block.
-  // Need to make sure we don't generate driver-driver conflicts
-  combinationalBlock(block:BlockExpression[]):void {
-    this.combinationalBlocks.push(block);
-  }
-
-  // TODO: Think about doing this combinational statements instead of some special case
-  assignContinuous(signal:SignalT, value:SignalLikeOrValue):void {
-    // TODO: Assert that this is indeed sensible
-    this.assignments.push({
-      type: ASSIGNMENT_EXPRESSION,
-      a: signal,
-      b: value,
-      width: signal.width
-    });
+  combinationalLogic(logic:CombinationalLogic[]):void {
+    this.combinational.push(...logic);
   }
 
   createSignalMap():void {
