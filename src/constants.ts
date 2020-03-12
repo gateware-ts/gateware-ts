@@ -10,5 +10,6 @@ export const UNARY_EXPRESSION = 'unaryExpression';
 export const TERNARY_EXPRESSION = 'ternaryExpression';
 export const SIGNAL = 'signal';
 export const CONSTANT = 'constant';
+export const CONCAT = 'concat';
 export const SLICE = 'slice';
 export const WIRE = 'wire';

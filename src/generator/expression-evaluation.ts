@@ -1,7 +1,7 @@
-import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION } from './../constants';
+import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT } from './../constants';
 import { UnaryExpression, Operation, SignalLikeOrValue, TernaryExpression, ComparrisonExpression, ComparrisonOperation, OperationExpression, SignalLike, BooleanExpression, BooleanOperation } from './../main-types';
 import { TSHDLModule } from "../hdl-module"
-import { SignalT, WireT, ConstantT, SliceT } from "../signals";
+import { SignalT, WireT, ConstantT, SliceT, ConcatT } from "../signals";
 import { SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION, TERNARY_EXPRESSION } from '../constants';
 
 const parenthize = (s:SignalLike, fn:(s:SignalLikeOrValue) => string):string =>
@@ -35,6 +35,9 @@ export class ExpressionEvaluator {
       }
       case CONSTANT:{
         return this.evaluateConstant(expr as ConstantT);
+      }
+      case CONCAT:{
+        return this.evaluateConcat(expr as ConcatT);
       }
       case UNARY_EXPRESSION:{
         return this.evaluateUnaryExpression(expr as UnaryExpression);
@@ -70,6 +73,10 @@ export class ExpressionEvaluator {
 
   evaluateConstant(c:ConstantT) {
     return `${c.width}'b${c.value.toString(2).padStart(c.width, '0')}`;
+  }
+
+  evaluateConcat(c:ConcatT) {
+    return `{${c.signals.map(this.evaluate).join(', ')}}`;
   }
 
   evaluateUnaryExpression(u:UnaryExpression) {

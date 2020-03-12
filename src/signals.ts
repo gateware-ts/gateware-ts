@@ -17,12 +17,11 @@ import {
   COMPARRISON_EXPRESSION,
   SIGNAL,
   CONSTANT,
+  CONCAT,
   SLICE,
   WIRE,
   BOOLEAN_EXPRESSION
 } from "./constants";
-
-// TODO: Base class, with operations like shifts
 
 export abstract class BaseSignalLike {
   type:string;
@@ -30,6 +29,10 @@ export abstract class BaseSignalLike {
 
   slice(fromBit:number, toBit:number):SliceT {
     return Slice(this, fromBit, toBit);
+  }
+
+  concat(signals:SignalLike[]):ConcatT {
+    return new ConcatT([this, ...signals]);
   }
 
   eq(b:SignalLikeOrValue):ComparrisonExpression {
@@ -167,6 +170,10 @@ export abstract class BaseSignalLike {
   ['>>'](b:SignalLikeOrValue) {
     return this.shiftRight(b);
   }
+
+  ['++'](signals:SignalLike[]) {
+    return this.concat(signals);
+  }
 }
 
 export class ConstantT extends BaseSignalLike {
@@ -180,6 +187,18 @@ export class ConstantT extends BaseSignalLike {
     this.value = value;
     this.signedness = signedness;
     this.width = width;
+  }
+}
+
+export class ConcatT extends BaseSignalLike {
+  signals: SignalLike[];
+  width:number;
+  readonly type:string = CONCAT;
+
+  constructor(signals:SignalLike[]) {
+    super();
+    this.signals = signals;
+    this.width = signals.reduce((a, b) => a + b.width, 0);
   }
 }
 
@@ -261,6 +280,8 @@ export const Slice = (a:SignalLike, fromBit:number, toBit:number) =>
 
 export const Constant = (width:number = 1, value:number = 0, signedness:Signedness = Signedness.Unsigned) =>
   new ConstantT(width, value, signedness);
+export const Concat = (signals:SignalLike[]) => new ConcatT(signals);
+
 
 export const HIGH = Constant(1, 1);
 export const LOW = Constant(1, 0);

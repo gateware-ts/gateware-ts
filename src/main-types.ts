@@ -1,5 +1,5 @@
 import { IfExpression } from './block-expressions';
-import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike } from './signals';
+import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT } from './signals';
 import { TSHDLModule } from './hdl-module';
 
 export enum Signedness {
@@ -112,6 +112,7 @@ export type SignalLike  = BaseSignalLike
                         | SignalT
                         | WireT
                         | SliceT
+                        | ConcatT
                         | UnaryExpression
                         | ComparrisonExpression
                         | ConstantT
