@@ -169,12 +169,9 @@ export type SubmoduleReference = {
   submoduleName: string;
 };
 
-// TODO: This type is pretty weird... twake a second look to see if the code using it
-// can be refactored to be less weird
-export type ParentModuleSignalDescriptorObject = {
+export type ModuleDescriptorObject = {
   m:TSHDLModule,
   descriptor:ModuleSignalDescriptor,
-  submoduleRef?:SubmoduleReference;
 };
 
 export type SignalMap = {

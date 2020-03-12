@@ -6,7 +6,7 @@ import {
   Port,
   SubmoduleReference,
   SignalMap,
-  ParentModuleSignalDescriptorObject,
+  ModuleDescriptorObject,
   SubmodulePortMappping,
   CombinationalLogic
 } from './main-types';
@@ -185,7 +185,7 @@ export abstract class TSHDLModule {
     return descriptor;
   }
 
-  findAnyModuleSignalDescriptor(s:Port):ParentModuleSignalDescriptorObject {
+  findAnyModuleSignalDescriptor(s:Port):ModuleDescriptorObject {
     // Try to find the signal within the parent
     try {
       return {m:this, descriptor: this.getModuleSignalDescriptor(s)};
@@ -204,7 +204,7 @@ export abstract class TSHDLModule {
     });
 
     if (descriptor) {
-      return {m:sm.m, descriptor, submoduleRef: sm};
+      return { m:sm.m, descriptor};
     }
 
     throw new Error(`Unable to find signal ${s} in this module or any of it's submodules.`);
