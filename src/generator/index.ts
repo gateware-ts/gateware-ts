@@ -1,4 +1,3 @@
-import { ExpressionEvaluator } from './expression-evaluation';
 import { TSHDLModule } from "../hdl-module";
 import { SignalT } from "../signals";
 import {
