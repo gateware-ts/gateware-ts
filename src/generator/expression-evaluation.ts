@@ -1,5 +1,5 @@
-import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE } from './../constants';
-import { UnaryExpression, Operation, SignalLikeOrValue, TernaryExpression, ComparrisonExpression, ComparrisonOperation, OperationExpression, SignalLike } from './../main-types';
+import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION } from './../constants';
+import { UnaryExpression, Operation, SignalLikeOrValue, TernaryExpression, ComparrisonExpression, ComparrisonOperation, OperationExpression, SignalLike, BooleanExpression, BooleanOperation } from './../main-types';
 import { TSHDLModule } from "../hdl-module"
 import { SignalT, WireT, ConstantT, SliceT } from "../signals";
 import { SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION, TERNARY_EXPRESSION } from '../constants';
@@ -47,6 +47,9 @@ export class ExpressionEvaluator {
       }
       case TERNARY_EXPRESSION:{
         return this.evaluateTernaryExpression(expr as TernaryExpression);
+      }
+      case BOOLEAN_EXPRESSION:{
+        return this.evaluateBooleanExpression(expr as BooleanExpression);
       }
       case OPERATION_EXPRESSION: {
         return this.evaluateOperationExpression(expr as OperationExpression);
@@ -100,6 +103,46 @@ export class ExpressionEvaluator {
       throw new Error(`Unrecognised comparrison operation`);
 
     return `${parenthize(c.a, this.evaluate)} ${op} ${this.evaluate(c.b)}`;
+  }
+
+  evaluateBooleanExpression(expr:BooleanExpression) {
+    let op:string;
+
+    switch (expr.op) {
+      case BooleanOperation.And: {
+        op = '&';
+        break;
+      }
+      case BooleanOperation.Or: {
+        op = '|';
+        break;
+      }
+      case BooleanOperation.Xor: {
+        op = '^';
+        break;
+      }
+      case BooleanOperation.LeftShift: {
+        op = '<<';
+        break;
+      }
+      case BooleanOperation.LeftArithmeticShift: {
+        op = '<<<';
+        break;
+      }
+      case BooleanOperation.RightShift: {
+        op = '>>';
+        break;
+      }
+      case BooleanOperation.RightArithmeticShift: {
+        op = '>>>';
+        break;
+      }
+      default: {
+        throw new Error(`Unrecognised boolean operation`);
+      }
+    }
+
+    return `${parenthize(expr.a, this.evaluate)} ${op} ${this.evaluate(expr.b)}`;
   }
 
   evaluateTernaryExpression(t:TernaryExpression) {

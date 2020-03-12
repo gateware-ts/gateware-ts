@@ -1,5 +1,5 @@
 import { IfExpression } from './block-expressions';
-import { SignalT, ConstantT, SliceT, WireT } from './signals';
+import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike } from './signals';
 import { TSHDLModule } from './hdl-module';
 
 export enum Signedness {
@@ -16,7 +16,17 @@ export enum Operation {
   Plus,
   Minus,
   Not,
-  Bit
+  Bit,
+};
+
+export enum BooleanOperation {
+  And,
+  Or,
+  Xor,
+  LeftShift,
+  RightShift,
+  LeftArithmeticShift,
+  RightArithmeticShift,
 };
 
 export enum ComparrisonOperation {
@@ -33,6 +43,14 @@ export enum LogicExpressionType {
   Switch,
   Case
 }
+
+export interface BooleanExpression {
+  a: SignalLike;
+  b: SignalLikeOrValue;
+  op: BooleanOperation;
+  type: 'booleanExpression';
+  width: number;
+};
 
 export interface ComparrisonExpression {
   a: SignalLike;
@@ -90,7 +108,17 @@ export interface DefaultCaseExpression {
 };
 
 export type Port = SignalT | WireT;
-export type SignalLike = SignalT | WireT | SliceT | UnaryExpression | ComparrisonExpression | ConstantT | OperationExpression | TernaryExpression;
+export type SignalLike  = BaseSignalLike
+                        | SignalT
+                        | WireT
+                        | SliceT
+                        | UnaryExpression
+                        | ComparrisonExpression
+                        | ConstantT
+                        | OperationExpression
+                        | TernaryExpression
+                        | BooleanExpression;
+
 export type SignalLikeOrValue = SignalLike | number;
 export type Slicable = SignalT | SliceT | UnaryExpression | ConstantT | OperationExpression;
 export type CaseExpression = SubjectiveCaseExpression | DefaultCaseExpression;

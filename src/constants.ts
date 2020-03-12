@@ -5,6 +5,7 @@ export const DEFAULT_CASE_EXPRESSION = 'defaultCaseExpression';
 export const COMPARRISON_EXPRESSION = 'comparrisonExpression';
 export const OPERATION_EXPRESSION = 'operationExpression';
 export const ASSIGNMENT_EXPRESSION = 'assignmentExpression';
+export const BOOLEAN_EXPRESSION = 'booleanExpression';
 export const UNARY_EXPRESSION = 'unaryExpression';
 export const TERNARY_EXPRESSION = 'ternaryExpression';
 export const SIGNAL = 'signal';
