@@ -45,6 +45,56 @@ export abstract class BaseSignalLike {
     };
   }
 
+  lt(b:SignalLikeOrValue):ComparrisonExpression {
+    return {
+      a: this,
+      b,
+      comparrisonOp: ComparrisonOperation.LessThan,
+      type:COMPARRISON_EXPRESSION,
+      width: 1
+    };
+  }
+
+  gt(b:SignalLikeOrValue):ComparrisonExpression {
+    return {
+      a: this,
+      b,
+      comparrisonOp: ComparrisonOperation.GreaterThan,
+      type:COMPARRISON_EXPRESSION,
+      width: 1
+    };
+  }
+
+  lte(b:SignalLikeOrValue):ComparrisonExpression {
+    return {
+      a: this,
+      b,
+      comparrisonOp: ComparrisonOperation.LessThanOrEqualTo,
+      type:COMPARRISON_EXPRESSION,
+      width: 1
+    };
+  }
+
+  gte(b:SignalLikeOrValue):ComparrisonExpression {
+    return {
+      a: this,
+      b,
+      comparrisonOp: ComparrisonOperation.GreaterThanOrEqualTo,
+      type:COMPARRISON_EXPRESSION,
+      width: 1
+    };
+  }
+
+  neq(b:SignalLikeOrValue):ComparrisonExpression {
+    return {
+      a: this,
+      b,
+      comparrisonOp: ComparrisonOperation.NotEqual,
+      type:COMPARRISON_EXPRESSION,
+      width: 1
+    };
+  }
+
   plus(b:SignalLikeOrValue):OperationExpression {
     return {
       a: this,
@@ -201,6 +251,30 @@ export abstract class BaseSignalLike {
 
   ['++'](signals:SignalLike[]) {
     return this.concat(signals);
+  }
+
+  ['=='](b:SignalLikeOrValue) {
+    return this.eq(b);
+  }
+
+  ['!='](b:SignalLikeOrValue) {
+    return this.neq(b);
+  }
+
+  ['<'](b:SignalLikeOrValue) {
+    return this.lt(b);
+  }
+
+  ['>'](b:SignalLikeOrValue) {
+    return this.gt(b);
+  }
+
+  ['<='](b:SignalLikeOrValue) {
+    return this.lte(b);
+  }
+
+  ['>='](b:SignalLikeOrValue) {
+    return this.gte(b);
   }
 }
 
