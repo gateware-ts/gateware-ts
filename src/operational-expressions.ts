@@ -9,6 +9,13 @@ export const Not = (s:SignalLike): UnaryExpression => ({
   width: s.width
 });
 
+export const LogicalNot = (s:SignalLike): UnaryExpression => ({
+  a: s,
+  op: Operation.LogicalNot,
+  type: UNARY_EXPRESSION,
+  width: 1
+});
+
 export const Bit = (s:SignalLike, index:number) =>
   Slice(s, index, index);
 

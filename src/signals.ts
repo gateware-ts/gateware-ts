@@ -75,6 +75,26 @@ export abstract class BaseSignalLike {
     };
   }
 
+  andLogical(b:SignalLikeOrValue):BooleanExpression {
+    return {
+      a: this,
+      b,
+      op: BooleanOperation.LogicalAnd,
+      type: BOOLEAN_EXPRESSION,
+      width: 1
+    };
+  }
+
+  orLogical(b:SignalLikeOrValue):BooleanExpression {
+    return {
+      a: this,
+      b,
+      op: BooleanOperation.LogicalOr,
+      type: BOOLEAN_EXPRESSION,
+      width: 1
+    };
+  }
+
   or(b:SignalLikeOrValue):BooleanExpression {
     return {
       a: this,
@@ -147,8 +167,16 @@ export abstract class BaseSignalLike {
     return this.and(b);
   }
 
+  ['&&'](b:SignalLikeOrValue) {
+    return this.andLogical(b);
+  }
+
   ['|'](b:SignalLikeOrValue) {
     return this.or(b);
+  }
+
+  ['||'](b:SignalLikeOrValue) {
+    return this.orLogical(b);
   }
 
   ['^'](b:SignalLikeOrValue) {

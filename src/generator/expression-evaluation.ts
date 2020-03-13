@@ -85,6 +85,10 @@ export class ExpressionEvaluator {
         return `~${parenthize(u.a, this.evaluate)}`;
       }
 
+      case Operation.LogicalNot: {
+        return `!${parenthize(u.a, this.evaluate)}`;
+      }
+
       default: {
         throw new Error(`Unrecognised unary operation`);
       }
@@ -122,6 +126,14 @@ export class ExpressionEvaluator {
       }
       case BooleanOperation.Or: {
         op = '|';
+        break;
+      }
+      case BooleanOperation.LogicalAnd: {
+        op = '&&';
+        break;
+      }
+      case BooleanOperation.LogicalOr: {
+        op = '||';
         break;
       }
       case BooleanOperation.Xor: {

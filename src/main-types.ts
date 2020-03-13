@@ -16,6 +16,7 @@ export enum Operation {
   Plus,
   Minus,
   Not,
+  LogicalNot,
   Bit,
 };
 
@@ -23,6 +24,8 @@ export enum BooleanOperation {
   And,
   Or,
   Xor,
+  LogicalAnd,
+  LogicalOr,
   LeftShift,
   RightShift,
   LeftArithmeticShift,
