@@ -1,4 +1,3 @@
-
 import {
   Signedness,
   SignalLikeOrValue,
@@ -9,7 +8,6 @@ import {
   ComparrisonExpression,
   SignalLike,
   BooleanOperation,
-  BooleanExpression
 } from "./main-types";
 import {
   ASSIGNMENT_EXPRESSION,
@@ -116,93 +114,39 @@ export abstract class BaseSignalLike {
   }
 
   and(b:SignalLikeOrValue):BooleanExpression {
-    return {
-      a: this,
-      b,
-      op: BooleanOperation.And,
-      type: BOOLEAN_EXPRESSION,
-      width: this.width
-    };
+    return new BooleanExpression(this, b, BooleanOperation.And, this.width);
   }
 
   andLogical(b:SignalLikeOrValue):BooleanExpression {
-    return {
-      a: this,
-      b,
-      op: BooleanOperation.LogicalAnd,
-      type: BOOLEAN_EXPRESSION,
-      width: 1
-    };
+    return new BooleanExpression(this, b, BooleanOperation.LogicalAnd, 1);
   }
 
   orLogical(b:SignalLikeOrValue):BooleanExpression {
-    return {
-      a: this,
-      b,
-      op: BooleanOperation.LogicalOr,
-      type: BOOLEAN_EXPRESSION,
-      width: 1
-    };
+    return new BooleanExpression(this, b, BooleanOperation.LogicalOr, 1);
   }
 
   or(b:SignalLikeOrValue):BooleanExpression {
-    return {
-      a: this,
-      b,
-      op: BooleanOperation.Or,
-      type: BOOLEAN_EXPRESSION,
-      width: this.width
-    };
+    return new BooleanExpression(this, b, BooleanOperation.Or, this.width);
   }
 
   xor(b:SignalLikeOrValue):BooleanExpression {
-    return {
-      a: this,
-      b,
-      op: BooleanOperation.Xor,
-      type: BOOLEAN_EXPRESSION,
-      width: this.width
-    };
+    return new BooleanExpression(this, b, BooleanOperation.Xor, this.width);
   }
 
   shiftLeft(b:SignalLikeOrValue):BooleanExpression {
-    return {
-      a: this,
-      b,
-      op: BooleanOperation.LeftShift,
-      type: BOOLEAN_EXPRESSION,
-      width: this.width
-    };
+    return new BooleanExpression(this, b, BooleanOperation.LeftShift, this.width);
   }
 
   shiftRight(b:SignalLikeOrValue):BooleanExpression {
-    return {
-      a: this,
-      b,
-      op: BooleanOperation.RightShift,
-      type: BOOLEAN_EXPRESSION,
-      width: this.width
-    };
+    return new BooleanExpression(this, b, BooleanOperation.RightShift, this.width);
   }
 
   shiftLeftA(b:SignalLikeOrValue):BooleanExpression {
-    return {
-      a: this,
-      b,
-      op: BooleanOperation.LeftArithmeticShift,
-      type: BOOLEAN_EXPRESSION,
-      width: this.width
-    };
+    return new BooleanExpression(this, b, BooleanOperation.LeftArithmeticShift, this.width);
   }
 
   shiftRightA(b:SignalLikeOrValue):BooleanExpression {
-    return {
-      a: this,
-      b,
-      op: BooleanOperation.RightArithmeticShift,
-      type: BOOLEAN_EXPRESSION,
-      width: this.width
-    };
+    return new BooleanExpression(this, b, BooleanOperation.RightArithmeticShift, this.width);
   }
 
   ['+'](b:SignalLikeOrValue) {
@@ -278,10 +222,23 @@ export abstract class BaseSignalLike {
   }
 }
 
+export class BooleanExpression extends BaseSignalLike {
+  readonly type:string = BOOLEAN_EXPRESSION;
+  a:SignalLike;
+  b:SignalLikeOrValue;
+  op:BooleanOperation;
+
+  constructor(a:SignalLike, b:SignalLikeOrValue, op:BooleanOperation, width:number) {
+    super();
+    this.a = a;
+    this.b = b;
+    this.op = op;
+  }
+}
+
 export class ConstantT extends BaseSignalLike {
   value:number;
   signedness:Signedness;
-  width:number;
   readonly type:string = CONSTANT;
 
   constructor(width:number, value:number, signedness:Signedness) {

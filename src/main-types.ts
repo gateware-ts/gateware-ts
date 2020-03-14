@@ -1,5 +1,5 @@
 import { IfExpression } from './block-expressions';
-import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT } from './signals';
+import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression } from './signals';
 import { TSHDLModule } from './hdl-module';
 
 export enum Signedness {
@@ -46,14 +46,6 @@ export enum LogicExpressionType {
   Switch,
   Case
 }
-
-export interface BooleanExpression {
-  a: SignalLike;
-  b: SignalLikeOrValue;
-  op: BooleanOperation;
-  type: 'booleanExpression';
-  width: number;
-};
 
 export interface ComparrisonExpression {
   a: SignalLike;
