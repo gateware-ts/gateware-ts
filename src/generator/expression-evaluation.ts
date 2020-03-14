@@ -1,7 +1,7 @@
 import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT } from './../constants';
-import { UnaryExpression, Operation, SignalLikeOrValue, TernaryExpression, ComparrisonExpression, ComparrisonOperation, OperationExpression, SignalLike, BooleanExpression, BooleanOperation } from './../main-types';
+import { UnaryExpression, Operation, SignalLikeOrValue, TernaryExpression, ComparrisonExpression, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation } from './../main-types';
 import { TSHDLModule } from "../hdl-module"
-import { SignalT, WireT, ConstantT, SliceT, ConcatT } from "../signals";
+import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpression } from "../signals";
 import { SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION, TERNARY_EXPRESSION } from '../constants';
 
 const parenthize = (s:SignalLike, fn:(s:SignalLikeOrValue) => string):string =>
@@ -9,11 +9,15 @@ const parenthize = (s:SignalLike, fn:(s:SignalLikeOrValue) => string):string =>
 
 export class ExpressionEvaluator {
   private workingModule: TSHDLModule;
+  private signalResolver: (s:SignalT) => string;
 
-  constructor(m?:TSHDLModule) {
-    if (m) {
-      this.workingModule = m;
-    }
+  constructor(m:TSHDLModule, resolveSignal?:(s:SignalT) => string) {
+    this.workingModule = m;
+
+    this.signalResolver = resolveSignal
+      ? resolveSignal
+      : s => this.workingModule.getModuleSignalDescriptor(s).name;
+
     this.evaluate = this.evaluate.bind(this);
   }
 
@@ -28,10 +32,10 @@ export class ExpressionEvaluator {
 
     switch (expr.type) {
       case SIGNAL:{
-        return this.evaluateSignalOrWire(expr as SignalT);
+        return this.signalResolver(expr as SignalT);
       }
       case WIRE:{
-        return this.evaluateSignalOrWire(expr as WireT);
+        return this.evaluateWire(expr as WireT);
       }
       case CONSTANT:{
         return this.evaluateConstant(expr as ConstantT);
@@ -67,7 +71,7 @@ export class ExpressionEvaluator {
     }
   }
 
-  evaluateSignalOrWire(s:SignalT | WireT) {
+  evaluateWire(s:SignalT | WireT) {
     return this.workingModule.getModuleSignalDescriptor(s).name;
   }
 

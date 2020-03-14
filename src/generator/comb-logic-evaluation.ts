@@ -13,15 +13,10 @@ export class CombLogicEvaluator {
 
   getDrivenSignals() { return this.drivenSignals; }
 
-  constructor(m?:TSHDLModule, indentLevel:number = 1) {
+  constructor(m:TSHDLModule, indentLevel:number = 1) {
     this.t = new TabLevel('  ', indentLevel);
-    this.expr = new ExpressionEvaluator();
-
-    if (m) {
-      this.workingModule = m;
-      this.expr.setWorkingModule(m);
-    }
-
+    this.workingModule = m;
+    this.expr = new ExpressionEvaluator(m);
     this.evaluate = this.evaluate.bind(this);
   }
 

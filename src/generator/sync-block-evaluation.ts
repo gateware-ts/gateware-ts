@@ -16,17 +16,21 @@ export class SyncBlockEvaluator {
 
   getDrivenSignals() { return this.drivenSignals; }
 
-  constructor(m?:TSHDLModule, indentLevel:number = 1) {
+  constructor(m:TSHDLModule, indentLevel:number = 1) {
     this.t = new TabLevel('  ', indentLevel);
     this.internalShadowedRegistersMap = new Map();
-    this.expr = new ExpressionEvaluator();
 
-    if (m) {
-      this.workingModule = m;
-      this.expr.setWorkingModule(m);
-    }
-
+    this.workingModule = m;
+    this.expr = new ExpressionEvaluator(m, this.substituteForShadowed.bind(this));
     this.evaluate = this.evaluate.bind(this);
+  }
+
+  private substituteForShadowed(s:SignalT) {
+    const ss = this.internalShadowedRegistersMap.get(s);
+    if (ss) {
+      return ss.name;
+    }
+    return this.workingModule.getModuleSignalDescriptor(s).name;
   }
 
   private addDrivenSignal(driven:SignalT) {
