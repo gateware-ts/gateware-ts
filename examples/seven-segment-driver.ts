@@ -1,5 +1,5 @@
 import {
-  TSHDLModule,
+  GWModule,
   Signal,
   Constant,
   Edge,
@@ -11,7 +11,7 @@ import {
 
 const SevenSegValues = [1, 79, 18, 6, 76, 36, 32, 15, 0, 4, 8, 96, 49, 66, 48, 56].map(n => Constant(7, n));
 
-export class SevenSegmentDriver extends TSHDLModule {
+export class SevenSegmentDriver extends GWModule {
   clk = this.input(Signal());
   byte = this.input(Signal(4));
 

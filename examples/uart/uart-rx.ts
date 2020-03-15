@@ -1,5 +1,5 @@
 import {
-  TSHDLModule,
+  GWModule,
   Signal,
   LOW,
   HIGH,
@@ -40,7 +40,7 @@ enum RXStates {
 
 const CLOCK_CYCLES_PER_BIT = Math.round(12000000 / 115200);
 const CLOCK_CYCLES_TILL_MID = Math.round(CLOCK_CYCLES_PER_BIT / 2);
-class UART_RX extends TSHDLModule {
+class UART_RX extends GWModule {
   clk = this.input(uSignal());
   in = this.input(uSignal());
 
@@ -141,7 +141,7 @@ class UART_RX extends TSHDLModule {
   }
 }
 
-class DataLatch extends TSHDLModule {
+class DataLatch extends GWModule {
   clk = this.input(uSignal());
   in = this.input(uSignal(8));
   enabled = this.input(uSignal());
@@ -167,7 +167,7 @@ class DataLatch extends TSHDLModule {
   }
 }
 
-const Mux2xN = N => class extends TSHDLModule {
+const Mux2xN = N => class extends GWModule {
   sel = this.input(Signal());
   a = this.input(Signal(N));
   b = this.input(Signal(N));
@@ -184,7 +184,7 @@ const Mux2xN = N => class extends TSHDLModule {
 }
 const Mux2x4 = Mux2xN(4);
 
-class Top extends TSHDLModule {
+class Top extends GWModule {
   CLK = this.input(uSignal());
   RX = this.input(uSignal());
 
@@ -264,7 +264,7 @@ class Top extends TSHDLModule {
   }
 }
 
-class Debug extends TSHDLModule {
+class Debug extends GWModule {
   CLK = this.input(uSignal());
   RX = this.input(uSignal());
   LED1 = this.output(uSignal());

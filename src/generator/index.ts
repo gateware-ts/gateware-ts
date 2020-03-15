@@ -1,4 +1,4 @@
-import { TSHDLModule } from "../hdl-module";
+import { GWModule } from "../gw-module";
 import { SignalT } from "../signals";
 import {
   PortWiring,
@@ -18,9 +18,9 @@ interface CodeGeneratorOptions {};
 
 export class CodeGenerator {
   options:CodeGeneratorOptions;
-  m:TSHDLModule;
+  m:GWModule;
 
-  constructor(m:TSHDLModule, options:CodeGeneratorOptions = {}) {
+  constructor(m:GWModule, options:CodeGeneratorOptions = {}) {
     this.options = options;
     this.m = m;
 
@@ -30,7 +30,7 @@ export class CodeGenerator {
     m.describe();
   }
 
-  generateVerilogCodeForModule(m:TSHDLModule):GeneratedVerilogObject {
+  generateVerilogCodeForModule(m:GWModule):GeneratedVerilogObject {
     const t = new TabLevel('  ', 1);
     const thisModuleHasSubmodules = m.getSubmodules().length > 0;
 
@@ -80,7 +80,7 @@ export class CodeGenerator {
     const internalRegisters = syncEval.generateInternalRegisterDeclarations();
     const internalWires = syncEval.generateInternalWireDeclarations();
 
-    const wireMap = new Map<TSHDLModule, PortWiring>();
+    const wireMap = new Map<GWModule, PortWiring>();
     let wireIndex = 0;
 
     const inputWires = flatten(m.getSubmodules().map(sm => {

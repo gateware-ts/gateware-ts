@@ -1,5 +1,5 @@
 import {
-  TSHDLModule,
+  GWModule,
   Edge,
   Signal,
   LOW,
@@ -17,7 +17,7 @@ enum OneShotStates {
   DebounceRelease
 };
 const COUNTER_BITS = 17;
-export class OneShotDebouncer extends TSHDLModule {
+export class OneShotDebouncer extends GWModule {
   clk = this.input(Signal());
   in = this.input(Signal());
   o = this.output(Signal());

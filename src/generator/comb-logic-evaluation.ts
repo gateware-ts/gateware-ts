@@ -1,19 +1,19 @@
 import { ExpressionEvaluator } from './expression-evaluation';
-import { TSHDLModule } from "../hdl-module";
+import { GWModule } from "../gw-module";
 import { AssignmentExpression, CombinationalLogic } from '../main-types';
 import { ASSIGNMENT_EXPRESSION } from '../constants';
 import { TabLevel } from '../helpers';
 import { SignalT } from '../signals';
 
 export class CombLogicEvaluator {
-  private workingModule: TSHDLModule;
+  private workingModule: GWModule;
   private expr: ExpressionEvaluator;
   private t: TabLevel;
   private drivenSignals:SignalT[] = [];
 
   getDrivenSignals() { return this.drivenSignals; }
 
-  constructor(m:TSHDLModule, indentLevel:number = 1) {
+  constructor(m:GWModule, indentLevel:number = 1) {
     this.t = new TabLevel('  ', indentLevel);
     this.workingModule = m;
     this.expr = new ExpressionEvaluator(m);
@@ -26,7 +26,7 @@ export class CombLogicEvaluator {
     }
   }
 
-  setWorkingModule(m:TSHDLModule) {
+  setWorkingModule(m:GWModule) {
     this.workingModule = m;
     this.expr.setWorkingModule(m);
   }

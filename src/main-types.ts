@@ -1,6 +1,6 @@
 import { IfExpression } from './block-expressions';
 import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression } from './signals';
-import { TSHDLModule } from './hdl-module';
+import { GWModule } from './gw-module';
 
 export enum Signedness {
   Signed,
@@ -148,7 +148,7 @@ export type ModuleSignalDescriptor = {
 
 export type GeneratedVerilogObject = {
   code:string;
-  submodules: TSHDLModule[];
+  submodules: GWModule[];
 };
 
 export type SubmodulePortMappping = {
@@ -159,13 +159,13 @@ export type SubmodulePortMappping = {
 export type PortWiring = { [portName:string]: string; };
 
 export type SubmoduleReference = {
-  m: TSHDLModule;
+  m: GWModule;
   mapping: SubmodulePortMappping;
   submoduleName: string;
 };
 
 export type ModuleDescriptorObject = {
-  m:TSHDLModule,
+  m:GWModule,
   descriptor:ModuleSignalDescriptor,
 };
 

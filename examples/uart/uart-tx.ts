@@ -1,5 +1,5 @@
 import {
-  TSHDLModule,
+  GWModule,
   Signal,
   LOW,
   HIGH,
@@ -38,7 +38,7 @@ enum TXStates {
   Bit8,
   SendStopBit,
 };
-class UART_TX extends TSHDLModule {
+class UART_TX extends GWModule {
   clk = this.input(uSignal());
   sendEnable = this.input(uSignal());
   byte = this.input(uSignal(8));
@@ -134,7 +134,7 @@ class UART_TX extends TSHDLModule {
   }
 }
 
-class ByteTracker extends TSHDLModule {
+class ByteTracker extends GWModule {
   clk = this.input(Signal());
   up = this.input(Signal());
   down = this.input(Signal());
@@ -167,7 +167,7 @@ class ByteTracker extends TSHDLModule {
   }
 }
 
-const Mux2xN = N => class extends TSHDLModule {
+const Mux2xN = N => class extends GWModule {
   sel = this.input(Signal());
   a = this.input(Signal(N));
   b = this.input(Signal(N));
@@ -185,7 +185,7 @@ const Mux2xN = N => class extends TSHDLModule {
 
 const Mux2x4 = Mux2xN(4);
 
-class Selector extends TSHDLModule {
+class Selector extends GWModule {
   clk = this.input(Signal());
   o = this.output(Signal());
 
@@ -196,7 +196,7 @@ class Selector extends TSHDLModule {
   }
 }
 
-class Top extends TSHDLModule {
+class Top extends GWModule {
   CLK = this.input(Signal());
   BTN_N = this.input(Signal());
   BTN1 = this.input(Signal());

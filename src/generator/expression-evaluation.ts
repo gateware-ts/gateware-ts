@@ -1,6 +1,6 @@
 import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT } from './../constants';
 import { UnaryExpression, Operation, SignalLikeOrValue, TernaryExpression, ComparrisonExpression, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation } from './../main-types';
-import { TSHDLModule } from "../hdl-module"
+import { GWModule } from "../gw-module"
 import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpression } from "../signals";
 import { SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION, TERNARY_EXPRESSION } from '../constants';
 
@@ -8,10 +8,10 @@ const parenthize = (s:SignalLike, fn:(s:SignalLikeOrValue) => string):string =>
   (s.type === SIGNAL || s.type === WIRE) ? fn(s) : `(${fn(s)})`;
 
 export class ExpressionEvaluator {
-  private workingModule: TSHDLModule;
+  private workingModule: GWModule;
   private signalResolver: (s:SignalT) => string;
 
-  constructor(m:TSHDLModule, resolveSignal?:(s:SignalT) => string) {
+  constructor(m:GWModule, resolveSignal?:(s:SignalT) => string) {
     this.workingModule = m;
 
     this.signalResolver = resolveSignal
@@ -21,7 +21,7 @@ export class ExpressionEvaluator {
     this.evaluate = this.evaluate.bind(this);
   }
 
-  setWorkingModule(m:TSHDLModule) {
+  setWorkingModule(m:GWModule) {
     this.workingModule = m;
   }
 

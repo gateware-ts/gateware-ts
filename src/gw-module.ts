@@ -13,7 +13,7 @@ import {
 import { SignalT, WireT } from './signals';
 import { mapNamesToSignals } from './generator/common';
 
-export abstract class TSHDLModule {
+export abstract class GWModule {
   abstract describe():void;
   moduleName:string;
 
@@ -210,10 +210,11 @@ export abstract class TSHDLModule {
     throw new Error(`Unable to find signal ${s} in this module or any of it's submodules.`);
   }
 
+  // TODO: Throw if not all ports are mapped. Allow for an explicit NO_CONNECT, but don't silently fail
   // TODO: If I reset before I call init/describe, then I should be able to use the same instance
   // of a module multiple times. Combined with an automatic name detection like for the signals, this
   // would make working with submodules quite a bit easier
-  addSubmodule(m:TSHDLModule, submoduleName:string, signalMapping:SubmodulePortMappping):void {
+  addSubmodule(m:GWModule, submoduleName:string, signalMapping:SubmodulePortMappping):void {
     m.init();
     m.describe();
 

@@ -1,5 +1,5 @@
 import { ExpressionEvaluator } from './expression-evaluation';
-import { TSHDLModule } from "../hdl-module";
+import { GWModule } from "../gw-module";
 import { AssignmentExpression, InternallyShadowedRegister, BlockExpression, SwitchExpression, SubjectiveCaseExpression, SyncBlock, Edge } from '../main-types';
 import { SignalT } from '../signals';
 import { ASSIGNMENT_EXPRESSION, IF_EXPRESSION, SWITCH_EXPRESSION, CASE_EXPRESSION } from '../constants';
@@ -8,7 +8,7 @@ import { TabLevel } from '../helpers';
 import { getRegSize } from './common';
 
 export class SyncBlockEvaluator {
-  private workingModule: TSHDLModule;
+  private workingModule: GWModule;
   private expr: ExpressionEvaluator;
   private internalShadowedRegistersMap: Map<SignalT, InternallyShadowedRegister>;
   private drivenSignals:SignalT[] = [];
@@ -16,7 +16,7 @@ export class SyncBlockEvaluator {
 
   getDrivenSignals() { return this.drivenSignals; }
 
-  constructor(m:TSHDLModule, indentLevel:number = 1) {
+  constructor(m:GWModule, indentLevel:number = 1) {
     this.t = new TabLevel('  ', indentLevel);
     this.internalShadowedRegistersMap = new Map();
 
@@ -39,7 +39,7 @@ export class SyncBlockEvaluator {
     }
   }
 
-  setWorkingModule(m:TSHDLModule) {
+  setWorkingModule(m:GWModule) {
     this.workingModule = m;
     this.expr.setWorkingModule(m);
   }
