@@ -13,3 +13,4 @@ export const CONSTANT = 'constant';
 export const CONCAT = 'concat';
 export const SLICE = 'slice';
 export const WIRE = 'wire';
+export const PARAMETER_STRING = 'parameterString';

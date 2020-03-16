@@ -1,3 +1,4 @@
+import { VendorModule } from './vendor-module';
 import {
   SyncBlock,
   BlockExpression,
@@ -8,7 +9,8 @@ import {
   SignalMap,
   ModuleDescriptorObject,
   SubmodulePortMappping,
-  CombinationalLogic
+  CombinationalLogic,
+  VendorModuleReference
 } from './main-types';
 import { SignalT, WireT } from './signals';
 import { mapNamesToSignals } from './generator/common';
@@ -21,6 +23,7 @@ export abstract class GWModule {
   private outputs: SignalT[] = [];
   private internals: SignalT[] = [];
   private submodules: SubmoduleReference[] = [];
+  private vendorModules: VendorModuleReference[] = [];
   private wires: WireT[] = [];
 
   private syncBlocks: SyncBlock[] = [];
@@ -33,6 +36,7 @@ export abstract class GWModule {
   getSyncBlocks() { return this.syncBlocks; }
   getCombinationalLogic() { return this.combinational; }
   getSubmodules() { return this.submodules; }
+  getVendorModules() { return this.vendorModules; }
   getSignalMap() { return this.signalMap; }
   getWires() { return this.wires; }
 
@@ -268,5 +272,54 @@ export abstract class GWModule {
       submoduleName,
       mapping: signalMapping
     });
+  }
+
+  addVendorModule(m:VendorModule<any>, signalMapping:SubmodulePortMappping):void {
+    m.init();
+    const signalMap = m.getVendorSignalMap();
+    const nameSignalMap = {
+      ...mapNamesToSignals(signalMap.input),
+      ...mapNamesToSignals(signalMap.output),
+    };
+
+    Object.entries(signalMapping.inputs).forEach(([name, port]) => {
+      // Assert that we can link this signal
+      if (name in nameSignalMap) {
+        const descriptor = m.getModuleSignalDescriptor(m[name]);
+        // Assert that the signals are the same width
+        if (nameSignalMap[name].width !== port.width) {
+          throw new Error(`Width mismatch between ${this.moduleName}.${descriptor.name} and ${m.constructor.name}.${name}`);
+        }
+
+        // Assert that the target signal is indeed an input
+        if (descriptor.type !== 'input') {
+          throw new Error(`${descriptor.name} is not an input of module ${this.moduleName}.`);
+        }
+      } else {
+        throw new Error(`Vendor module error: No such port ${m.constructor.name}.${name}`);
+      }
+    });
+
+    Object.entries(signalMapping.outputs).forEach(([name, ports]) => {
+      ports.forEach(port => {
+        // Assert that we can link this signal
+        if (name in nameSignalMap) {
+          const descriptor = m.getModuleSignalDescriptor(m[name]);
+          // Assert that the signals are the same width
+          if (nameSignalMap[name].width !== port.width) {
+            throw new Error(`Width mismatch between ${this.moduleName}.${descriptor.name} and ${m.constructor.name}.${name}`);
+          }
+
+          // Assert that the target signal is indeed an input
+          if (descriptor.type !== 'output') {
+            throw new Error(`${descriptor.name} is not an output of module ${this.moduleName}.`);
+          }
+        } else {
+          throw new Error(`Submodule error: No such port ${m.constructor.name}.${name}`);
+        }
+      })
+    });
+
+    this.vendorModules.push({ m, mapping: signalMapping });
   }
 }

@@ -1,6 +1,7 @@
 import { IfExpression } from './block-expressions';
 import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression } from './signals';
 import { GWModule } from './gw-module';
+import { VendorModule } from './vendor-module';
 
 export enum Signedness {
   Signed,
@@ -164,6 +165,11 @@ export type SubmoduleReference = {
   submoduleName: string;
 };
 
+export type VendorModuleReference = {
+  m: VendorModule<any>;
+  mapping: SubmodulePortMappping;
+};
+
 export type ModuleDescriptorObject = {
   m:GWModule,
   descriptor:ModuleSignalDescriptor,
@@ -179,4 +185,14 @@ export type SignalMap = {
 export type DrivenSignal = {
   signal: SignalT;
   name: string;
+};
+
+export type ParameterString = {
+  type: 'parameterString',
+  value: string;
+};
+
+export type VendorSignalMap = {
+  input: Map<Port, string>,
+  output: Map<Port, string>,
 };

@@ -1,5 +1,6 @@
+import { ParameterString } from './../main-types';
 import { GWModule } from "../gw-module";
-import { SignalT } from "../signals";
+import { SignalT, ConstantT } from "../signals";
 import {
   PortWiring,
   GeneratedVerilogObject
@@ -8,6 +9,8 @@ import { TabLevel, flatten } from '../helpers';
 import { SyncBlockEvaluator } from './sync-block-evaluation';
 import { getRegSize, mapNamesToSignals } from './common';
 import { CombLogicEvaluator } from './comb-logic-evaluation';
+import { VendorModule } from "../vendor-module";
+import { ParameterEvaluator } from './parameter-evaluation';
 
 
 const toHeaderText = (type:string) => ([signalName, signal]:[string, SignalT]) => {
@@ -32,7 +35,12 @@ export class CodeGenerator {
 
   generateVerilogCodeForModule(m:GWModule):GeneratedVerilogObject {
     const t = new TabLevel('  ', 1);
-    const thisModuleHasSubmodules = m.getSubmodules().length > 0;
+
+    const mSubmodules = m.getSubmodules();
+    const mVendorModules = m.getVendorModules();
+    const allChildModules = [...mSubmodules, ...mVendorModules];
+
+    const thisModuleHasSubmodules = (mSubmodules.length + mVendorModules.length) > 0;
 
     const signalMap = m.getSignalMap();
     const namesToSignals = {
@@ -43,6 +51,7 @@ export class CodeGenerator {
 
     const syncEval = new SyncBlockEvaluator(m, 1);
     const combEval = new CombLogicEvaluator(m, 1);
+    const paramEval = new ParameterEvaluator();
 
     const header = [
       `module ${m.moduleName}(`,
@@ -80,10 +89,10 @@ export class CodeGenerator {
     const internalRegisters = syncEval.generateInternalRegisterDeclarations();
     const internalWires = syncEval.generateInternalWireDeclarations();
 
-    const wireMap = new Map<GWModule, PortWiring>();
+    const wireMap = new Map<GWModule | VendorModule<any>, PortWiring>();
     let wireIndex = 0;
 
-    const inputWires = flatten(m.getSubmodules().map(sm => {
+    const inputWires = flatten(allChildModules.map(sm => {
       const portWiring:PortWiring = {};
       wireMap.set(sm.m, portWiring);
 
@@ -97,7 +106,7 @@ export class CodeGenerator {
     const globalPortWiring:PortWiring = {};
     wireMap.set(m, globalPortWiring);
     const globalOutputAssignments = [];
-    const globalOutputWires = [...m.getSignalMap().output.entries()].map(([port, portName]) => {
+    const globalOutputWires = [...signalMap.output.entries()].map(([port, portName]) => {
       const wire = `w${wireIndex++}`;
       globalPortWiring[portName] = wire;
       globalOutputAssignments.push(`${t.l()}assign ${portName} = ${wire};`);
@@ -105,7 +114,7 @@ export class CodeGenerator {
     });
 
     const secondaryAssignments = [];
-    m.getSubmodules().forEach(sm => {
+    allChildModules.forEach(sm => {
       Object.entries(sm.mapping.outputs).forEach(([portName, associatedSignals]) => {
         const firstSignal = associatedSignals[0];
         const portDescriptor = m.findAnyModuleSignalDescriptor(firstSignal);
@@ -128,9 +137,9 @@ export class CodeGenerator {
 
     const globalInputAssignments = [];
     const tiedWiresAssignments = [];
-    [...m.getSignalMap().input.entries()].forEach(([port, portName]) => {
+    [...signalMap.input.entries()].forEach(([port, portName]) => {
       const connectedWires = [];
-      m.getSubmodules().forEach(sm => {
+      allChildModules.forEach(sm => {
         Object.entries(sm.mapping.inputs).forEach(([inputPortName, inputPort]) => {
           if (port === inputPort) {
             const wireName = wireMap.get(sm.m)[inputPortName];
@@ -170,7 +179,7 @@ export class CodeGenerator {
       ...(thisModuleHasSubmodules ? tiedWiresAssignments : []),
     ].join('\n');
 
-    const submodules = m.getSubmodules().map(submoduleReference => {
+    const submodules = mSubmodules.map(submoduleReference => {
       const out = [
         `${t.l()}${submoduleReference.m.moduleName} ${submoduleReference.submoduleName}(`
       ];
@@ -188,6 +197,40 @@ export class CodeGenerator {
       return out.join('\n');
     }).join('\n\n');
 
+    const vendorModules = mVendorModules.map(vendorModuleReference => {
+      const out = [
+        `${t.l()}${vendorModuleReference.m.constructor.name}`
+      ];
+
+      const pd = vendorModuleReference.m.getParameterDeclarations();
+      if (Object.keys(pd).length) {
+        out[0] += ' #(';
+        t.push();
+
+        out.push(
+          Object.entries(pd).map(([paramName, paramValue]:[string, ConstantT | ParameterString]) => {
+            return `${t.l()}.${paramName}(${paramEval.evaluate(paramValue)})`
+          }).join(',\n')
+        );
+
+        t.pop();
+        out.push(`${t.l()}) (`);
+        t.push();
+      } else {
+        out[0] += ' (';
+        t.push();
+      }
+
+      out.push(
+        Object.entries(wireMap.get(vendorModuleReference.m)).map(([portName, wire]) => {
+          return `${t.l()}.${portName}(${wire})`
+        }).join(',\n')
+      );
+
+      t.pop();
+      out.push(`${t.l()});`);
+      return out.join('\n');
+    }).join('\n\n');
 
     return {
       code: (
@@ -197,6 +240,7 @@ export class CodeGenerator {
         internalWires + (internalWires ? '\n' : '') +
         wireDeclarations + (wireDeclarations ? '\n\n' : '') +
         allAssignments + (allAssignments ? '\n\n' : '') +
+        vendorModules + (vendorModules ? '\n\n' : '') +
         submodules + (submodules ? '\n' : '') +
         combLogic + (combLogic ? '\n' : '') +
         syncBlocks + (syncBlocks ? '\n' : '') +
