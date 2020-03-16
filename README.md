@@ -17,7 +17,7 @@ The project aims to:
 - [ ] Interface to open source toolchain
   - Building, verifying, simulating, and programming directly from gateware-ts scripts
   - Automatic installation / compilation of tools
-- [ ] A way to define and instantiate vendor modules
+- [x] A way to define and instantiate vendor modules
   - Modules like Block RAMs, PLLs, etc
   - Must be type safe
   - Defined by parameters, inputs and outputs
