@@ -9,7 +9,7 @@ export class TabLevel {
     this.indent = this.indent.bind(this);
   }
 
-  l() { return this.ts.repeat(this.level); }
+  l(offset:number = 0) { return this.ts.repeat(this.level + offset); }
 
   push() { this.level++; }
   pop() { this.level--; }
