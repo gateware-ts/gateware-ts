@@ -1,3 +1,4 @@
+import { Simulation } from './simulation';
 import { VendorModule } from './vendor-module';
 import {
   SyncBlock,
@@ -30,6 +31,8 @@ export abstract class GWModule {
   private combinational: CombinationalLogic[] = [];
   private signalMap: SignalMap;
 
+  simulation:Simulation;
+
   getInputSignals() { return this.inputs; }
   getOutputSignals() { return this.outputs; }
   getInternalSignals() { return this.internals; }
@@ -42,6 +45,7 @@ export abstract class GWModule {
 
   constructor(name?:string) {
     this.moduleName = name || this.constructor.name;
+    this.simulation = new Simulation();
   }
 
   init() {
@@ -62,11 +66,15 @@ export abstract class GWModule {
   }
 
   private checkIfSignalWasPreviouslyAdded(s:SignalT) {
-    try {
-      this.getModuleSignalDescriptor(s);
-      return true;
-    } catch (ex) {
-      return false;
+    if (this.signalMap) {
+      try {
+        this.getModuleSignalDescriptor(s);
+        return true;
+      } catch (ex) {
+        return false;
+      }
+    } else {
+      return this.inputs.includes(s) || this.outputs.includes(s) || this.internals.includes(s);
     }
   }
 

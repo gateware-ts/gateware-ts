@@ -4,24 +4,23 @@ import {
   LOW,
   HIGH,
   Concat,
-  SignalT,
   Edge,
   BlockExpression,
-  Signedness,
   Switch,
   Case,
   If,
-  CodeGenerator,
   Bit,
   Ternary,
   Not,
 } from '../../src/index';
-
+import {
+  CLOCK_CYCLES_PER_BIT,
+  CLOCK_CYCLES_TILL_MID,
+  uSignal,
+  minimumBitsToFit,
+  inc
+} from './common';
 import { SevenSegmentDriver } from "../seven-segment-driver";
-
-const minimumBitsToFit = n => Math.ceil(Math.log2(n));
-const uSignal = (width = 1, defaultValue = 0) => Signal(width, Signedness.Unsigned, defaultValue);
-const inc = (s:SignalT) => s ['='] (s ['+'] (1));
 
 enum RXStates {
   Idle,
@@ -38,9 +37,8 @@ enum RXStates {
   ReceiveStopBit,
 };
 
-const CLOCK_CYCLES_PER_BIT = Math.round(12000000 / 115200);
-const CLOCK_CYCLES_TILL_MID = Math.round(CLOCK_CYCLES_PER_BIT / 2);
-class UART_RX extends GWModule {
+
+export class UART_RX extends GWModule {
   clk = this.input(uSignal());
   in = this.input(uSignal());
 
@@ -216,12 +214,6 @@ class Top extends GWModule {
       }
     });
 
-    // clk
-    // in
-    // enabled
-
-    // lowNibble
-    // highNibble
     this.addSubmodule(latch, 'dataLatch', {
       inputs: {
         clk: this.CLK,
@@ -263,25 +255,3 @@ class Top extends GWModule {
     })
   }
 }
-
-class Debug extends GWModule {
-  CLK = this.input(uSignal());
-  RX = this.input(uSignal());
-  LED1 = this.output(uSignal());
-  hadData = this.internal(uSignal());
-
-  describe() {
-    this.combinationalLogic([
-      this.LED1 ['='] (this.hadData)
-    ])
-    this.syncBlock(this.CLK, Edge.Positive, [
-      // If the RX line ever goes low (start bit) then shine the led
-      If (this.RX ['=='] (LOW), [
-        this.hadData ['='] (HIGH)
-      ])
-    ])
-  }
-}
-
-const cg = new CodeGenerator(new Top('top'));
-console.log(cg.toVerilog());

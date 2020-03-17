@@ -11,7 +11,8 @@ import {
   SwitchExpression,
   SubjectiveCaseExpression,
   DefaultCaseExpression,
-  SignalLikeOrValue
+  SignalLikeOrValue,
+  SimulationExpression
 } from './main-types';
 
 export class IfExpression {
@@ -32,7 +33,26 @@ export class IfExpression {
   }
 }
 
+export class SIfExpression {
+  type = IF_EXPRESSION;
+  subject: SignalLike;
+  exprs: SimulationExpression[];
+  elseClause: SimulationExpression[] | null;
+
+  constructor(expr:SignalLike, body:SimulationExpression[]) {
+    this.exprs = body;
+    this.subject = expr;
+    this.elseClause = null;
+  }
+
+  Else(body:SimulationExpression[]) {
+    this.elseClause = body;
+    return this;
+  }
+}
+
 export const If = (expr:SignalLike, body:BlockExpression[]):IfExpression => new IfExpression(expr, body);
+export const SIf = (expr:SignalLike, body:SimulationExpression[]) => new SIfExpression(expr, body);
 
 export const Switch = (s:SignalLike, cases:CaseExpression[]):SwitchExpression => ({
   type: SWITCH_EXPRESSION,

@@ -1,4 +1,4 @@
-import { IfExpression } from './block-expressions';
+import { IfExpression, SIfExpression } from './block-expressions';
 import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression } from './signals';
 import { GWModule } from './gw-module';
 import { VendorModule } from './vendor-module';
@@ -195,4 +195,46 @@ export type ParameterString = {
 export type VendorSignalMap = {
   input: Map<Port, string>,
   output: Map<Port, string>,
+};
+
+
+export type SimulationExpression  = BlockExpression
+                                  | EdgeAssertion
+                                  | RepeatedEdgeAssertion
+                                  | DisplayExpression
+                                  | FinishExpression
+                                  | SIfExpression;
+
+export type BlockExpressionsAndTime = [number, BlockExpression[]];
+export interface EdgeAssertion {
+  type: 'edgeAssertion';
+  edgeType: Edge;
+  signal: Port;
+};
+export interface RepeatedEdgeAssertion {
+  type: 'repeatedEdgeAssertion';
+  signal: Port;
+  edgeType: Edge;
+  n: number;
+}
+export interface DisplayExpression {
+  type: 'displayExpression';
+  messages: (string | SignalT)[];
+}
+
+export interface FinishExpression {
+  type: 'finishExpression';
+}
+
+export enum TimeScale {
+  Nanoseconds,
+  Picoseconds,
+  Milleseconds,
+  Microseconds
+};
+
+export type TimeScaleValue = {
+  type: 'timescaleValue';
+  timescale: TimeScale;
+  value: number;
 };

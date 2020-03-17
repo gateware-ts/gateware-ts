@@ -3,11 +3,8 @@ import {
   Signal,
   LOW,
   HIGH,
-  SignalT,
   Edge,
-  Signedness,
   BlockExpression,
-  CodeGenerator,
   Bit,
   Not,
   Ternary,
@@ -18,13 +15,8 @@ import {
 
 import { OneShotDebouncer } from "../one-shot-debouncer";
 import { SevenSegmentDriver } from "../seven-segment-driver";
+import { CLOCK_CYCLES_PER_BIT, uSignal, minimumBitsToFit, inc } from './common';
 
-const minimumBitsToFit = n => Math.ceil(Math.log2(n));
-const uSignal = (width = 1, defaultValue = 0) => Signal(width, Signedness.Unsigned, defaultValue);
-
-const inc = (s:SignalT) => s.setTo(s.plus(1));
-
-const CLOCK_CYCLES_PER_BIT = Math.round(12000000 / 115200);
 enum TXStates {
   Idle,
   SendStartBit,
@@ -38,7 +30,7 @@ enum TXStates {
   Bit8,
   SendStopBit,
 };
-class UART_TX extends GWModule {
+export class UART_TX extends GWModule {
   clk = this.input(uSignal());
   sendEnable = this.input(uSignal());
   byte = this.input(uSignal(8));
@@ -76,24 +68,32 @@ class UART_TX extends GWModule {
         // Reset the counter
         this.counter ['='] (0),
         // Goto the first bit state
-        this.state ['='] (TXStates.Bit1)
+        this.state ['='] (TXStates.Bit1),
+
+        // Already set the first bit
+        this.txOut ['='] (Bit(this.latchedByte, 0))
       ])
     ];
   }
 
   onSendBit(bitIndex:number, nextState:TXStates):BlockExpression[] {
     return [
-      // bit value is latchedByte[7-bitIndex] for the whole period
-      this.txOut ['='] (Bit(this.latchedByte, bitIndex)),
 
       If (this.counter ['<'] (CLOCK_CYCLES_PER_BIT - 1), [
+        // Assert bit value is latchedByte[bitIndex] for the whole period
+        this.txOut ['='] (Bit(this.latchedByte, bitIndex)),
         inc(this.counter)
       ])
       .Else ([
         // Reset the counter
         this.counter ['='] (0),
         // Goto the next state
-        this.state ['='] (nextState)
+        this.state ['='] (nextState),
+
+        // Already set the first bit if we have one
+        ...(bitIndex < 7 ? [
+          this.txOut ['='] (Bit(this.latchedByte, bitIndex + 1))
+        ] : [])
       ])
     ];
   }
@@ -313,9 +313,3 @@ class Top extends GWModule {
     });
   }
 }
-
-const m = new Top('top');
-
-
-const cg = new CodeGenerator(m);
-console.log(cg.toVerilog());
