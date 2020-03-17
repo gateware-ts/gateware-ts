@@ -9,15 +9,9 @@ const parenthize = (s:SignalLike, fn:(s:SignalLikeOrValue) => string):string =>
 
 export class ExpressionEvaluator {
   private workingModule: GWModule;
-  private signalResolver: (s:SignalT) => string;
 
-  constructor(m:GWModule, resolveSignal?:(s:SignalT) => string) {
+  constructor(m:GWModule) {
     this.workingModule = m;
-
-    this.signalResolver = resolveSignal
-      ? resolveSignal
-      : s => this.workingModule.getModuleSignalDescriptor(s).name;
-
     this.evaluate = this.evaluate.bind(this);
   }
 
@@ -32,10 +26,10 @@ export class ExpressionEvaluator {
 
     switch (expr.type) {
       case SIGNAL:{
-        return this.signalResolver(expr as SignalT);
+        return this.evaluateSignalOrWire(expr as SignalT);
       }
       case WIRE:{
-        return this.evaluateWire(expr as WireT);
+        return this.evaluateSignalOrWire(expr as WireT);
       }
       case CONSTANT:{
         return this.evaluateConstant(expr as ConstantT);
@@ -71,7 +65,7 @@ export class ExpressionEvaluator {
     }
   }
 
-  evaluateWire(s:SignalT | WireT) {
+  evaluateSignalOrWire(s:SignalT | WireT) {
     return this.workingModule.getModuleSignalDescriptor(s).name;
   }
 

@@ -12,10 +12,7 @@ import { CombLogicEvaluator } from './comb-logic-evaluation';
 import { VendorModule } from "../vendor-module";
 import { ParameterEvaluator } from './parameter-evaluation';
 
-
-const toHeaderText = (type:string) => ([signalName, signal]:[string, SignalT]) => {
-  return `${type} ${getRegSize(signal)}${signalName}`
-};
+const isSyncDriven = (s:SignalT, syncDrivenSignals:SignalT[]):boolean => syncDrivenSignals.includes(s);
 
 interface CodeGeneratorOptions {};
 
@@ -53,26 +50,8 @@ export class CodeGenerator {
     const combEval = new CombLogicEvaluator(m, 1);
     const paramEval = new ParameterEvaluator();
 
-    const header = [
-      `module ${m.moduleName}(`,
-      Object
-        .entries(namesToSignals.input)
-        .map(toHeaderText('input'))
-        .map(t.indent)
-        .join(',\n') + (Object.keys(namesToSignals.output).length > 0 ? ',' : ''),
-      Object
-        .entries(namesToSignals.output)
-        .map(toHeaderText('output'))
-        .map(t.indent)
-        .join(',\n'),
-      ');'
-    ].join('\n');
-
     const syncBlocks = m.getSyncBlocks().map(block => syncEval.evaluateBlock(block)).join('\n\n');
-
-    const combLogic = m.getCombinationalLogic().map(expr => {
-      return combEval.evaluate(expr);
-    }).join('\n');
+    const combLogic = m.getCombinationalLogic().map(expr => combEval.evaluate(expr)).join('\n');
 
     const cDriven = combEval.getDrivenSignals();
     const sDriven = syncEval.getDrivenSignals();
@@ -85,7 +64,33 @@ export class CodeGenerator {
       }
     }));
 
-    const shadowedAssignments = syncEval.generateShadowedRegisterAssignments();
+    const header = [
+      `module ${m.moduleName}(`,
+      Object
+        .entries(namesToSignals.input)
+        .map(([signalName, s]) => `input ${getRegSize(s)}${signalName}`)
+        .map(t.indent)
+        .join(',\n') + (Object.keys(namesToSignals.output).length > 0 ? ',' : ''),
+      Object
+        .entries(namesToSignals.output)
+        .map(([signalName, s]) => `output ${isSyncDriven(s as SignalT, sDriven) ? 'reg ' : ''}${getRegSize(s)}${signalName}`)
+        .map(t.indent)
+        .join(',\n'),
+      ');'
+    ].join('\n');
+
+    const initialRegisterAssignments = [...signalMap.output.entries()].reduce<string[]>((acc, [port, portName]) => {
+      if (isSyncDriven(port as SignalT, sDriven)) {
+        acc.push(`${t.l(1)}${portName} = ${(port as SignalT).defaultValue};`);
+      }
+      return acc;
+    }, []);
+    const initialBlock = initialRegisterAssignments.length ? [
+      `${t.l()}initial begin`,
+      initialRegisterAssignments.join('\n'),
+      `${t.l()}end`
+    ].join('\n') : '';
+
     const internalRegisters = syncEval.generateInternalRegisterDeclarations();
     const internalWires = syncEval.generateInternalWireDeclarations();
 
@@ -235,10 +240,10 @@ export class CodeGenerator {
     return {
       code: (
         header + '\n' +
-        shadowedAssignments + (shadowedAssignments ? '\n' : '') +
         internalRegisters + (internalRegisters ? '\n' : '') +
         internalWires + (internalWires ? '\n' : '') +
         wireDeclarations + (wireDeclarations ? '\n\n' : '') +
+        initialBlock + (initialBlock ? '\n\n' : '') +
         allAssignments + (allAssignments ? '\n\n' : '') +
         vendorModules + (vendorModules ? '\n\n' : '') +
         submodules + (submodules ? '\n' : '') +

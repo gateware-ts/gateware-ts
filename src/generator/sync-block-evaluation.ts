@@ -10,7 +10,6 @@ import { getRegSize } from './common';
 export class SyncBlockEvaluator {
   private workingModule: GWModule;
   private expr: ExpressionEvaluator;
-  private internalShadowedRegistersMap: Map<SignalT, InternallyShadowedRegister>;
   private drivenSignals:SignalT[] = [];
   private t: TabLevel;
 
@@ -18,19 +17,10 @@ export class SyncBlockEvaluator {
 
   constructor(m:GWModule, indentLevel:number = 1) {
     this.t = new TabLevel('  ', indentLevel);
-    this.internalShadowedRegistersMap = new Map();
 
     this.workingModule = m;
-    this.expr = new ExpressionEvaluator(m, this.substituteForShadowed.bind(this));
+    this.expr = new ExpressionEvaluator(m);
     this.evaluate = this.evaluate.bind(this);
-  }
-
-  private substituteForShadowed(s:SignalT) {
-    const ss = this.internalShadowedRegistersMap.get(s);
-    if (ss) {
-      return ss.name;
-    }
-    return this.workingModule.getModuleSignalDescriptor(s).name;
   }
 
   private addDrivenSignal(driven:SignalT) {
@@ -42,15 +32,6 @@ export class SyncBlockEvaluator {
   setWorkingModule(m:GWModule) {
     this.workingModule = m;
     this.expr.setWorkingModule(m);
-  }
-
-  generateShadowedRegisterAssignments() {
-    return [...this.internalShadowedRegistersMap.values()].map(isr => {
-      return [
-        `${this.t.l()}reg ${getRegSize(isr.originalSignal)}${isr.name} = ${isr.signal.defaultValue};`,
-        `${this.t.l()}assign ${isr.originalName} = ${isr.name};`
-      ].join('\n');
-    }).join('\n');
   }
 
   generateInternalRegisterDeclarations() {
@@ -96,33 +77,18 @@ export class SyncBlockEvaluator {
   }
 
   evaluateAssignmentExpression(aExpr:AssignmentExpression) {
-    let internallyShadowedRegister = this.internalShadowedRegistersMap.get(aExpr.a);
     let assigningRegister = this.workingModule.getModuleSignalDescriptor(aExpr.a);
 
     if (assigningRegister.type === 'input') {
       throw new Error('Cannot assign to an input in a synchronous block');
     }
 
-    if (!internallyShadowedRegister && assigningRegister.type === 'output') {
-      // create a shadowed representation
-      const shadowed: InternallyShadowedRegister = {
-        signal: assigningRegister.signal.clone() as SignalT,
-        originalSignal: assigningRegister.signal as SignalT,
-        originalName: assigningRegister.name,
-        name: `_${assigningRegister.name}`
-      };
-
-      // Keep track of it in the shadow map
-      this.internalShadowedRegistersMap.set(shadowed.originalSignal, shadowed);
-      internallyShadowedRegister = shadowed;
-
+    if (assigningRegister.type === 'output') {
       // Keep track of it in the driven signals
       this.addDrivenSignal(aExpr.a);
     }
 
-    return (internallyShadowedRegister)
-      ? `${this.t.l()}${internallyShadowedRegister.name} <= ${this.expr.evaluate(aExpr.b)};`
-      : `${this.t.l()}${assigningRegister.name} <= ${this.expr.evaluate(aExpr.b)};`;
+    return `${this.t.l()}${assigningRegister.name} <= ${this.expr.evaluate(aExpr.b)};`;
   }
 
   evaluateIfExpression(iExpr:IfExpression) {
