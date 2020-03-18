@@ -15,41 +15,26 @@ import {
   SimulationExpression
 } from './main-types';
 
-export class IfExpression {
+class GeneralIfStatement<BodyExprsT> {
   type = IF_EXPRESSION;
   subject: SignalLike;
-  exprs: BlockExpression[];
-  elseClause: BlockExpression[] | null;
+  exprs: BodyExprsT[];
+  elseClause: BodyExprsT[] | null;
 
-  constructor(expr:SignalLike, body:BlockExpression[]) {
+  constructor(expr:SignalLike, body:BodyExprsT[]) {
     this.exprs = body;
     this.subject = expr;
     this.elseClause = null;
   }
 
-  Else(body:BlockExpression[]) {
+  Else(body:BodyExprsT[]) {
     this.elseClause = body;
     return this;
   }
 }
 
-export class SIfExpression {
-  type = IF_EXPRESSION;
-  subject: SignalLike;
-  exprs: SimulationExpression[];
-  elseClause: SimulationExpression[] | null;
-
-  constructor(expr:SignalLike, body:SimulationExpression[]) {
-    this.exprs = body;
-    this.subject = expr;
-    this.elseClause = null;
-  }
-
-  Else(body:SimulationExpression[]) {
-    this.elseClause = body;
-    return this;
-  }
-}
+export class IfExpression extends GeneralIfStatement<BlockExpression> {}
+export class SIfExpression extends GeneralIfStatement<SimulationExpression> {}
 
 export const If = (expr:SignalLike, body:BlockExpression[]):IfExpression => new IfExpression(expr, body);
 export const SIf = (expr:SignalLike, body:SimulationExpression[]) => new SIfExpression(expr, body);
