@@ -5,7 +5,6 @@ import {
   DEFAULT_CASE_EXPRESSION
 } from './constants';
 import {
-  ComparrisonExpression,
   BlockExpression,
   SignalLike,
   CaseExpression,
@@ -21,7 +20,7 @@ export class IfExpression {
   exprs: BlockExpression[];
   elseClause: BlockExpression[] | null;
 
-  constructor(expr:ComparrisonExpression, body:BlockExpression[]) {
+  constructor(expr:SignalLike, body:BlockExpression[]) {
     this.exprs = body;
     this.subject = expr;
     this.elseClause = null;
@@ -33,7 +32,7 @@ export class IfExpression {
   }
 }
 
-export const If = (expr:ComparrisonExpression, body:BlockExpression[]):IfExpression => new IfExpression(expr, body);
+export const If = (expr:SignalLike, body:BlockExpression[]):IfExpression => new IfExpression(expr, body);
 
 export const Switch = (s:SignalLike, cases:CaseExpression[]):SwitchExpression => ({
   type: SWITCH_EXPRESSION,
