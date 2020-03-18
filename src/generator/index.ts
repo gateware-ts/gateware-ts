@@ -1,27 +1,37 @@
-import { ParameterString } from './../main-types';
+import { TabLevel, flatten } from '../helpers';
 import { GWModule } from "../gw-module";
 import { SignalT, ConstantT } from "../signals";
+import { getRegSize, mapNamesToSignals } from './common';
+import { VendorModule } from "../vendor-module";
+import { timescaleToUnit } from '../simulation';
+import { SyncBlockEvaluator } from './sync-block-evaluation';
+import { CombLogicEvaluator } from './comb-logic-evaluation';
+import { ParameterEvaluator } from './parameter-evaluation';
+import { SimulationEvaluator } from './simulation-evaluation';
 import {
   PortWiring,
-  GeneratedVerilogObject
+  GeneratedVerilogObject,
+  ParameterString,
+  TimeScaleValue
 } from "../main-types";
-import { TabLevel, flatten } from '../helpers';
-import { SyncBlockEvaluator } from './sync-block-evaluation';
-import { getRegSize, mapNamesToSignals } from './common';
-import { CombLogicEvaluator } from './comb-logic-evaluation';
-import { VendorModule } from "../vendor-module";
-import { ParameterEvaluator } from './parameter-evaluation';
 
 const isSyncDriven = (s:SignalT, syncDrivenSignals:SignalT[]):boolean => syncDrivenSignals.includes(s);
 
-interface CodeGeneratorOptions {};
+interface SimulationOptions {
+  enabled: boolean;
+  timescale: [ TimeScaleValue, TimeScaleValue ]
+};
+
+interface CodeGeneratorOptions {
+  simulation?: SimulationOptions;
+};
 
 export class CodeGenerator {
   options:CodeGeneratorOptions;
   m:GWModule;
 
   constructor(m:GWModule, options:CodeGeneratorOptions = {}) {
-    this.options = options;
+    this.options = options || {};
     this.m = m;
 
     // Reinitialise module
@@ -38,6 +48,7 @@ export class CodeGenerator {
     const allChildModules = [...mSubmodules, ...mVendorModules];
 
     const thisModuleHasSubmodules = (mSubmodules.length + mVendorModules.length) > 0;
+    const thisIsASimulation = this.options.simulation?.enabled;
 
     const signalMap = m.getSignalMap();
     const namesToSignals = {
@@ -48,7 +59,38 @@ export class CodeGenerator {
 
     const syncEval = new SyncBlockEvaluator(m, 1);
     const combEval = new CombLogicEvaluator(m, 1);
+    const simEval = new SimulationEvaluator(m, 1);
     const paramEval = new ParameterEvaluator();
+
+    if (thisIsASimulation) {
+      const everyTimescaleBlocks = simEval.getEveryTimescaleBlocks();
+      const simulationRunBlock = simEval.getRunBlock();
+      const header = `module ${this.m.moduleName};`;
+      const registers = simEval.getRegisterBlock();
+      const wires = simEval.getWireBlock();
+      const submodules = simEval.getSubmodules();
+      const vcdBlock = simEval.getVcdBlock();
+
+      const timescale = this.options.simulation.timescale;
+      const code = (
+        `\`timescale ${''
+        }${timescale[0].value}${timescaleToUnit(timescale[0].timescale)}${''
+        }/${timescale[1].value}${timescaleToUnit(timescale[1].timescale)}` + '\n\n' +
+        header + '\n' +
+        registers + '\n' +
+        wires + '\n\n' +
+        submodules + '\n\n' +
+        everyTimescaleBlocks + '\n\n' +
+        simulationRunBlock + '\n' +
+        vcdBlock + '\n' +
+        'endmodule'
+      );
+
+      return {
+        code,
+        submodules: []
+      };
+    }
 
     const syncBlocks = m.getSyncBlocks().map(block => syncEval.evaluateBlock(block)).join('\n\n');
     const combLogic = m.getCombinationalLogic().map(expr => combEval.evaluate(expr)).join('\n');
@@ -66,12 +108,12 @@ export class CodeGenerator {
 
     const header = [
       `module ${m.moduleName}(`,
-      Object
+        Object
         .entries(namesToSignals.input)
         .map(([signalName, s]) => `input ${getRegSize(s)}${signalName}`)
         .map(t.indent)
         .join(',\n') + (Object.keys(namesToSignals.output).length > 0 ? ',' : ''),
-      Object
+        Object
         .entries(namesToSignals.output)
         .map(([signalName, s]) => `output ${isSyncDriven(s as SignalT, sDriven) ? 'reg ' : ''}${getRegSize(s)}${signalName}`)
         .map(t.indent)

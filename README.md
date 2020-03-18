@@ -10,17 +10,12 @@ The project aims to:
 
 ## TODO
 
-- [ ] Support for simulation
-  - Statements for managing the clock, instantly setting values, displaying debug info, outputting vcd files
+- [x] Support for simulation
 - [ ] Strict/Non-strict mode
   - Enforced width matching, including constants without width specified
 - [ ] Interface to open source toolchain
   - Building, verifying, simulating, and programming directly from gateware-ts scripts
   - Automatic installation / compilation of tools
 - [x] A way to define and instantiate vendor modules
-  - Modules like Block RAMs, PLLs, etc
-  - Must be type safe
-  - Defined by parameters, inputs and outputs
-  - Union type representing GWModules and Vendor Modules
 - [ ] More examples
   - Simple stuff and more complex designs
