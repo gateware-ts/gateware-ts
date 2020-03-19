@@ -134,13 +134,6 @@ export type SyncBlock  = {
   block: BlockExpression[];
 }
 
-export type InternallyShadowedRegister = {
-  signal: SignalT;
-  originalSignal: SignalT;
-  name: string;
-  originalName: string;
-};
-
 export type ModuleSignalDescriptor = {
   type: 'input' | 'internal' | 'output' | 'wire';
   signal: Port;
