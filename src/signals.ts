@@ -20,6 +20,7 @@ import {
   WIRE,
   BOOLEAN_EXPRESSION
 } from "./constants";
+import { Bit } from "./operational-expressions";
 
 export abstract class BaseSignalLike {
   type:string;
@@ -147,6 +148,10 @@ export abstract class BaseSignalLike {
 
   shiftRightA(b:SignalLikeOrValue):BooleanExpression {
     return new BooleanExpression(this, b, BooleanOperation.RightArithmeticShift, this.width);
+  }
+
+  bit(index:number) {
+    return Bit(this, index);
   }
 
   ['+'](b:SignalLikeOrValue) {
