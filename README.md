@@ -11,11 +11,20 @@ The project aims to:
 ## TODO
 
 - [x] Support for simulation
+- [x] Type-safe vendor module support
+- [ ] API documentation
+- [ ] Tutorials
+- [ ] Improve examples
+  - Make sure every example exports its main unit
+  - Have a file that implements a full example
+  - Have a testbench file for each example
+- [ ] Support for formal verification
 - [ ] Strict/Non-strict mode
   - Enforced width matching, including constants without width specified
 - [ ] Interface to open source toolchain
   - Building, verifying, simulating, and programming directly from gateware-ts scripts
   - Automatic installation / compilation of tools
-- [x] A way to define and instantiate vendor modules
 - [ ] More examples
   - Simple stuff and more complex designs
+- [ ] Support more out of the box board constraints
+- [ ] More vendor module support
