@@ -20,7 +20,7 @@ import {
   minimumBitsToFit,
   inc
 } from './common';
-import { SevenSegmentDriver } from "../seven-segment-driver";
+import { SevenSegmentDriver } from "../seven-segment-driver/seven-segment-driver";
 
 enum RXStates {
   Idle,
