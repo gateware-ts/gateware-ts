@@ -26,15 +26,34 @@ class GeneralIfStatement<BodyExprsT> {
     this.subject = expr;
     this.elseClause = null;
   }
-
-  Else(body:BodyExprsT[]) {
-    this.elseClause = body;
-    return this;
-  }
 }
 
-export class IfExpression extends GeneralIfStatement<BlockExpression> {}
-export class SIfExpression extends GeneralIfStatement<SimulationExpression> {}
+export class IfExpression extends GeneralIfStatement<BlockExpression> {
+  Else(body:BlockExpression[]) {
+    const forked = new IfExpression(this.subject, this.exprs);
+    forked.elseClause = body;
+    return forked;
+  }
+
+  ElseIf(expr:SignalLike, body:BlockExpression[]) {
+    return If (this.subject, this.exprs) .Else ([
+      If (expr, body)
+    ]);
+  }
+}
+export class SIfExpression extends GeneralIfStatement<SimulationExpression> {
+  Else(body:SimulationExpression[]) {
+    const forked = new SIfExpression(this.subject, this.exprs);
+    forked.elseClause = body;
+    return forked;
+  }
+
+  ElseIf(expr:SignalLike, body:SimulationExpression[]) {
+    return SIf (this.subject, this.exprs) .Else ([
+      SIf (expr, body)
+    ]);
+  }
+}
 
 export const If = (expr:SignalLike, body:BlockExpression[]):IfExpression => new IfExpression(expr, body);
 export const SIf = (expr:SignalLike, body:SimulationExpression[]) => new SIfExpression(expr, body);
