@@ -14,7 +14,7 @@ import {
 } from '../../src/index';
 
 import { createOneShotDebouncer } from "../one_shot_debouncer/one-shot-debouncer";
-import { SevenSegmentDriver } from "../seven-segment-driver";
+import { SevenSegmentDriver } from "../seven-segment-driver/seven-segment-driver";
 import { CLOCK_CYCLES_PER_BIT, uSignal, minimumBitsToFit, inc } from './common';
 
 enum TXStates {
