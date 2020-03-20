@@ -93,14 +93,12 @@ module LedCycle(
   always @(posedge clk) begin
     if (rst == 1'b1) begin
       ledToOutput <= 2'b00;
-    end else begin
-      if (next == 1'b1) begin
-        ledToOutput <= ledToOutput + 1;
-      end else begin
-        if (prev == 1'b1) begin
-          ledToOutput <= ledToOutput - 1;
-        end
-      end
+    end
+    else if (next == 1'b1) begin
+      ledToOutput <= ledToOutput + 1;
+    end
+    else if (prev == 1'b1) begin
+      ledToOutput <= ledToOutput - 1;
     end
   end
 endmodule
@@ -130,13 +128,13 @@ module OneShotDebouncer(
         if (in == 1'b0) begin
           counter <= 0;
           state <= 0;
-        end else begin
-          if ((counter[16]) == 1'b0) begin
-            counter <= counter + 1;
-          end else begin
-            o <= 1'b1;
-            state <= 2;
-          end
+        end
+        else if ((counter[16]) == 1'b0) begin
+          counter <= counter + 1;
+        end
+        else begin
+          o <= 1'b1;
+          state <= 2;
         end
       end
 
@@ -148,12 +146,12 @@ module OneShotDebouncer(
       3 : begin
         if (in == 1'b1) begin
           counter <= 0;
-        end else begin
-          if ((counter[16]) == 0) begin
-            counter <= counter + 1;
-          end else begin
-            state <= 0;
-          end
+        end
+        else if ((counter[16]) == 0) begin
+          counter <= counter + 1;
+        end
+        else begin
+          state <= 0;
         end
       end
     endcase

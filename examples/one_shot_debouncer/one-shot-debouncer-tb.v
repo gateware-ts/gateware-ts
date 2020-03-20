@@ -79,13 +79,13 @@ module OneShotDebouncer(
         if (in == 1'b0) begin
           counter <= 0;
           state <= 0;
-        end else begin
-          if ((counter[7]) == 1'b0) begin
-            counter <= counter + 1;
-          end else begin
-            o <= 1'b1;
-            state <= 2;
-          end
+        end
+        else if ((counter[7]) == 1'b0) begin
+          counter <= counter + 1;
+        end
+        else begin
+          o <= 1'b1;
+          state <= 2;
         end
       end
 
@@ -97,12 +97,12 @@ module OneShotDebouncer(
       3 : begin
         if (in == 1'b1) begin
           counter <= 0;
-        end else begin
-          if ((counter[7]) == 0) begin
-            counter <= counter + 1;
-          end else begin
-            state <= 0;
-          end
+        end
+        else if ((counter[7]) == 0) begin
+          counter <= counter + 1;
+        end
+        else begin
+          state <= 0;
         end
       end
     endcase

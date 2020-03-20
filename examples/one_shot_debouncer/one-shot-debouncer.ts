@@ -44,14 +44,12 @@ export const createOneShotDebouncer = (COUNTER_BITS:number = 17) => {
               this.counter ['='] (0),
               this.state ['='] (OneShotStates.Waiting)
             ])
+            .ElseIf (Bit(this.counter, COUNTER_BITS - 1).eq(LOW), [
+              this.counter ['='] ( this.counter ['+'] (1) ),
+            ])
             .Else ([
-              If (Bit(this.counter, COUNTER_BITS - 1).eq(LOW), [
-                this.counter ['='] ( this.counter ['+'] (1) ),
-              ])
-              .Else ([
-                this.o ['='] (HIGH),
-                this.state ['='] (OneShotStates.Emit)
-              ])
+              this.o ['='] (HIGH),
+              this.state ['='] (OneShotStates.Emit)
             ])
           ]),
 
@@ -64,13 +62,11 @@ export const createOneShotDebouncer = (COUNTER_BITS:number = 17) => {
             If (this.in.eq(HIGH), [
               this.counter ['='] (0)
             ])
+            .ElseIf (Bit(this.counter, COUNTER_BITS - 1).eq(0), [
+              this.counter ['='] (this.counter ['+'] (1))
+            ])
             .Else ([
-              If (Bit(this.counter, COUNTER_BITS - 1).eq(0), [
-                this.counter ['='] (this.counter ['+'] (1))
-              ])
-              .Else ([
-                this.state ['='] (OneShotStates.Waiting)
-              ])
+              this.state ['='] (OneShotStates.Waiting)
             ])
           ])
         ])
