@@ -13,7 +13,7 @@ import {
   If,
 } from '../../src/index';
 
-import { OneShotDebouncer } from "../one-shot-debouncer";
+import { createOneShotDebouncer } from "../one_shot_debouncer/one-shot-debouncer";
 import { SevenSegmentDriver } from "../seven-segment-driver";
 import { CLOCK_CYCLES_PER_BIT, uSignal, minimumBitsToFit, inc } from './common';
 
@@ -195,6 +195,9 @@ class Selector extends GWModule {
     ]);
   }
 }
+
+const DEBOUNCE_COUNTER_BITS = 17;
+const OneShotDebouncer = createOneShotDebouncer(DEBOUNCE_COUNTER_BITS);
 
 class Top extends GWModule {
   CLK = this.input(Signal());
