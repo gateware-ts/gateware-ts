@@ -1,4 +1,7 @@
 export const IF_EXPRESSION = 'ifExpression';
+export const ELSE_EXPRESSION = 'elseExpression';
+export const ELSE_IF_EXPRESSION = 'elseIfExpression';
+
 export const SIMULATION_IF_EXPRESSION = 'simulationIfExpression';
 export const SWITCH_EXPRESSION = 'switchExpression';
 export const CASE_EXPRESSION = 'caseExpression';

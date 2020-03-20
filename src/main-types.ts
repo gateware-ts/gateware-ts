@@ -1,4 +1,4 @@
-import { IfExpression, SIfExpression } from './block-expressions';
+import { IfStatement, ElseIfStatement, IfElseBlock } from './block-expressions';
 import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression } from './signals';
 import { GWModule } from './gw-module';
 import { VendorModule } from './vendor-module';
@@ -119,7 +119,10 @@ export type SignalLike  = BaseSignalLike
 export type SignalLikeOrValue = SignalLike | number;
 export type Slicable = SignalT | SliceT | UnaryExpression | ConstantT | OperationExpression;
 export type CaseExpression = SubjectiveCaseExpression | DefaultCaseExpression;
-export type LogicExpression = IfExpression | SwitchExpression;
+export type LogicExpression = IfStatement<BlockExpression>
+                            | ElseIfStatement<BlockExpression>
+                            | IfElseBlock<BlockExpression>
+                            | SwitchExpression;
 export type BlockExpression = LogicExpression | AssignmentExpression;
 
 // TODO: In future, support generically-typed Switch and If expressions
@@ -196,7 +199,11 @@ export type SimulationExpression  = BlockExpression
                                   | RepeatedEdgeAssertion
                                   | DisplayExpression
                                   | FinishExpression
-                                  | SIfExpression;
+                                  | IfStatement<SimulationExpression>
+                                  | ElseIfStatement<SimulationExpression>
+                                  | IfElseBlock<SimulationExpression>;
+
+export type IfStatementLike<BodyExprsT> = IfStatement<BodyExprsT> | ElseIfStatement<BodyExprsT>;
 
 export type BlockExpressionsAndTime = [number, BlockExpression[]];
 export interface EdgeAssertion {

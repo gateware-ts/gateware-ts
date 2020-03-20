@@ -1,5 +1,7 @@
 import {
   IF_EXPRESSION,
+  ELSE_EXPRESSION,
+  ELSE_IF_EXPRESSION,
   SWITCH_EXPRESSION,
   CASE_EXPRESSION,
   DEFAULT_CASE_EXPRESSION
@@ -12,51 +14,68 @@ import {
   SubjectiveCaseExpression,
   DefaultCaseExpression,
   SignalLikeOrValue,
-  SimulationExpression
+  SimulationExpression,
+  IfStatementLike
 } from './main-types';
 
-class GeneralIfStatement<BodyExprsT> {
-  type = IF_EXPRESSION;
+
+export interface IfElseBlock<BodyExprsT> {
+  type: 'elseExpression';
+  parent: IfStatementLike<BodyExprsT>;
+  elseClause: BodyExprsT[];
+};
+
+export class ElseIfStatement<BodyExprsT> {
+  readonly type = ELSE_IF_EXPRESSION;
+  parentStatement: IfStatementLike<BodyExprsT>;
+
+  elseSubject: SignalLike;
+  elseExprs: BodyExprsT[];
+
+  constructor(parent:IfStatement<BodyExprsT> | ElseIfStatement<BodyExprsT>, expr:SignalLike, body:BodyExprsT[]) {
+    this.parentStatement = parent;
+    this.elseSubject = expr;
+    this.elseExprs = body;
+  }
+
+  Else(exprs:BodyExprsT[]):IfElseBlock<BodyExprsT> {
+    return ({
+      type: ELSE_EXPRESSION,
+      parent: this,
+      elseClause: exprs
+    });
+  }
+
+  ElseIf(expr:SignalLike, body:BodyExprsT[]) {
+    return new ElseIfStatement<BodyExprsT>(this, expr, body);
+  }
+}
+
+export class IfStatement<BodyExprsT> {
+  readonly type = IF_EXPRESSION;
   subject: SignalLike;
   exprs: BodyExprsT[];
-  elseClause: BodyExprsT[] | null;
 
   constructor(expr:SignalLike, body:BodyExprsT[]) {
     this.exprs = body;
     this.subject = expr;
-    this.elseClause = null;
+  }
+
+  Else(exprs:BodyExprsT[]):IfElseBlock<BodyExprsT> {
+    return ({
+      type: ELSE_EXPRESSION,
+      parent: this,
+      elseClause: exprs
+    });
+  }
+
+  ElseIf(expr:SignalLike, body:BodyExprsT[]) {
+    return new ElseIfStatement<BodyExprsT>(this, expr, body);
   }
 }
 
-export class IfExpression extends GeneralIfStatement<BlockExpression> {
-  Else(body:BlockExpression[]) {
-    const forked = new IfExpression(this.subject, this.exprs);
-    forked.elseClause = body;
-    return forked;
-  }
-
-  ElseIf(expr:SignalLike, body:BlockExpression[]) {
-    return If (this.subject, this.exprs) .Else ([
-      If (expr, body)
-    ]);
-  }
-}
-export class SIfExpression extends GeneralIfStatement<SimulationExpression> {
-  Else(body:SimulationExpression[]) {
-    const forked = new SIfExpression(this.subject, this.exprs);
-    forked.elseClause = body;
-    return forked;
-  }
-
-  ElseIf(expr:SignalLike, body:SimulationExpression[]) {
-    return SIf (this.subject, this.exprs) .Else ([
-      SIf (expr, body)
-    ]);
-  }
-}
-
-export const If = (expr:SignalLike, body:BlockExpression[]):IfExpression => new IfExpression(expr, body);
-export const SIf = (expr:SignalLike, body:SimulationExpression[]) => new SIfExpression(expr, body);
+export const If = (expr:SignalLike, body:BlockExpression[]):IfStatement<BlockExpression> => new IfStatement<BlockExpression>(expr, body);
+export const SIf = (expr:SignalLike, body:SimulationExpression[]):IfStatement<SimulationExpression> => new IfStatement<SimulationExpression>(expr, body);
 
 export const Switch = (s:SignalLike, cases:CaseExpression[]):SwitchExpression => ({
   type: SWITCH_EXPRESSION,

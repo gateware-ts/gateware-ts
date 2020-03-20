@@ -10,7 +10,6 @@ import {
   EdgeAssertion,
   RepeatedEdgeAssertion,
   DisplayExpression,
-  FinishExpression
 } from '../main-types';
 import {
   ASSIGNMENT_EXPRESSION,
@@ -20,8 +19,10 @@ import {
   REPEATED_EDGE_ASSERTION,
   DISPLAY_EXPRESSION,
   FINISH_EXPRESSION,
+  ELSE_IF_EXPRESSION,
+  ELSE_EXPRESSION,
 } from '../constants';
-import { SIfExpression } from '../block-expressions';
+import { IfStatement, IfElseBlock, ElseIfStatement } from '../block-expressions';
 import { TabLevel } from '../helpers';
 import { getRegSize } from './common';
 import { SignalT } from '../signals';
@@ -155,7 +156,15 @@ export class SimulationEvaluator {
       }
 
       case IF_EXPRESSION: {
-        return this.evaluateIfExpression(expr as SIfExpression);
+        return this.evaluateIfExpression(expr);
+      }
+
+      case ELSE_IF_EXPRESSION: {
+        return this.evaluateElseIfExpression(expr);
+      }
+
+      case ELSE_EXPRESSION: {
+        return this.evaluateElseExpression(expr);
       }
 
       case EDGE_ASSERTION: {
@@ -213,7 +222,7 @@ export class SimulationEvaluator {
     return `${this.t.l()}${assigningRegister.name} = ${this.expr.evaluate(aExpr.b)};`;
   }
 
-  evaluateIfExpression(iExpr:SIfExpression) {
+  evaluateIfExpression(iExpr:IfStatement<SimulationExpression>) {
     const out = [];
 
     out.push(`${this.t.l()}if (${this.expr.evaluate(iExpr.subject)}) begin`);
@@ -222,14 +231,49 @@ export class SimulationEvaluator {
     iExpr.exprs.forEach(expr => out.push(this.evaluate(expr)));
     this.t.pop();
 
-    if (iExpr.elseClause && iExpr.elseClause.length) {
-      out.push(`${this.t.l()}end else begin`);
-      this.t.push();
-      iExpr.elseClause.forEach(expr => out.push(this.evaluate(expr)));
-      this.t.pop();
-    }
-
     out.push(`${this.t.l()}end`);
+    return out.join('\n');
+  }
+
+  evaluateElseIfExpression(iExpr:ElseIfStatement<SimulationExpression>) {
+    const out = [];
+
+    const parentIf = iExpr.parentStatement.type === IF_EXPRESSION
+      ? this.evaluateIfExpression(iExpr.parentStatement)
+      : this.evaluateElseIfExpression(iExpr.parentStatement);
+
+    const elseIf = `${this.t.l()}else if (${this.expr.evaluate(iExpr.elseSubject)}) begin`;
+    const endElse = `${this.t.l()}end`;
+
+    out.push(parentIf, elseIf);
+
+    this.t.push();
+    iExpr.elseExprs.forEach(expr => out.push(this.evaluate(expr)));
+    this.t.pop();
+
+    out.push(endElse);
+
+    return out.join('\n');
+  }
+
+  evaluateElseExpression(iExpr:IfElseBlock<SimulationExpression>) {
+    const out = [];
+
+    const parentIf = iExpr.parent.type === IF_EXPRESSION
+      ? this.evaluateIfExpression(iExpr.parent)
+      : this.evaluateElseIfExpression(iExpr.parent);
+
+    const elseStart = `${this.t.l()}else begin`;
+    const endElse = `${this.t.l()}end`;
+
+    out.push(parentIf, elseStart);
+
+    this.t.push();
+    iExpr.elseClause.forEach(expr => out.push(this.evaluate(expr)));
+    this.t.pop();
+
+    out.push(endElse);
+
     return out.join('\n');
   }
 

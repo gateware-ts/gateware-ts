@@ -2,8 +2,8 @@ import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
 import { AssignmentExpression, BlockExpression, SwitchExpression, SubjectiveCaseExpression, SyncBlock, Edge } from '../main-types';
 import { SignalT } from '../signals';
-import { ASSIGNMENT_EXPRESSION, IF_EXPRESSION, SWITCH_EXPRESSION, CASE_EXPRESSION } from '../constants';
-import { IfExpression } from '../block-expressions';
+import { ASSIGNMENT_EXPRESSION, IF_EXPRESSION, SWITCH_EXPRESSION, CASE_EXPRESSION, ELSE_IF_EXPRESSION, ELSE_EXPRESSION } from '../constants';
+import { IfStatement, ElseIfStatement, IfElseBlock } from '../block-expressions';
 import { TabLevel } from '../helpers';
 import { getRegSize } from './common';
 
@@ -49,11 +49,19 @@ export class SyncBlockEvaluator {
   evaluate(expr:BlockExpression) {
     switch (expr.type) {
       case ASSIGNMENT_EXPRESSION: {
-        return this.evaluateAssignmentExpression(expr as AssignmentExpression);
+        return this.evaluateAssignmentExpression(expr);
       }
 
       case IF_EXPRESSION: {
-        return this.evaluateIfExpression(expr as IfExpression);
+        return this.evaluateIfExpression(expr);
+      }
+
+      case ELSE_IF_EXPRESSION: {
+        return this.evaluateElseIfExpression(expr);
+      }
+
+      case ELSE_EXPRESSION: {
+        return this.evaluateElseExpression(expr);
       }
 
       case SWITCH_EXPRESSION: {
@@ -91,7 +99,7 @@ export class SyncBlockEvaluator {
     return `${this.t.l()}${assigningRegister.name} <= ${this.expr.evaluate(aExpr.b)};`;
   }
 
-  evaluateIfExpression(iExpr:IfExpression) {
+  evaluateIfExpression(iExpr:IfStatement<BlockExpression>) {
     const out = [];
 
     out.push(`${this.t.l()}if (${this.expr.evaluate(iExpr.subject)}) begin`);
@@ -100,14 +108,49 @@ export class SyncBlockEvaluator {
     iExpr.exprs.forEach(expr => out.push(this.evaluate(expr)));
     this.t.pop();
 
-    if (iExpr.elseClause && iExpr.elseClause.length) {
-      out.push(`${this.t.l()}end else begin`);
-      this.t.push();
-      iExpr.elseClause.forEach(expr => out.push(this.evaluate(expr)));
-      this.t.pop();
-    }
-
     out.push(`${this.t.l()}end`);
+    return out.join('\n');
+  }
+
+  evaluateElseExpression(iExpr:IfElseBlock<BlockExpression>) {
+    const out = [];
+
+    const parentIf = iExpr.parent.type === IF_EXPRESSION
+      ? this.evaluateIfExpression(iExpr.parent)
+      : this.evaluateElseIfExpression(iExpr.parent);
+
+    const elseStart = `${this.t.l()}else begin`;
+    const endElse = `${this.t.l()}end`;
+
+    out.push(parentIf, elseStart);
+
+    this.t.push();
+    iExpr.elseClause.forEach(expr => out.push(this.evaluate(expr)));
+    this.t.pop();
+
+    out.push(endElse);
+
+    return out.join('\n');
+  }
+
+  evaluateElseIfExpression(iExpr:ElseIfStatement<BlockExpression>) {
+    const out = [];
+
+    const parentIf = iExpr.parentStatement.type === IF_EXPRESSION
+      ? this.evaluateIfExpression(iExpr.parentStatement)
+      : this.evaluateElseIfExpression(iExpr.parentStatement);
+
+    const elseIf = `${this.t.l()}else if (${this.expr.evaluate(iExpr.elseSubject)}) begin`;
+    const endElse = `${this.t.l()}end`;
+
+    out.push(parentIf, elseIf);
+
+    this.t.push();
+    iExpr.elseExprs.forEach(expr => out.push(this.evaluate(expr)));
+    this.t.pop();
+
+    out.push(endElse);
+
     return out.join('\n');
   }
 
