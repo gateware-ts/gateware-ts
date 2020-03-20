@@ -40,7 +40,8 @@ export class CodeGenerator {
     m.describe();
   }
 
-  generateVerilogCodeForModule(m:GWModule):GeneratedVerilogObject {
+
+  generateVerilogCodeForModule(m:GWModule, thisIsASimulation:boolean):GeneratedVerilogObject {
     const t = new TabLevel('  ', 1);
 
     const mSubmodules = m.getSubmodules();
@@ -48,7 +49,6 @@ export class CodeGenerator {
     const allChildModules = [...mSubmodules, ...mVendorModules];
 
     const thisModuleHasSubmodules = (mSubmodules.length + mVendorModules.length) > 0;
-    const thisIsASimulation = this.options.simulation?.enabled;
 
     const signalMap = m.getSignalMap();
     const namesToSignals = {
@@ -88,7 +88,7 @@ export class CodeGenerator {
 
       return {
         code,
-        submodules: []
+        submodules: m.getSubmodules().map(submoduleReference => submoduleReference.m)
       };
     }
 
@@ -300,11 +300,15 @@ export class CodeGenerator {
   toVerilog() {
     const verilogModulesGenerated = [this.m.moduleName];
 
+    const thisIsASimulation = this.options.simulation?.enabled;
+    let thisIsTheTopLevelModule = true;
+
     const allCode = [];
     const moduleQueue = [this.m];
     while (moduleQueue.length) {
       const nextM = moduleQueue.pop();
-      const generated = this.generateVerilogCodeForModule(nextM);
+      // TODO: Might just be better to split this out into a separate method
+      const generated = this.generateVerilogCodeForModule(nextM, thisIsASimulation && thisIsTheTopLevelModule);
       allCode.push(generated.code);
 
       generated.submodules.forEach(m => {
@@ -313,6 +317,8 @@ export class CodeGenerator {
           verilogModulesGenerated.push(m.moduleName);
         }
       });
+
+      thisIsTheTopLevelModule = false;
     }
 
     return (

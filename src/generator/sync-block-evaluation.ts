@@ -1,6 +1,6 @@
 import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
-import { AssignmentExpression, InternallyShadowedRegister, BlockExpression, SwitchExpression, SubjectiveCaseExpression, SyncBlock, Edge } from '../main-types';
+import { AssignmentExpression, BlockExpression, SwitchExpression, SubjectiveCaseExpression, SyncBlock, Edge } from '../main-types';
 import { SignalT } from '../signals';
 import { ASSIGNMENT_EXPRESSION, IF_EXPRESSION, SWITCH_EXPRESSION, CASE_EXPRESSION } from '../constants';
 import { IfExpression } from '../block-expressions';
