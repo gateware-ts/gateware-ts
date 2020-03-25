@@ -1,3 +1,7 @@
+import * as path from 'path';
+import { writeFile } from 'fs';
+import { exec } from 'child_process';
+
 import { TabLevel, flatten } from '../helpers';
 import { GWModule } from "../gw-module";
 import { SignalT, ConstantT } from "../signals";
@@ -40,6 +44,76 @@ export class CodeGenerator {
     m.describe();
   }
 
+  writeVerilogToFile(projectName:string) {
+    const filename = /\.v$/.test(projectName)
+      ? projectName
+      : projectName + '.v';
+    const verilog = this.toVerilog();
+
+    writeFile(`${filename}`, verilog, err => {
+      if (err) {
+        process.stderr.write(err.message + '\n');
+        process.exit(1);
+      }
+      process.stdout.write(`Wrote verilog to ${filename}\n`);
+    });
+  }
+
+  buildBitstream(projectName:string) {
+    const verilog = this.toVerilog();
+
+    writeFile(`${projectName}.v`, verilog, err => {
+      if (err) {
+        process.stderr.write(err.message + '\n');
+        process.exit(1);
+      }
+      process.stdout.write(`Wrote verilog (${projectName}.v)\n`);
+
+      const yosysCommand = `yosys -q -p 'synth_ice40 -top ${this.m.moduleName} -json ${projectName}.json' ${projectName}.v`;
+      exec(yosysCommand, (err, _, stderr) => {
+        if (err) {
+          process.stderr.write(`Failed to synthsize with command: ${yosysCommand}\n`);
+          process.stderr.write(stderr);
+          exec(`rm ${projectName}.v`, () => {
+            process.exit(1);
+          });
+          process.exit(1);
+        }
+        process.stdout.write(`Completed synthesis.\n`);
+
+        const constraintsFile = path.join(__dirname, '../../board-constraints/icebreaker.pcf');
+        const nextpnrCommand = `nextpnr-ice40 --up5k --json ${projectName}.json --pcf ${constraintsFile} --asc ${projectName}.asc`;
+        exec(nextpnrCommand, (err, _, stderr) => {
+          if (err) {
+            process.stderr.write(`Failed to perform place and routing with command: ${nextpnrCommand}\n`);
+            process.stderr.write(stderr);
+            exec(`rm ${projectName}.json ${projectName}.v`, () => {
+              process.exit(1);
+            });
+            process.exit(1);
+          }
+          process.stdout.write(`Completed place and route.\n`);
+
+          const icepackCommand = `icepack ${projectName}.asc ${projectName}.bin`;
+          exec(icepackCommand, (err, _, stderr) => {
+            if (err) {
+              process.stderr.write(`Failed to create a bitstream with command: ${icepackCommand}\n`);
+              process.stderr.write(stderr);
+              exec(`rm ${projectName}.json ${projectName}.asc ${projectName}.v`, () => {
+                process.exit(1);
+              });
+            }
+            process.stdout.write(`Wrote a bitstream to ${projectName}.bin.\n`);
+            process.stdout.write(`Cleaning up...\n`);
+
+            exec(`rm ${projectName}.json ${projectName}.asc ${projectName}.v`, () => {
+              process.stdout.write(`Done!\n`);
+            });
+          })
+        });
+      })
+    });
+  }
 
   generateVerilogCodeForModule(m:GWModule, thisIsASimulation:boolean):GeneratedVerilogObject {
     const t = new TabLevel('  ', 1);
