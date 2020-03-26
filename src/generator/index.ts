@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { writeFile } from 'fs';
 import { exec } from 'child_process';
+import { promisify } from 'util';
 
 import { TabLevel, flatten } from '../helpers';
 import { GWModule } from "../gw-module";
@@ -21,9 +22,14 @@ import {
 
 const isSyncDriven = (s:SignalT, syncDrivenSignals:SignalT[]):boolean => syncDrivenSignals.includes(s);
 
+const writeFileP = promisify(writeFile);
+const execP = promisify(exec);
+
+const cleanupFiles = (filenames:string[]) => exec(`rm ${filenames.join(' ')}`);
+
 interface SimulationOptions {
   enabled: boolean;
-  timescale: [ TimeScaleValue, TimeScaleValue ]
+  timescale: TimeScaleValue[]
 };
 
 interface CodeGeneratorOptions {
@@ -44,75 +50,74 @@ export class CodeGenerator {
     m.describe();
   }
 
-  writeVerilogToFile(projectName:string) {
+  // TODO: modify the simulation API to take the VCD output options here instead
+  async runSimulation(projectName:string, vcdFile?:string) {
+    try {
+      if (vcdFile) {
+        this.m.simulation.outputVcdFile(vcdFile);
+      }
+
+      await this.writeVerilogToFile(`${projectName}-tb`);
+      const iverilogCommand = `iverilog -o ${projectName}.vpp ${projectName}-tb.v`;
+      await execP(iverilogCommand);
+
+      const vvpCommand = `vvp ${projectName}.vpp`;
+      await execP(vvpCommand).then(({stdout}) => {
+        process.stdout.write(stdout);
+      });
+    } catch (ex) {
+      await cleanupFiles([
+        `${projectName}-tb.v`,
+        `${projectName}.vpp`
+      ]);
+      throw ex;
+    }
+
+    process.stdout.write('gateware-ts: Finished running simulation. Cleaning up...');
+    await cleanupFiles([
+      `${projectName}-tb.v`,
+      `${projectName}.vpp`
+    ]);
+  }
+
+  async writeVerilogToFile(projectName:string) {
     const filename = /\.v$/.test(projectName)
       ? projectName
       : projectName + '.v';
     const verilog = this.toVerilog();
-
-    writeFile(`${filename}`, verilog, err => {
-      if (err) {
-        process.stderr.write(err.message + '\n');
-        process.exit(1);
-      }
-      process.stdout.write(`Wrote verilog to ${filename}\n`);
-    });
+    await writeFileP(`${filename}`, verilog);
+    process.stdout.write(`Wrote verilog to ${filename}\n`);
   }
 
-  buildBitstream(projectName:string) {
-    const verilog = this.toVerilog();
-
-    writeFile(`${projectName}.v`, verilog, err => {
-      if (err) {
-        process.stderr.write(err.message + '\n');
-        process.exit(1);
-      }
+  async buildBitstream(projectName:string, cleanup:boolean = false) {
+    try {
+      const verilog = this.toVerilog();
+      await writeFileP(`${projectName}.v`, verilog);
       process.stdout.write(`Wrote verilog (${projectName}.v)\n`);
 
       const yosysCommand = `yosys -q -p 'synth_ice40 -top ${this.m.moduleName} -json ${projectName}.json' ${projectName}.v`;
-      exec(yosysCommand, (err, _, stderr) => {
-        if (err) {
-          process.stderr.write(`Failed to synthsize with command: ${yosysCommand}\n`);
-          process.stderr.write(stderr);
-          exec(`rm ${projectName}.v`, () => {
-            process.exit(1);
-          });
-          process.exit(1);
-        }
-        process.stdout.write(`Completed synthesis.\n`);
+      await execP(yosysCommand);
+      process.stdout.write(`Completed synthesis.\n`);
 
-        const constraintsFile = path.join(__dirname, '../../board-constraints/icebreaker.pcf');
-        const nextpnrCommand = `nextpnr-ice40 --up5k --json ${projectName}.json --pcf ${constraintsFile} --asc ${projectName}.asc`;
-        exec(nextpnrCommand, (err, _, stderr) => {
-          if (err) {
-            process.stderr.write(`Failed to perform place and routing with command: ${nextpnrCommand}\n`);
-            process.stderr.write(stderr);
-            exec(`rm ${projectName}.json ${projectName}.v`, () => {
-              process.exit(1);
-            });
-            process.exit(1);
-          }
-          process.stdout.write(`Completed place and route.\n`);
+      const constraintsFile = path.join(__dirname, '../../board-constraints/icebreaker.pcf');
+      const nextpnrCommand = `nextpnr-ice40 --up5k --json ${projectName}.json --pcf ${constraintsFile} --asc ${projectName}.asc`;
+      await execP(nextpnrCommand);
+      process.stdout.write(`Completed place and route.\n`);
 
-          const icepackCommand = `icepack ${projectName}.asc ${projectName}.bin`;
-          exec(icepackCommand, (err, _, stderr) => {
-            if (err) {
-              process.stderr.write(`Failed to create a bitstream with command: ${icepackCommand}\n`);
-              process.stderr.write(stderr);
-              exec(`rm ${projectName}.json ${projectName}.asc ${projectName}.v`, () => {
-                process.exit(1);
-              });
-            }
-            process.stdout.write(`Wrote a bitstream to ${projectName}.bin.\n`);
-            process.stdout.write(`Cleaning up...\n`);
+      const icepackCommand = `icepack ${projectName}.asc ${projectName}.bin`;
+      await execP(icepackCommand);
+      process.stdout.write(`Built bitstream.\nDone.\n`);
+    } catch (ex) {
+      if (cleanup) {
+        await cleanupFiles([
+          `${projectName}.v`,
+          `${projectName}.json`,
+          `${projectName}.asc`
+        ]);
+      }
 
-            exec(`rm ${projectName}.json ${projectName}.asc ${projectName}.v`, () => {
-              process.stdout.write(`Done!\n`);
-            });
-          })
-        });
-      })
-    });
+      throw ex;
+    }
   }
 
   generateVerilogCodeForModule(m:GWModule, thisIsASimulation:boolean):GeneratedVerilogObject {
