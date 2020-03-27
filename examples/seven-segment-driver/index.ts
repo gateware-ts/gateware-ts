@@ -88,8 +88,4 @@ class Top extends GWModule {
 }
 
 const cg = new CodeGenerator(new Top('top'));
-writeFile('seven-segment-driver.v', cg.toVerilog(), err => {
-  if (err) {
-    console.error(err);
-  }
-});
+cg.buildBitstream('seven-segment-display');
