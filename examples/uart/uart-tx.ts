@@ -198,8 +198,7 @@ class Selector extends GWModule {
 
 const DEBOUNCE_COUNTER_BITS = 17;
 const OneShotDebouncer = createOneShotDebouncer(DEBOUNCE_COUNTER_BITS);
-
-class Top extends GWModule {
+export class Top extends GWModule {
   CLK = this.input(Signal());
   BTN_N = this.input(Signal());
   BTN1 = this.input(Signal());

@@ -56,9 +56,6 @@ export class UART_TX_TestBench extends GWModule {
     // Function to create clock cycles lasting an entire bit period
     const pulseClockForPeriod  = () => edges(CLOCK_CYCLES_PER_BIT, Edge.Positive, this.clk);
 
-    // Write a waveform file that we can view in GTKWave
-    this.simulation.outputVcdFile('/tmp/uart-tx.vcd');
-
     const assertBitReceived = (bit:number):SimulationExpression => (
       assert(
         this.txLine ['=='] (getBitOfByte(VALUE_TO_BE_TRANSMITTED, bit)),

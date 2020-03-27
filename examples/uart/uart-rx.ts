@@ -182,7 +182,7 @@ const Mux2xN = N => class extends GWModule {
 }
 const Mux2x4 = Mux2xN(4);
 
-class Top extends GWModule {
+export class Top extends GWModule {
   CLK = this.input(uSignal());
   RX = this.input(uSignal());
 
