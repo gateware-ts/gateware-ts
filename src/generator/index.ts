@@ -89,7 +89,7 @@ export class CodeGenerator {
     process.stdout.write(`Wrote verilog to ${filename}\n`);
   }
 
-  async buildBitstream(projectName:string, cleanup:boolean = false) {
+  async buildBitstream(projectName:string, cleanupIntermediateFiles:boolean = true) {
     try {
       const verilog = this.toVerilog();
       await writeFileP(`${projectName}.v`, verilog);
@@ -106,9 +106,19 @@ export class CodeGenerator {
 
       const icepackCommand = `icepack ${projectName}.asc ${projectName}.bin`;
       await execP(icepackCommand);
-      process.stdout.write(`Built bitstream.\nDone.\n`);
+      process.stdout.write(`Built bitstream.\n`);
+
+      if (cleanupIntermediateFiles) {
+        process.stdout.write(`Cleaning up intermediate files.\n`);
+        await cleanupFiles([
+          `${projectName}.v`,
+          `${projectName}.json`,
+          `${projectName}.asc`
+        ]);
+      }
+      process.stdout.write(`Done!\n`);
     } catch (ex) {
-      if (cleanup) {
+      if (cleanupIntermediateFiles) {
         await cleanupFiles([
           `${projectName}.v`,
           `${projectName}.json`,
