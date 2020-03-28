@@ -34,9 +34,9 @@ export class SyncBlockEvaluator {
     this.expr.setWorkingModule(m);
   }
 
-  generateInternalRegisterDeclarations() {
+  generateInternalRegisterDeclarations(syncDrivenSignals:SignalT[]) {
     return this.workingModule.getInternalSignals().map(s => {
-      return `${this.t.l()}reg ${getRegSize(s)}${this.workingModule.getModuleSignalDescriptor(s).name} = ${s.defaultValue};`;
+      return `${this.t.l()}${syncDrivenSignals.includes(s) ? 'reg' : 'wire'} ${getRegSize(s)}${this.workingModule.getModuleSignalDescriptor(s).name} = ${s.defaultValue};`;
     }).join('\n')
   }
 

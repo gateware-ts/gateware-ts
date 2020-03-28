@@ -222,7 +222,7 @@ export class CodeGenerator {
       `${t.l()}end`
     ].join('\n') : '';
 
-    const internalRegisters = syncEval.generateInternalRegisterDeclarations();
+    const internalRegisters = syncEval.generateInternalRegisterDeclarations(sDriven);
     const internalWires = syncEval.generateInternalWireDeclarations();
 
     const wireMap = new Map<GWModule | VendorModule<any>, PortWiring>();
