@@ -3,4 +3,5 @@ node_modules/
 test_verilog/
 /index.js
 coverage/
+.nyc_output/
 .vscode
