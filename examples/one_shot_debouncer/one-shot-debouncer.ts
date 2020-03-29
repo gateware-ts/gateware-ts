@@ -18,8 +18,6 @@ enum OneShotStates {
 };
 
 export const createOneShotDebouncer = (COUNTER_BITS:number = 17) => {
-  console.log(`creating ${COUNTER_BITS} bit counter`);
-
   class OneShotDebouncer extends GWModule {
     clk = this.input(Signal());
     in = this.input(Signal());

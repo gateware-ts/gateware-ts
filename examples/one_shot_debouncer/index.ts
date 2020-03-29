@@ -28,17 +28,13 @@ class LedCycle extends GWModule {
 
   onNext() {
     return [
-      this.ledToOutput ['='] (
-        this.ledToOutput ['+'] (1)
-      )
+      this.ledToOutput ['='] (this.ledToOutput ['+'] (1))
     ];
   }
 
   onPrev() {
     return [
-      this.ledToOutput ['='] (
-        this.ledToOutput ['-'] (1)
-      )
+      this.ledToOutput ['='] (this.ledToOutput ['-'] (1))
     ];
   }
 

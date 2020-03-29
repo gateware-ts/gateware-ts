@@ -12,6 +12,8 @@ export class OneShotDebouncerTB extends GWModule {
   out = this.output(Signal());
 
   describe() {
+    const pulse = (n:number = 1) => edges(n, Edge.Positive, this.clk);
+
     const osd = new OneShotDebouncer();
     this.addSubmodule(osd, 'osd', {
       inputs: {
@@ -27,9 +29,6 @@ export class OneShotDebouncerTB extends GWModule {
         this.counter ['='] (this.counter ['+'] (1))
       ])
     ]);
-    this.simulation.outputVcdFile('one-shot-debouncer.vcd');
-
-    const pulse = (n:number = 1) => edges(n, Edge.Positive, this.clk);
 
     this.simulation.run([
       pulse(),
