@@ -1,13 +1,8 @@
 import { UNARY_EXPRESSION, TERNARY_EXPRESSION } from './constants';
 import { SignalLike, UnaryExpression, Operation, ComparrisonExpression, SignalLikeOrValue, TernaryExpression } from './main-types';
-import { Slice } from './signals';
+import { Slice, Inverse } from './signals';
 
-export const Not = (s:SignalLike): UnaryExpression => ({
-  a: s,
-  op: Operation.Not,
-  type: UNARY_EXPRESSION,
-  width: s.width
-});
+export const Not = (s:SignalLike) => new Inverse(s);
 
 export const LogicalNot = (s:SignalLike): UnaryExpression => ({
   a: s,

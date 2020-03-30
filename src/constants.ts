@@ -17,6 +17,7 @@ export const CONSTANT = 'constant';
 export const CONCAT = 'concat';
 export const SLICE = 'slice';
 export const WIRE = 'wire';
+export const INVERSE = 'inverse';
 export const PARAMETER_STRING = 'parameterString';
 export const EDGE_ASSERTION = 'edgeAssertion';
 export const REPEATED_EDGE_ASSERTION = 'repeatedEdgeAssertion';

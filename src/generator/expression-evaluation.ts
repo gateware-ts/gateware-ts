@@ -1,4 +1,5 @@
-import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT } from './../constants';
+import { Inverse } from './../signals';
+import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE } from './../constants';
 import { UnaryExpression, Operation, SignalLikeOrValue, TernaryExpression, ComparrisonExpression, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation } from './../main-types';
 import { GWModule } from "../gw-module"
 import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpression } from "../signals";
@@ -40,6 +41,9 @@ export class ExpressionEvaluator {
       case UNARY_EXPRESSION:{
         return this.evaluateUnaryExpression(expr as UnaryExpression);
       }
+      case INVERSE:{
+        return this.evaluateInverse(expr as Inverse);
+      }
       case COMPARRISON_EXPRESSION:{
         return this.evaluateComparrisonExpression(expr as ComparrisonExpression);
       }
@@ -75,6 +79,10 @@ export class ExpressionEvaluator {
 
   evaluateConcat(c:ConcatT) {
     return `{${c.signals.map(this.evaluate).join(', ')}}`;
+  }
+
+  evaluateInverse(i:Inverse) {
+    return `~${parenthize(i.a, this.evaluate)}`;
   }
 
   evaluateUnaryExpression(u:UnaryExpression) {

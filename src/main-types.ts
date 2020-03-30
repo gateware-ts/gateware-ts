@@ -1,5 +1,5 @@
 import { IfStatement, ElseIfStatement, IfElseBlock } from './block-expressions';
-import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression } from './signals';
+import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression, Inverse } from './signals';
 import { GWModule } from './gw-module';
 import { VendorModule } from './vendor-module';
 
@@ -109,6 +109,7 @@ export type SignalLike  = BaseSignalLike
                         | WireT
                         | SliceT
                         | ConcatT
+                        | Inverse
                         | UnaryExpression
                         | ComparrisonExpression
                         | ConstantT
