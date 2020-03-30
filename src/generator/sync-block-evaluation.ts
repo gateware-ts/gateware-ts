@@ -36,7 +36,7 @@ export class SyncBlockEvaluator {
 
   generateInternalRegisterDeclarations(syncDrivenSignals:SignalT[]) {
     return this.workingModule.getInternalSignals().map(s => {
-      return `${this.t.l()}${syncDrivenSignals.includes(s) ? 'reg' : 'wire'} ${getRegSize(s)}${this.workingModule.getModuleSignalDescriptor(s).name} = ${s.defaultValue};`;
+      return `${this.t.l()}${syncDrivenSignals.includes(s) ? 'reg' : 'wire'} ${getRegSize(s)}${this.workingModule.getModuleSignalDescriptor(s).name};`;
     }).join('\n')
   }
 
@@ -91,7 +91,7 @@ export class SyncBlockEvaluator {
       throw new Error('Cannot assign to an input in a synchronous block');
     }
 
-    if (assigningRegister.type === 'output') {
+    if (assigningRegister.type === 'output' || assigningRegister.type === 'internal') {
       // Keep track of it in the driven signals
       this.addDrivenSignal(aExpr.a);
     }
