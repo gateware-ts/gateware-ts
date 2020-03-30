@@ -43,7 +43,7 @@ export class SyncBlockEvaluator {
   generateInternalWireDeclarations() {
     return this.workingModule.getWires().map(w => {
       return `${this.t.l()}wire ${getRegSize(w)}${this.workingModule.getModuleSignalDescriptor(w).name};`;
-    });
+    }).join('\n');
   }
 
   evaluate(expr:BlockExpression) {
