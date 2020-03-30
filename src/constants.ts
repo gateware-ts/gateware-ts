@@ -23,3 +23,6 @@ export const REPEATED_EDGE_ASSERTION = 'repeatedEdgeAssertion';
 export const DISPLAY_EXPRESSION = 'displayExpression';
 export const TIMESCALE_VALUE = 'timescaleValue';
 export const FINISH_EXPRESSION = 'finishExpression';
+
+export const MODULE_CODE_ELEMENTS = 'moduleCodeElements';
+export const SIMULATION_CODE_ELEMENTS = 'simulationCodeElements';

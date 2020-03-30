@@ -1,3 +1,5 @@
+import { MODULE_CODE_ELEMENTS, SIMULATION_CODE_ELEMENTS } from './../constants';
+import { CodeElements, SimulationCodeElements, ModuleCodeElements } from './../main-types';
 import * as path from 'path';
 import { writeFile } from 'fs';
 import { exec } from 'child_process';
@@ -19,6 +21,36 @@ import {
   ParameterString,
   TimeScaleValue
 } from "../main-types";
+
+const codeElementsToString = (ce:CodeElements) => {
+  if (ce.type === MODULE_CODE_ELEMENTS) {
+    return (
+      ce.header + '\n' +
+      ce.internalRegisters + (ce.internalRegisters ? '\n' : '') +
+      ce.internalWires + (ce.internalWires ? '\n' : '') +
+      ce.wireDeclarations + (ce.wireDeclarations ? '\n\n' : '') +
+      ce.initialBlock + (ce.initialBlock ? '\n\n' : '') +
+      ce.assignments + (ce.assignments ? '\n\n' : '') +
+      ce.vendorModules + (ce.vendorModules ? '\n\n' : '') +
+      ce.submodules + (ce.submodules ? '\n' : '') +
+      ce.combLogic + (ce.combLogic ? '\n' : '') +
+      ce.syncBlocks + (ce.syncBlocks ? '\n' : '') +
+      'endmodule'
+    );
+  } else if (ce.type === SIMULATION_CODE_ELEMENTS) {
+    return (
+      ce.timescale + '\n\n' +
+      ce.header + '\n' +
+      ce.registers + '\n' +
+      ce.wires + '\n\n' +
+      ce.submodules + '\n\n' +
+      ce.everyTimescaleBlocks + '\n\n' +
+      ce.simulationRunBlock + '\n' +
+      ce.vcdBlock + '\n' +
+      'endmodule'
+    );
+  }
+};
 
 const isSyncDriven = (s:SignalT, syncDrivenSignals:SignalT[]):boolean => syncDrivenSignals.includes(s);
 
@@ -50,7 +82,6 @@ export class CodeGenerator {
     m.describe();
   }
 
-  // TODO: modify the simulation API to take the VCD output options here instead
   async runSimulation(projectName:string, vcdFile?:string) {
     try {
       if (vcdFile) {
@@ -160,20 +191,22 @@ export class CodeGenerator {
       const submodules = simEval.getSubmodules();
       const vcdBlock = simEval.getVcdBlock();
 
-      const timescale = this.options.simulation.timescale;
-      const code = (
-        `\`timescale ${''
-        }${timescale[0].value}${timescaleToUnit(timescale[0].timescale)}${''
-        }/${timescale[1].value}${timescaleToUnit(timescale[1].timescale)}` + '\n\n' +
-        header + '\n' +
-        registers + '\n' +
-        wires + '\n\n' +
-        submodules + '\n\n' +
-        everyTimescaleBlocks + '\n\n' +
-        simulationRunBlock + '\n' +
-        vcdBlock + '\n' +
-        'endmodule'
-      );
+      const ts = this.options.simulation.timescale;
+      const timescale = `\`timescale ${''
+      }${ts[0].value}${timescaleToUnit(ts[0].timescale)}${''
+      }/${ts[1].value}${timescaleToUnit(ts[1].timescale)}`;
+
+      const code:SimulationCodeElements = {
+        type: SIMULATION_CODE_ELEMENTS,
+        timescale,
+        header,
+        registers,
+        wires,
+        submodules,
+        everyTimescaleBlocks,
+        simulationRunBlock,
+        vcdBlock
+      };
 
       return {
         code,
@@ -195,20 +228,36 @@ export class CodeGenerator {
       }
     }));
 
-    const header = [
-      `module ${m.moduleName}(`,
-        Object
-        .entries(namesToSignals.input)
-        .map(([signalName, s]) => `input ${getRegSize(s)}${signalName}`)
-        .map(t.indent)
-        .join(',\n') + (Object.keys(namesToSignals.output).length > 0 ? ',' : ''),
-        Object
-        .entries(namesToSignals.output)
-        .map(([signalName, s]) => `output ${isSyncDriven(s as SignalT, sDriven) ? 'reg ' : ''}${getRegSize(s)}${signalName}`)
-        .map(t.indent)
-        .join(',\n'),
-      ');'
-    ].join('\n');
+    const nIns = Object.keys(namesToSignals.input).length;
+    const nOuts = Object.keys(namesToSignals.output).length;
+    const headerParts = [`module ${m.moduleName}(`];
+    let header;
+
+    if (nIns + nOuts === 0) {
+      headerParts[0] += ');';
+    } else {
+      if (nIns > 0) {
+        headerParts.push(
+          Object
+          .entries(namesToSignals.input)
+          .map(([signalName, s]) => `input ${getRegSize(s)}${signalName}`)
+          .map(t.indent)
+          .join(',\n') + (nOuts > 0 ? ',' : '')
+        );
+      }
+      if (nOuts > 0) {
+        headerParts.push(
+          Object
+          .entries(namesToSignals.output)
+          .map(([signalName, s]) => `output ${isSyncDriven(s as SignalT, sDriven) ? 'reg ' : ''}${getRegSize(s)}${signalName}`)
+          .map(t.indent)
+          .join(',\n')
+        );
+      }
+      headerParts.push(');');
+    }
+
+    header = headerParts.join('\n');
 
     const initialRegisterAssignments = [...signalMap.output.entries()].reduce<string[]>((acc, [port, portName]) => {
       if (isSyncDriven(port as SignalT, sDriven)) {
@@ -368,20 +417,22 @@ export class CodeGenerator {
       return out.join('\n');
     }).join('\n\n');
 
+    const moduleCode:ModuleCodeElements = {
+      type: MODULE_CODE_ELEMENTS,
+      header,
+      internalRegisters,
+      internalWires,
+      wireDeclarations,
+      initialBlock,
+      assignments: allAssignments,
+      vendorModules,
+      submodules,
+      combLogic,
+      syncBlocks
+    }
+
     return {
-      code: (
-        header + '\n' +
-        internalRegisters + (internalRegisters ? '\n' : '') +
-        internalWires + (internalWires ? '\n' : '') +
-        wireDeclarations + (wireDeclarations ? '\n\n' : '') +
-        initialBlock + (initialBlock ? '\n\n' : '') +
-        allAssignments + (allAssignments ? '\n\n' : '') +
-        vendorModules + (vendorModules ? '\n\n' : '') +
-        submodules + (submodules ? '\n' : '') +
-        combLogic + (combLogic ? '\n' : '') +
-        syncBlocks + (syncBlocks ? '\n' : '') +
-        'endmodule'
-      ),
+      code: moduleCode,
       submodules: m.getSubmodules().map(submoduleReference => submoduleReference.m)
     };
   }
@@ -392,13 +443,13 @@ export class CodeGenerator {
     const thisIsASimulation = this.options.simulation?.enabled;
     let thisIsTheTopLevelModule = true;
 
-    const allCode = [];
+    const allCode:string[] = [];
     const moduleQueue = [this.m];
     while (moduleQueue.length) {
       const nextM = moduleQueue.pop();
       // TODO: Might just be better to split this out into a separate method
       const generated = this.generateVerilogCodeForModule(nextM, thisIsASimulation && thisIsTheTopLevelModule);
-      allCode.push(generated.code);
+      allCode.push(codeElementsToString(generated.code));
 
       generated.submodules.forEach(m => {
         if (!verilogModulesGenerated.includes(m.moduleName)) {

@@ -143,8 +143,36 @@ export type ModuleSignalDescriptor = {
   name: string;
 };
 
+export interface ModuleCodeElements {
+  type: "moduleCodeElements";
+  header: string;
+  internalRegisters: string;
+  internalWires: string;
+  wireDeclarations: string;
+  initialBlock: string;
+  assignments: string;
+  vendorModules: string;
+  submodules: string;
+  combLogic: string;
+  syncBlocks: string;
+};
+
+export interface SimulationCodeElements {
+  type: "simulationCodeElements";
+  timescale: string;
+  header: string;
+  registers: string;
+  wires: string;
+  submodules: string;
+  everyTimescaleBlocks: string;
+  simulationRunBlock: string;
+  vcdBlock: string;
+};
+
+export type CodeElements = ModuleCodeElements | SimulationCodeElements;
+
 export type GeneratedVerilogObject = {
-  code:string;
+  code: CodeElements;
   submodules: GWModule[];
 };
 
