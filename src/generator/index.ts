@@ -259,7 +259,8 @@ export class CodeGenerator {
 
     header = headerParts.join('\n');
 
-    const initialRegisterAssignments = [...signalMap.output.entries()].reduce<string[]>((acc, [port, portName]) => {
+    const outputsAndInternals = [...signalMap.output.entries(), ...signalMap.internal.entries()];
+    const initialRegisterAssignments = outputsAndInternals.reduce<string[]>((acc, [port, portName]) => {
       if (isSyncDriven(port as SignalT, sDriven)) {
         acc.push(`${t.l(1)}${portName} = ${(port as SignalT).defaultValue};`);
       }
