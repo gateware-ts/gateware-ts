@@ -65,6 +65,10 @@ export class SimulationEvaluator {
   }
 
   getRunBlock() {
+    if (typeof this.workingModule.simulation.getRunBody() === 'undefined') {
+      throw new Error('Simulation must contain a run block (created with this.simulation.run())');
+    }
+
     const out = [];
     out.push(`${this.t.l()}initial begin`);
     this.t.push();
