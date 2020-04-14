@@ -6,7 +6,7 @@ import { GWModule, Edge } from '../../src/index';
 
 const expect = chai.expect;
 
-export default () => {
+describe('headers', () => {
   it('should correctly generate for no signals', () => {
     class UUT extends GWModule {
       describe() {
@@ -193,4 +193,4 @@ export default () => {
       ');'
     ].join('\n'));
   });
-};
+});

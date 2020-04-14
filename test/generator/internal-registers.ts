@@ -7,7 +7,7 @@ import { GWModule, Edge, Signedness } from '../../src/index';
 
 const expect = chai.expect;
 
-export default () => {
+describe('internalRegisters', () => {
   it('should correctly generate for no signals', () => {
     class UUT extends GWModule {
       in = this.input(Signal());
@@ -200,4 +200,4 @@ export default () => {
 
     expect(result.code.initialBlock).to.eq('');
   });
-};
+});

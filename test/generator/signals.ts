@@ -56,7 +56,7 @@ const comparrisonTest = (op:string, a:SignalT, b:SignalT, expectation:string) =>
   expect(result.code.combLogic).to.eq(`  assign o = ${expectation} ? a : b;`);
 }
 
-export default () => {
+describe('signals', () => {
   it('should able to be sliced', () => {
     class UUT extends GWModule {
       in = this.input(Signal(8));
@@ -113,7 +113,7 @@ export default () => {
 
       describe() {
         this.combinationalLogic([
-          this.o ['='] (this.in.concat([this.in2]))
+          this.o ['='] (this.in ['++'] ([this.in2]))
         ])
       }
     }
@@ -152,6 +152,17 @@ export default () => {
     expect(result.code.combLogic).to.eq('  assign o = ~in;');
   });
 
+  it('should be clonable', () => {
+    const inSignal1 = Signal(8);
+    const inSignal2 = inSignal1.clone();
+
+    expect(inSignal1).to.not.eq(inSignal2);
+    expect(inSignal1.width).to.eq(inSignal2.width);
+    expect(inSignal1.signedness).to.eq(inSignal2.signedness);
+    expect(inSignal1.defaultValue).to.eq(inSignal2.defaultValue);
+
+  });
+
   it('should be able be added', operationTest('+', Signal(8), Signal(8), 'a + b'));
   it('should be able be subtracted', operationTest('-', Signal(8), Signal(8), 'a - b'));
   it('should be able be and\'d', operationTest('&', Signal(8), Signal(8), 'a & b'));
@@ -166,7 +177,7 @@ export default () => {
 
   it('should be able be compared for equality', comparrisonTest('==', Signal(8), Signal(8), 'a == b'));
   it('should be able be compared for non-equality', comparrisonTest('!=', Signal(8), Signal(8), 'a != b'));
-  it('should be able be compared for less than', comparrisonTest('>', Signal(8), Signal(8), 'a > b'));
+  it('should be able be compared for less than', comparrisonTest('<', Signal(8), Signal(8), 'a < b'));
   it('should be able be compared for less than or equal to', comparrisonTest('<=', Signal(8), Signal(8), 'a <= b'));
   it('should be able be compared for greater than', comparrisonTest('>', Signal(8), Signal(8), 'a > b'));
   it('should be able be compared for greater than or equal to', comparrisonTest('>=', Signal(8), Signal(8), 'a >= b'));
@@ -196,4 +207,4 @@ export default () => {
 
     expect(result.code.combLogic).to.eq(`  assign o = ((~in) | {4'b0000, b}) ^ 8'b10101010;`);
   });
-};
+});
