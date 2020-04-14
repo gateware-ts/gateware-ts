@@ -17,6 +17,7 @@ import {
   CONSTANT,
   CONCAT,
   SLICE,
+  INVERSE,
   WIRE,
   BOOLEAN_EXPRESSION
 } from "./constants";
@@ -224,6 +225,17 @@ export abstract class BaseSignalLike {
 
   ['>='](b:SignalLikeOrValue) {
     return this.gte(b);
+  }
+}
+
+export class Inverse extends BaseSignalLike {
+  readonly type:string = INVERSE;
+  a:SignalLike;
+
+  constructor(a:SignalLike) {
+    super();
+    this.a = a;
+    this.width = a.width;
   }
 }
 
