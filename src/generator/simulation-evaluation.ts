@@ -73,6 +73,11 @@ export class SimulationEvaluator {
     out.push(`${this.t.l()}initial begin`);
     this.t.push();
 
+    const sm = this.workingModule.getSignalMap();
+    [...sm.internal.entries(), ...sm.output.entries()].forEach(([port, portName]:[SignalT, string]) => {
+      out.push(`${this.t.l()}${portName} = ${port.defaultValue};`);
+    });
+
     this.workingModule.simulation.getRunBody().forEach(expr => {
       out.push(this.evaluate(expr));
     });
@@ -94,7 +99,11 @@ export class SimulationEvaluator {
 
   getWireBlock() {
     const out = [];
-    [...this.workingModule.getSignalMap().output.entries()].forEach(([port, name]) => {
+    const sm = this.workingModule.getSignalMap();
+    [
+      ...sm.internal.entries(),
+      ...sm.output.entries()
+    ].forEach(([port, name]) => {
       out.push(`${this.t.l()}wire ${getRegSize(port)}${name};`);
     });
     return out.join('\n');
