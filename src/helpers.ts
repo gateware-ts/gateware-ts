@@ -1,3 +1,7 @@
+/**
+ * @internal
+ * @packageDocumentation
+ */
 export class TabLevel {
   level:number;
   ts:string;
