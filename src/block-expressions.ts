@@ -1,3 +1,8 @@
+/**
+ * Contains expressions which can be used in synchronous logic
+ * @packageDocumentation
+ */
+
 import {
   IF_EXPRESSION,
   ELSE_EXPRESSION,
@@ -18,13 +23,18 @@ import {
   IfStatementLike
 } from './main-types';
 
-
+/**
+ * Should not be used directly, instead use [[If]] or [[SIf]]
+*/
 export interface IfElseBlock<BodyExprsT> {
   type: 'elseExpression';
   parent: IfStatementLike<BodyExprsT>;
   elseClause: BodyExprsT[];
 };
 
+/**
+ * Should not be used directly, instead use [[If]] or [[SIf]]
+*/
 export class ElseIfStatement<BodyExprsT> {
   readonly type = ELSE_IF_EXPRESSION;
   parentStatement: IfStatementLike<BodyExprsT>;
@@ -51,6 +61,9 @@ export class ElseIfStatement<BodyExprsT> {
   }
 }
 
+/**
+ * Should not be used directly, instead use [[If]] or [[SIf]]
+*/
 export class IfStatement<BodyExprsT> {
   readonly type = IF_EXPRESSION;
   subject: SignalLike;
@@ -74,19 +87,44 @@ export class IfStatement<BodyExprsT> {
   }
 }
 
+/**
+ * Conditionally run some logic
+ * @param expr Expression to check
+ * @param body Body of expressions to run if the expr condition is true
+ */
 export const If = (expr:SignalLike, body:BlockExpression[]):IfStatement<BlockExpression> => new IfStatement<BlockExpression>(expr, body);
+
+/**
+ * Conditionally run some logic, including simulation only expressions
+ * @param expr Expression to check
+ * @param body Body of expressions to run if the expr condition is true
+ */
 export const SIf = (expr:SignalLike, body:SimulationExpression[]):IfStatement<SimulationExpression> => new IfStatement<SimulationExpression>(expr, body);
 
+/**
+ * Choose which logic to run based on the value at a signal
+ * @param s The conditional signal
+ * @param cases Cases for particular values
+ */
 export const Switch = (s:SignalLike, cases:CaseExpression[]):SwitchExpression => ({
   type: SWITCH_EXPRESSION,
   subject: s,
   cases
 });
 
+/**
+ * A block of logic associated with a specific possiblity
+ * @param s The associated value
+ * @param body Body of expressions to run in this case
+ */
 export const Case = (s:SignalLikeOrValue, body:BlockExpression[]):SubjectiveCaseExpression => ({
   type: CASE_EXPRESSION,
   subject: s,
   body
 });
 
+/**
+ * The default block of logic in a [[Switch]] Expression
+ * @param body Body of expressions to run in this case
+ */
 export const Default = (body:BlockExpression[]):DefaultCaseExpression => ({ body, type: DEFAULT_CASE_EXPRESSION });

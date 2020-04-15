@@ -1,3 +1,7 @@
+/**
+ * @internal
+ * @packageDocumentation
+ */
 import { Port } from "../main-types";
 
 export const mapNamesToSignals = (map:Map<Port, string>) => {

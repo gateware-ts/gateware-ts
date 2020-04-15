@@ -16,31 +16,64 @@ import {
 import { SignalT, WireT } from './signals';
 import { mapNamesToSignals } from './generator/common';
 
+/**
+ * The class which all gateware-ts hardware modules must extend.
+ * This class should never be instaniated.
+ */
 export abstract class GWModule {
+  /**
+   * The describe method needs to contain all the synchronous, combinational,
+   * and simulation logic - as well as the inclusion of submodules. In short,
+   * it needs to "describe" your module.
+   */
   abstract describe():void;
+
+  /**
+   * The name of this module, used in code generation
+   */
   moduleName:string;
 
+  /** @internal */
   private inputs: SignalT[] = [];
+  /** @internal */
   private outputs: SignalT[] = [];
+  /** @internal */
   private internals: SignalT[] = [];
+  /** @internal */
   private submodules: SubmoduleReference[] = [];
+  /** @internal */
   private vendorModules: VendorModuleReference[] = [];
+  /** @internal */
   private wires: WireT[] = [];
-
+  /** @internal */
   private syncBlocks: SyncBlock[] = [];
+  /** @internal */
   private combinational: CombinationalLogic[] = [];
+  /** @internal */
   private signalMap: SignalMap;
 
+  /**
+   * Contains and controls this modules simulation logic
+  */
   simulation:Simulation;
 
+  /** @internal */
   getInputSignals() { return this.inputs; }
+  /** @internal */
   getOutputSignals() { return this.outputs; }
+  /** @internal */
   getInternalSignals() { return this.internals; }
+  /** @internal */
   getSyncBlocks() { return this.syncBlocks; }
+  /** @internal */
   getCombinationalLogic() { return this.combinational; }
+  /** @internal */
   getSubmodules() { return this.submodules; }
+  /** @internal */
   getVendorModules() { return this.vendorModules; }
+  /** @internal */
   getSignalMap() { return this.signalMap; }
+  /** @internal */
   getWires() { return this.wires; }
 
   constructor(name?:string) {
@@ -48,10 +81,15 @@ export abstract class GWModule {
     this.simulation = new Simulation();
   }
 
+  /** @internal */
   init() {
     this.createSignalMap();
   }
 
+  /**
+   * Reset a module after it's been processed by a code generator.
+   * Very unlikely to be needed by an end-user
+  */
   reset() {
     this.submodules = [];
     this.syncBlocks = [];
@@ -59,12 +97,14 @@ export abstract class GWModule {
     return this;
   }
 
+  /** @internal */
   clone<T>():T {
     // @ts-ignore: An abstract class by definition doesn't know what
     // it's concrete class will be, but there will be one.
     return new this.constructor() as T;
   }
 
+  /** @internal */
   private checkIfSignalWasPreviouslyAdded(s:SignalT) {
     if (this.signalMap) {
       try {
@@ -78,6 +118,10 @@ export abstract class GWModule {
     }
   }
 
+  /**
+   * Create an input signal on this module
+   * @param s A signal definition
+   */
   input(s:SignalT) : SignalT {
     if (this.checkIfSignalWasPreviouslyAdded(s)) {
       throw new Error(`Cannot register the same signal more than once`);
@@ -87,12 +131,20 @@ export abstract class GWModule {
     return s;
   }
 
+  /**
+   * Create a wire on this module.
+   * @param width Bit width of this wire
+   */
   wire(width:number = 1) : WireT {
     const w = new WireT(width);
     this.wires.push(w);
     return w;
   }
 
+  /**
+   * Create an output signal on this module
+   * @param s A signal definition
+   */
   output(s:SignalT) : SignalT {
     if (this.checkIfSignalWasPreviouslyAdded(s)) {
       throw new Error(`Cannot register the same signal more than once`);
@@ -102,6 +154,10 @@ export abstract class GWModule {
     return s;
   }
 
+  /**
+   * Create an internal signal on this module
+   * @param s A signal definition
+   */
   internal(s:SignalT) : SignalT {
     if (this.checkIfSignalWasPreviouslyAdded(s)) {
       throw new Error(`Cannot register the same signal more than once`);
@@ -111,14 +167,25 @@ export abstract class GWModule {
     return s;
   }
 
+  /**
+   * Create a block of logic that is synchronous to a signal edge
+   * @param signal The signal to synchronise to (usually a clock)
+   * @param edge Either a positive or negative edge (can be hardware dependant)
+   * @param block A block of expressions
+   */
   syncBlock(signal:SignalT, edge:Edge, block:BlockExpression[]):void {
     this.syncBlocks.push({signal, edge, block});
   }
 
+  /**
+   * Create a block of logic that is purely combinational
+   * @param logic A block of expressions (only assignments)
+   */
   combinationalLogic(logic:CombinationalLogic[]):void {
     this.combinational.push(...logic);
   }
 
+  /** @internal */
   createSignalMap():void {
     const allSignals = [];
 
@@ -156,6 +223,7 @@ export abstract class GWModule {
   }
 
   // TODO: Rename all things that should be called port*
+  /** @internal */
   getModuleSignalDescriptor(s:Port):ModuleSignalDescriptor {
     const inputSignal = this.signalMap.input.get(s);
     if (inputSignal) {
@@ -180,6 +248,7 @@ export abstract class GWModule {
     throw new Error(`Unable to find internal signal ${s}`);
   }
 
+  /** @internal */
   getSubmoduleSignalDescriptor(s:Port):ModuleSignalDescriptor {
     let descriptor:ModuleSignalDescriptor;
 
@@ -197,6 +266,7 @@ export abstract class GWModule {
     return descriptor;
   }
 
+  /** @internal */
   findAnyModuleSignalDescriptor(s:Port):ModuleDescriptorObject {
     // Try to find the signal within the parent
     try {
@@ -226,6 +296,12 @@ export abstract class GWModule {
   // TODO: If I reset before I call init/describe, then I should be able to use the same instance
   // of a module multiple times. Combined with an automatic name detection like for the signals, this
   // would make working with submodules quite a bit easier
+  /**
+   * Add a submodule to this module
+   * @param m The module to add
+   * @param submoduleName The internal name this module is given
+   * @param signalMapping A mapping for this modules inputs and outputs
+   */
   addSubmodule(m:GWModule, submoduleName:string, signalMapping:SubmodulePortMappping):void {
     m.init();
     m.describe();
@@ -282,6 +358,11 @@ export abstract class GWModule {
     });
   }
 
+  /**
+   * Add a vendor specific module (IP) to this module
+   * @param m The vendor module to add
+   * @param signalMapping A mapping for this modules inputs and outputs
+   */
   addVendorModule(m:VendorModule<any>, signalMapping:SubmodulePortMappping):void {
     m.init();
     const signalMap = m.getVendorSignalMap();

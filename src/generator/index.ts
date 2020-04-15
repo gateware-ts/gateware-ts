@@ -22,6 +22,7 @@ import {
   TimeScaleValue
 } from "../main-types";
 
+/** @internal */
 const codeElementsToString = (ce:CodeElements) => {
   if (ce.type === MODULE_CODE_ELEMENTS) {
     return (
@@ -52,11 +53,14 @@ const codeElementsToString = (ce:CodeElements) => {
   }
 };
 
+/** @internal */
 const isSyncDriven = (s:SignalT, syncDrivenSignals:SignalT[]):boolean => syncDrivenSignals.includes(s);
 
+/** @internal */
 const writeFileP = promisify(writeFile);
+/** @internal */
 const execP = promisify(exec);
-
+/** @internal */
 const cleanupFiles = (filenames:string[]) => exec(`rm ${filenames.join(' ')}`);
 
 interface SimulationOptions {
@@ -68,10 +72,22 @@ interface CodeGeneratorOptions {
   simulation?: SimulationOptions;
 };
 
+/**
+ * Class for generating verilog, bitstreams, and running simulations
+ */
 export class CodeGenerator {
+  /** @internal */
   options:CodeGeneratorOptions;
+  /**
+   * the working module
+   */
   m:GWModule;
 
+  /**
+   * Creates a new CodeGenerator
+   * @param m top level module
+   * @param options configuration options
+   */
   constructor(m:GWModule, options:CodeGeneratorOptions = {}) {
     this.options = options || {};
     this.m = m;
@@ -82,6 +98,13 @@ export class CodeGenerator {
     m.describe();
   }
 
+  /**
+   * Compiles [[CodeGenerator.m]] to verilog as if it were a simulation, creating an associated
+   * VCD wave file if provided
+   * Cleans up all associated files after simulating, except the VCD
+   * @param projectName the name of the project (generated files will use this name)
+   * @param vcdFile the name of VCD wave file to generate
+   */
   async runSimulation(projectName:string, vcdFile?:string) {
     try {
       if (vcdFile) {
@@ -111,6 +134,10 @@ export class CodeGenerator {
     ]);
   }
 
+  /**
+   * Compiles [[CodeGenerator.m]] to verilog and writes it to a file
+   * @param projectName the name of the project (generated files will use this name)
+   */
   async writeVerilogToFile(projectName:string) {
     const filename = /\.v$/.test(projectName)
       ? projectName
@@ -120,6 +147,11 @@ export class CodeGenerator {
     process.stdout.write(`Wrote verilog to ${filename}\n`);
   }
 
+  /**
+   * Compiles [[CodeGenerator.m]] to verilog, performs synthesis, routing, and creates a bitstream
+   * @param projectName the name of the project (generated files will use this name)
+   * @param cleanupIntermediateFiles if true, the files generated during compilation, synthesis, and routing will be removed
+   */
   async buildBitstream(projectName:string, cleanupIntermediateFiles:boolean = true) {
     try {
       const verilog = this.toVerilog();
@@ -161,6 +193,7 @@ export class CodeGenerator {
     }
   }
 
+  /** @internal */
   generateVerilogCodeForModule(m:GWModule, thisIsASimulation:boolean):GeneratedVerilogObject {
     const t = new TabLevel('  ', 1);
 
@@ -438,6 +471,9 @@ export class CodeGenerator {
     };
   }
 
+  /**
+   * Compiles [[CodeGenerator.m]] to verilog
+   */
   toVerilog() {
     const verilogModulesGenerated = [this.m.moduleName];
 

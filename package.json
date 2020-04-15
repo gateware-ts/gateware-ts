@@ -5,7 +5,8 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "mocha --reporter spec --require ts-node/register test/**/*.ts",
-    "test:coverage": "nyc --reporter=lcov npm run test"
+    "test:coverage": "nyc --reporter=lcov npm run test",
+    "docs": "typedoc --stripInternal --out docs src"
   },
   "author": "",
   "license": "ISC",
@@ -19,6 +20,7 @@
     "mocha": "^7.1.1",
     "nyc": "^15.0.0",
     "ts-node": "^8.6.2",
+    "typedoc": "^0.17.4",
     "typescript": "^3.8.3"
   }
 }

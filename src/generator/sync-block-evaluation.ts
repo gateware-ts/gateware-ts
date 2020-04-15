@@ -1,3 +1,7 @@
+/**
+ * @internal
+ * @packageDocumentation
+ */
 import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
 import { AssignmentExpression, BlockExpression, SwitchExpression, SubjectiveCaseExpression, SyncBlock, Edge } from '../main-types';

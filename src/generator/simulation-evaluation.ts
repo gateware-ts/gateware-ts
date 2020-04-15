@@ -1,3 +1,7 @@
+/**
+ * @internal
+ * @packageDocumentation
+ */
 import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
 import {

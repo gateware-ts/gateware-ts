@@ -14,7 +14,7 @@ The project aims to:
 - [x] Type-safe vendor module support
 - [x] Improve examples
 - [x] Interface to open source toolchain
-- [ ] API documentation
+- [x] API documentation
 - [ ] Tutorials
 - [ ] Support for formal verification
 - [ ] Strict/Non-strict mode

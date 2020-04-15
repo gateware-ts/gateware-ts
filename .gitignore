@@ -5,3 +5,4 @@ test_verilog/
 coverage/
 .nyc_output/
 .vscode
+docs/
