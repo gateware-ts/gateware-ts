@@ -1,3 +1,7 @@
+/**
+ * @internal
+ * @packageDocumentation
+ */
 import { ParameterString } from './../main-types';
 import { ConstantT } from "../signals";
 import { CONSTANT, PARAMETER_STRING } from '../constants';
