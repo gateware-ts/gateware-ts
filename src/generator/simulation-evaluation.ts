@@ -77,11 +77,6 @@ export class SimulationEvaluator {
     out.push(`${this.t.l()}initial begin`);
     this.t.push();
 
-    const sm = this.workingModule.getSignalMap();
-    [...sm.internal.entries()].forEach(([port, portName]:[SignalT, string]) => {
-      out.push(`${this.t.l()}${portName} = ${port.defaultValue};`);
-    });
-
     this.workingModule.simulation.getRunBody().forEach(expr => {
       out.push(this.evaluate(expr));
     });
@@ -95,7 +90,8 @@ export class SimulationEvaluator {
 
   getRegisterBlock() {
     const out = [];
-    [...this.workingModule.getSignalMap().input.entries()].forEach(([port, name]) => {
+    const sm = this.workingModule.getSignalMap();
+    [...sm.input.entries(), ...sm.internal.entries()].forEach(([port, name]) => {
       out.push(`${this.t.l()}reg ${getRegSize(port)}${name} = ${this.expr.evaluate((port as SignalT).defaultValue)};`);
     });
     return out.join('\n');
@@ -104,10 +100,7 @@ export class SimulationEvaluator {
   getWireBlock() {
     const out = [];
     const sm = this.workingModule.getSignalMap();
-    [
-      ...sm.internal.entries(),
-      ...sm.output.entries()
-    ].forEach(([port, name]) => {
+    [...sm.output.entries()].forEach(([port, name]) => {
       out.push(`${this.t.l()}wire ${getRegSize(port)}${name};`);
     });
     return out.join('\n');

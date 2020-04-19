@@ -331,15 +331,16 @@ describe('simulationEvaluation', () => {
     const cg = new CodeGenerator(m, simulationOpts);
     const code = cg.generateVerilogCodeForModule(m, true).code as SimulationCodeElements;
 
-    expect(code.registers).to.eq('  reg [1:0] in = 0;');
+    expect(code.registers).to.eq([
+      '  reg [1:0] in = 0;',
+      '  reg [1:0] int = 0;',
+    ].join('\n'));
     expect(code.wires).to.eq([
-      '  wire [1:0] int;',
       '  wire [1:0] o;',
     ].join('\n'));
 
     expect(code.simulationRunBlock).to.eq([
       '  initial begin',
-      '    int = 0;',
       '    $finish;',
       '  end',
     ].join('\n'));
