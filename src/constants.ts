@@ -8,6 +8,7 @@ export const ELSE_IF_EXPRESSION = 'elseIfExpression';
 
 export const SIMULATION_IF_EXPRESSION = 'simulationIfExpression';
 export const SWITCH_EXPRESSION = 'switchExpression';
+export const COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION = 'combinationalSwitchAssignmentExpression';
 export const CASE_EXPRESSION = 'caseExpression';
 export const DEFAULT_CASE_EXPRESSION = 'defaultCaseExpression';
 export const COMPARRISON_EXPRESSION = 'comparrisonExpression';

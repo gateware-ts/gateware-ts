@@ -42,6 +42,12 @@ export enum BooleanOperation {
 };
 
 /** @internal */
+export enum CombinationalSignalType {
+  Register,
+  Wire
+};
+
+/** @internal */
 export enum ComparrisonOperation {
   Equal,
   NotEqual,
@@ -164,13 +170,20 @@ export type LogicExpression = IfStatement<BlockExpression>
                             | SwitchExpression;
 export type BlockExpression = LogicExpression | AssignmentExpression;
 
-// TODO: In future, support generically-typed Switch and If expressions
-// e.g. Switch<'combinational'> vs Switch<'sync'>
-// not sure if this is possible
+/** @internal */
+export type CombinationalSwitchAssignmentExpression = {
+  type: 'combinationalSwitchAssignmentExpression';
+  to: Port;
+  conditionalSignal: SignalLike;
+  cases: [ConstantT | number, SignalLikeOrValue][];
+  defaultCase: SignalLikeOrValue;
+};
+
+// TODO: In future, support generically-typed If expressions
 /**
- * A type-alias for assignment - which is the only valid action in combination logic
+ * Various kinds of combinational assignments that can be made
  */
-export type CombinationalLogic = AssignmentExpression;
+export type CombinationalLogic = AssignmentExpression | CombinationalSwitchAssignmentExpression;
 
 /** @internal */
 export type SyncBlock  = {
@@ -197,7 +210,8 @@ export interface ModuleCodeElements {
   assignments: string;
   vendorModules: string;
   submodules: string;
-  combLogic: string;
+  combAssigns: string;
+  combAlways: string;
   syncBlocks: string;
 };
 

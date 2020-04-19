@@ -1,10 +1,10 @@
-import { MODULE_CODE_ELEMENTS, SIMULATION_CODE_ELEMENTS } from './../constants';
-import { CodeElements, SimulationCodeElements, ModuleCodeElements } from './../main-types';
 import * as path from 'path';
 import { writeFile } from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
+import { MODULE_CODE_ELEMENTS, SIMULATION_CODE_ELEMENTS, ASSIGNMENT_EXPRESSION } from './../constants';
+import { CodeElements, SimulationCodeElements, ModuleCodeElements, CombinationalSignalType, Port } from './../main-types';
 import { TabLevel, flatten } from '../helpers';
 import { GWModule } from "../gw-module";
 import { SignalT, ConstantT } from "../signals";
@@ -34,7 +34,8 @@ const codeElementsToString = (ce:CodeElements) => {
       ce.assignments + (ce.assignments ? '\n\n' : '') +
       ce.vendorModules + (ce.vendorModules ? '\n\n' : '') +
       ce.submodules + (ce.submodules ? '\n' : '') +
-      ce.combLogic + (ce.combLogic ? '\n' : '') +
+      ce.combAssigns + (ce.combAssigns ? '\n' : '') +
+      ce.combAlways + (ce.combAlways ? '\n' : '') +
       ce.syncBlocks + (ce.syncBlocks ? '\n' : '') +
       'endmodule'
     );
@@ -55,6 +56,11 @@ const codeElementsToString = (ce:CodeElements) => {
 
 /** @internal */
 const isSyncDriven = (s:SignalT, syncDrivenSignals:SignalT[]):boolean => syncDrivenSignals.includes(s);
+
+/** @internal */
+const isCombinationalRegister = (s:SignalT, signalTypes:Map<Port, CombinationalSignalType>):boolean => {
+  return signalTypes.get(s) === CombinationalSignalType.Register;
+}
 
 /** @internal */
 const writeFileP = promisify(writeFile);
@@ -248,10 +254,27 @@ export class CodeGenerator {
     }
 
     const syncBlocks = m.getSyncBlocks().map(block => syncEval.evaluateBlock(block)).join('\n\n');
-    const combLogic = m.getCombinationalLogic().map(expr => combEval.evaluate(expr)).join('\n');
+
+    let combAssigns = '';
+    let combAlways = `${t.l()}always @(*) begin\n`;
+    m.getCombinationalLogic().forEach(expr => {
+      const code = combEval.evaluate(expr);
+      if (expr.type === ASSIGNMENT_EXPRESSION) {
+        combAssigns += `${code}\n`;
+      } else {
+        combAlways += `${code}\n`;
+      }
+    });
+    combAlways += `${t.l()}end`;
+    combAssigns = combAssigns.trimEnd();
+
+    if (combAlways === `${t.l()}always @(*) begin\n${t.l()}end`) {
+      combAlways = '';
+    }
 
     const cDriven = combEval.getDrivenSignals();
     const sDriven = syncEval.getDrivenSignals();
+    const cSignalTypes = combEval.getSignalTypes();
 
     cDriven.forEach(cs => sDriven.forEach(ss => {
       if (cs === ss) {
@@ -282,7 +305,12 @@ export class CodeGenerator {
         headerParts.push(
           Object
           .entries(namesToSignals.output)
-          .map(([signalName, s]) => `output ${isSyncDriven(s as SignalT, sDriven) ? 'reg ' : ''}${getRegSize(s)}${signalName}`)
+          .map(([signalName, s]) => {
+            const typeInformation = isSyncDriven(s as SignalT, sDriven) || isCombinationalRegister(s as SignalT, cSignalTypes)
+              ? 'reg '
+              : '';
+            return `output ${typeInformation}${getRegSize(s)}${signalName}`;
+          })
           .map(t.indent)
           .join(',\n')
         );
@@ -461,7 +489,8 @@ export class CodeGenerator {
       assignments: allAssignments,
       vendorModules,
       submodules,
-      combLogic,
+      combAlways,
+      combAssigns,
       syncBlocks
     }
 
