@@ -1,6 +1,6 @@
-import { UNARY_EXPRESSION, TERNARY_EXPRESSION } from './constants';
-import { SignalLike, UnaryExpression, Operation, ComparrisonExpression, SignalLikeOrValue, TernaryExpression } from './main-types';
-import { Slice, Inverse } from './signals';
+import { UNARY_EXPRESSION, TERNARY_EXPRESSION, COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION } from './constants';
+import { SignalLike, UnaryExpression, Operation, ComparrisonExpression, SignalLikeOrValue, TernaryExpression, Port, CombinationalSwitchAssignmentExpression } from './main-types';
+import { Slice, Inverse, ConstantT } from './signals';
 
 /**
  * Bitwise invert all the bits in a [[SignalLike]]
@@ -46,3 +46,20 @@ export const Ternary = (comparrison:ComparrisonExpression, a:SignalLike, b:Signa
     width: a.width
   };
 }
+
+/**
+ * Combinational assignment to [[Port]] `to`, where based on the value of `conditionalSignal`, a case is selected as the output
+ * @param to The [[Port]] to assign to
+ * @param conditionalSignal The [[SignalLike]] whose value will decide the output
+ * @param cases An array of pairs (array with two elements), where the first element is the comparrison value, and the output is the value
+ * @param defaultCase A value to take on if no cases are used
+ */
+export const CombinationalSwitchAssignment = (to:Port, conditionalSignal:SignalLike, cases: [ConstantT | number, SignalLikeOrValue][], defaultCase:SignalLikeOrValue = 1): CombinationalSwitchAssignmentExpression => {
+  return {
+    type: COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION,
+    to,
+    conditionalSignal,
+    cases,
+    defaultCase
+  };
+};

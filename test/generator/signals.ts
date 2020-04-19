@@ -29,7 +29,7 @@ const operationTest = (op:string, a:SignalT, b:SignalT, expectation:string) => (
     throw new Error('Wrong module type generated');
   }
 
-  expect(result.code.combLogic).to.eq(`  assign o = ${expectation};`);
+  expect(result.code.combAssigns).to.eq(`  assign o = ${expectation};`);
 }
 
 const comparrisonTest = (op:string, a:SignalT, b:SignalT, expectation:string) => () => {
@@ -53,7 +53,7 @@ const comparrisonTest = (op:string, a:SignalT, b:SignalT, expectation:string) =>
     throw new Error('Wrong module type generated');
   }
 
-  expect(result.code.combLogic).to.eq(`  assign o = ${expectation} ? a : b;`);
+  expect(result.code.combAssigns).to.eq(`  assign o = ${expectation} ? a : b;`);
 }
 
 describe('signals', () => {
@@ -78,7 +78,7 @@ describe('signals', () => {
       throw new Error('Wrong module type generated');
     }
 
-    expect(result.code.combLogic).to.eq('  assign o = in[7:4];');
+    expect(result.code.combAssigns).to.eq('  assign o = in[7:4];');
   });
 
   it('should able to get a signal bit', () => {
@@ -102,7 +102,7 @@ describe('signals', () => {
       throw new Error('Wrong module type generated');
     }
 
-    expect(result.code.combLogic).to.eq('  assign o = in[0];');
+    expect(result.code.combAssigns).to.eq('  assign o = in[0];');
   });
 
   it('should able to concat', () => {
@@ -126,7 +126,7 @@ describe('signals', () => {
       throw new Error('Wrong module type generated');
     }
 
-    expect(result.code.combLogic).to.eq('  assign o = {in, in2};');
+    expect(result.code.combAssigns).to.eq('  assign o = {in, in2};');
   });
 
   it('should able to be inverted', () => {
@@ -149,7 +149,7 @@ describe('signals', () => {
       throw new Error('Wrong module type generated');
     }
 
-    expect(result.code.combLogic).to.eq('  assign o = ~in;');
+    expect(result.code.combAssigns).to.eq('  assign o = ~in;');
   });
 
   it('should be clonable', () => {
@@ -205,6 +205,6 @@ describe('signals', () => {
       throw new Error('Wrong module type generated');
     }
 
-    expect(result.code.combLogic).to.eq(`  assign o = ((~in) | {4'b0000, b}) ^ 8'b10101010;`);
+    expect(result.code.combAssigns).to.eq(`  assign o = ((~in) | {4'b0000, b}) ^ 8'b10101010;`);
   });
 });
