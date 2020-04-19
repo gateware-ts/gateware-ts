@@ -136,7 +136,7 @@ describe('simulationEvaluation', () => {
       o = this.output(Signal(2));
       describe() {
         this.simulation.run([
-          this.o ['='] (1)
+          this.in ['='] (1)
         ]);
       }
     }
@@ -147,8 +147,7 @@ describe('simulationEvaluation', () => {
 
     expect(code.simulationRunBlock).to.eq([
       '  initial begin',
-      '    o = 0;',
-      '    o = 1;',
+      '    in = 1;',
       '    $finish;',
       '  end',
     ].join('\n'));
@@ -187,7 +186,7 @@ describe('simulationEvaluation', () => {
         this.simulation.run([
           SIf (this.in ['=='] (0b00), [
             display('o was 0'),
-            this.o ['='] (0)
+            this.in ['='] (0)
           ])
         ]);
       }
@@ -199,10 +198,9 @@ describe('simulationEvaluation', () => {
 
     expect(code.simulationRunBlock).to.eq([
       '  initial begin',
-      '    o = 0;',
       '    if (in == 0) begin',
       '      $display("o was 0");',
-      '      o = 0;',
+      '      in = 0;',
       '    end',
       '    $finish;',
       '  end',
@@ -217,11 +215,11 @@ describe('simulationEvaluation', () => {
         this.simulation.run([
           SIf (this.in ['=='] (0b00), [
             display('o was 0'),
-            this.o ['='] (0)
+            this.in ['='] (0)
           ])
           .ElseIf(this.in ['=='] (0b01), [
             display('o was 1'),
-            this.o ['='] (1)
+            this.in ['='] (1)
           ])
         ]);
       }
@@ -233,14 +231,13 @@ describe('simulationEvaluation', () => {
 
     expect(code.simulationRunBlock).to.eq([
       '  initial begin',
-      '    o = 0;',
       '    if (in == 0) begin',
       '      $display("o was 0");',
-      '      o = 0;',
+      '      in = 0;',
       '    end',
       '    else if (in == 1) begin',
       '      $display("o was 1");',
-      '      o = 1;',
+      '      in = 1;',
       '    end',
       '    $finish;',
       '  end',
@@ -255,28 +252,28 @@ describe('simulationEvaluation', () => {
         this.simulation.run([
           SIf (this.in ['=='] (0b00), [
             display('o was something'),
-            this.o ['='] (0),
+            this.in ['='] (0),
           ])
           .ElseIf (this.in ['=='] (0b01), [
             display('o was something'),
-            this.o ['='] (1),
+            this.in ['='] (1),
           ])
           .ElseIf (this.in ['=='] (0b10), [
             display('o was something'),
-            this.o ['='] (0),
+            this.in ['='] (0),
           ])
           .Else([
             display('o was something'),
-            this.o ['='] (1),
+            this.in ['='] (1),
           ]),
 
           SIf (this.in ['=='] (0b11), [
             display('o was something'),
-            this.o ['='] (0),
+            this.in ['='] (0),
           ])
           .Else([
             display('o was something'),
-            this.o ['='] (1),
+            this.in ['='] (1),
           ]),
         ]);
       }
@@ -288,30 +285,29 @@ describe('simulationEvaluation', () => {
 
     expect(code.simulationRunBlock).to.eq([
       '  initial begin',
-      '    o = 0;',
       '    if (in == 0) begin',
       '      $display("o was something");',
-      '      o = 0;',
+      '      in = 0;',
       '    end',
       '    else if (in == 1) begin',
       '      $display("o was something");',
-      '      o = 1;',
+      '      in = 1;',
       '    end',
       '    else if (in == 2) begin',
       '      $display("o was something");',
-      '      o = 0;',
+      '      in = 0;',
       '    end',
       '    else begin',
       '      $display("o was something");',
-      '      o = 1;',
+      '      in = 1;',
       '    end',
       '    if (in == 3) begin',
       '      $display("o was something");',
-      '      o = 0;',
+      '      in = 0;',
       '    end',
       '    else begin',
       '      $display("o was something");',
-      '      o = 1;',
+      '      in = 1;',
       '    end',
       '    $finish;',
       '  end',
@@ -344,7 +340,6 @@ describe('simulationEvaluation', () => {
     expect(code.simulationRunBlock).to.eq([
       '  initial begin',
       '    int = 0;',
-      '    o = 0;',
       '    $finish;',
       '  end',
     ].join('\n'));

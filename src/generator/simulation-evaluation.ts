@@ -78,7 +78,7 @@ export class SimulationEvaluator {
     this.t.push();
 
     const sm = this.workingModule.getSignalMap();
-    [...sm.internal.entries(), ...sm.output.entries()].forEach(([port, portName]:[SignalT, string]) => {
+    [...sm.internal.entries()].forEach(([port, portName]:[SignalT, string]) => {
       out.push(`${this.t.l()}${portName} = ${port.defaultValue};`);
     });
 
