@@ -81,6 +81,90 @@ describe('signals', () => {
     expect(result.code.combAssigns).to.eq('  assign o = in[7:4];');
   });
 
+  it('should able to be zero extended', () => {
+    class UUT extends GWModule {
+      in = this.input(Signal(12));
+      o = this.output(Signal(16));
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (this.in.zeroExtend(16))
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    const result = cg.generateVerilogCodeForModule(m, false);
+
+    if (result.code.type !== MODULE_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.combAssigns).to.eq(`  assign o = {4'b0000, in};`);
+  });
+
+  it('should fail to zero extend when the toWidth is non-integer', () => {
+    class UUT extends GWModule {
+      in = this.input(Signal(12));
+      o = this.output(Signal(16));
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (this.in.zeroExtend(16.1))
+        ])
+      }
+    }
+
+    const m = new UUT();
+    expect(() => {
+      // Expect this to fail when describe is called, after creating the inital code generator
+      new CodeGenerator(m);
+    }).to.throw(`Non integer number of bits specified (16.1)`);
+  });
+
+  it('should fail to sign extend when the toWidth is non-integer', () => {
+    class UUT extends GWModule {
+      in = this.input(Signal(12));
+      o = this.output(Signal(16));
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (this.in.signExtend(16.1))
+        ])
+      }
+    }
+
+    const m = new UUT();
+    expect(() => {
+      // Expect this to fail when describe is called, after creating the inital code generator
+      new CodeGenerator(m);
+    }).to.throw(`Non integer number of bits specified (16.1)`);
+  });
+
+  it('should able to be sign extended', () => {
+    class UUT extends GWModule {
+      in = this.input(Signal(12));
+      o = this.output(Signal(16));
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (this.in.signExtend(16))
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    const result = cg.generateVerilogCodeForModule(m, false);
+
+    if (result.code.type !== MODULE_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.combAssigns).to.eq(`  assign o = {in[11], in[11], in[11], in[11], in};`);
+  });
+
   it('should able to get a signal bit', () => {
     class UUT extends GWModule {
       in = this.input(Signal(8));
