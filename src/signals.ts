@@ -32,6 +32,37 @@ export abstract class BaseSignalLike {
   width:number;
 
   /**
+   * Zero-extend this signal to a given bit width
+   * @param toWidth
+   */
+  zeroExtend(toWidth:number) {
+    if (this.width > toWidth) {
+      throw new Error(`Can't zero extend signal from ${this.width} bits to ${toWidth} bits`);
+    }
+    if (Math.round(toWidth) !== toWidth) {
+      throw new Error(`Non integer number of bits specified (${toWidth})`);
+    }
+    const bitDiff = toWidth - this.width;
+    return new ConcatT([ Constant(bitDiff, 0), this ]);
+  }
+
+  /**
+   * Sign-extend this signal to a given bit width
+   * @param toWidth
+   */
+  signExtend(toWidth:number) {
+    if (this.width > toWidth) {
+      throw new Error(`Can't zero extend signal from ${this.width} bits to ${toWidth} bits`);
+    }
+    if (Math.round(toWidth) !== toWidth) {
+      throw new Error(`Non integer number of bits specified (${toWidth})`);
+    }
+    const bitDiff = toWidth - this.width;
+    const extension = Array.from({ length: bitDiff }, () => this.bit(this.width - 1));
+    return new ConcatT([ ...extension, this ]);
+  }
+
+  /**
    * Create a slice from this signal (inclusive)
    * @param fromBit the starting bit
    * @param toBit the ending bit
