@@ -33,6 +33,20 @@ export abstract class BaseSignalLike {
   width:number;
 
   /**
+   * Treat this signal as signed
+   */
+  asSigned() {
+    return asSigned(this);
+  }
+
+  /**
+   * Treat this signal as unsigned
+   */
+  asUnsigned() {
+    return asUnsigned(this);
+  }
+
+  /**
    * Zero-extend this signal to a given bit width
    * @param toWidth
    */
