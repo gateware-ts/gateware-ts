@@ -2,9 +2,9 @@
  * @internal
  * @packageDocumentation
  */
-import { Inverse } from './../signals';
-import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE } from './../constants';
-import { UnaryExpression, Operation, SignalLikeOrValue, TernaryExpression, ComparrisonExpression, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation } from './../main-types';
+import { Inverse, ExplicitSignedness } from './../signals';
+import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE, EXPLICIT_SIGNEDNESS } from './../constants';
+import { UnaryExpression, Operation, SignalLikeOrValue, TernaryExpression, ComparrisonExpression, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation, Signedness } from './../main-types';
 import { GWModule } from "../gw-module"
 import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpression } from "../signals";
 import { SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION, TERNARY_EXPRESSION } from '../constants';
@@ -77,11 +77,18 @@ export class ExpressionEvaluator {
       case SLICE: {
         return this.evaluateSlice(expr as SliceT);
       }
+      case EXPLICIT_SIGNEDNESS: {
+        return this.evaluateExplicitSignedness(expr as ExplicitSignedness);
+      }
       default: {
         debugger;
         throw new Error('Unrecognised expression type');
       }
     }
+  }
+
+  evaluateExplicitSignedness(s:ExplicitSignedness) {
+    return `$${s.signedness === Signedness.Unsigned ? 'un' : ''}signed(${this.evaluate(s.signal)})`;
   }
 
   evaluateSignalOrWire(s:SignalT | WireT) {

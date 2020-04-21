@@ -17,6 +17,7 @@ export const ASSIGNMENT_EXPRESSION = 'assignmentExpression';
 export const BOOLEAN_EXPRESSION = 'booleanExpression';
 export const UNARY_EXPRESSION = 'unaryExpression';
 export const TERNARY_EXPRESSION = 'ternaryExpression';
+export const EXPLICIT_SIGNEDNESS = 'explicitSignedess';
 export const SIGNAL = 'signal';
 export const CONSTANT = 'constant';
 export const CONCAT = 'concat';

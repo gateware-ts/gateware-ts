@@ -2,7 +2,7 @@ import { Ternary } from './../../src/operational-expressions';
 import { MODULE_CODE_ELEMENTS } from '../../src/constants';
 import * as mocha from 'mocha';
 import * as chai from 'chai';
-import { Signal, Constant, SignalT } from '../../src/signals';
+import { Signal, Constant, SignalT, asSigned, asUnsigned } from '../../src/signals';
 import { CodeGenerator } from '../../src/generator/index';
 import { GWModule, Not } from '../../src/index';
 
@@ -271,16 +271,6 @@ describe('signals', () => {
     const m = new UUT();
     expect(() => new CodeGenerator(m)).to.throw('Cannot create constant of width 16 and value 66000 (Max possible value 65535)');
   });
-    const m = new UUT();
-    const cg = new CodeGenerator(m);
-    const result = cg.generateVerilogCodeForModule(m, false);
-
-    if (result.code.type !== MODULE_CODE_ELEMENTS) {
-      throw new Error('Wrong module type generated');
-    }
-
-    expect(result.code.combAssigns).to.eq(`  assign o = 16'b0000000000101010;`);
-  });
 
   it('should able to be inverted', () => {
     class UUT extends GWModule {
@@ -303,6 +293,52 @@ describe('signals', () => {
     }
 
     expect(result.code.combAssigns).to.eq('  assign o = ~in;');
+  });
+
+  it('should allow signals to be treated as signed explicitly', () => {
+    class UUT extends GWModule {
+      in = this.input(Signal(8));
+      o = this.output(Signal(8));
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (asSigned(this.in))
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    const result = cg.generateVerilogCodeForModule(m, false);
+
+    if (result.code.type !== MODULE_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.combAssigns).to.eq('  assign o = $signed(in);');
+  });
+
+  it('should allow signals to be treated as unsigned explicitly', () => {
+    class UUT extends GWModule {
+      in = this.input(Signal(8));
+      o = this.output(Signal(8));
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (asUnsigned(this.in))
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    const result = cg.generateVerilogCodeForModule(m, false);
+
+    if (result.code.type !== MODULE_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.combAssigns).to.eq('  assign o = $unsigned(in);');
   });
 
   it('should be clonable', () => {

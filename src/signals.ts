@@ -19,7 +19,8 @@ import {
   SLICE,
   INVERSE,
   WIRE,
-  BOOLEAN_EXPRESSION
+  BOOLEAN_EXPRESSION,
+  EXPLICIT_SIGNEDNESS
 } from "./constants";
 import { Bit } from "./operational-expressions";
 
@@ -557,6 +558,37 @@ export class SignalT extends BaseSignalLike {
     return this.setTo(b);
   }
 };
+
+/**
+ * Type representing some [[SignalLike]] being treated as explicitly Signed or Unsigned.
+ * Should not be instantiated directly, instead use [[asSigned]] or [[asUnsigned]]
+ */
+export class ExplicitSignedness extends BaseSignalLike {
+  width: number;
+  signedness: Signedness;
+  signal: SignalLike;
+  readonly type:string = EXPLICIT_SIGNEDNESS;
+
+  constructor(signal:SignalLike, signedness:Signedness) {
+    super();
+    this.width = signal.width;
+    this.signedness = signedness;
+    this.signal = signal;
+  }
+};
+
+/**
+ * Treat the given signal as signed
+ * @param signal
+ */
+export const asSigned = (signal:SignalLike) => new ExplicitSignedness(signal, Signedness.Signed);
+
+/**
+ * Treat the given signal as unsigned
+ * @param signal
+ */
+export const asUnsigned = (signal:SignalLike) => new ExplicitSignedness(signal, Signedness.Unsigned);
+
 
 /**
  * Create a signal
