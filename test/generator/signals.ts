@@ -213,6 +213,75 @@ describe('signals', () => {
     expect(result.code.combAssigns).to.eq('  assign o = {in, in2};');
   });
 
+  it('should able to handle negative constants', () => {
+    class UUT extends GWModule {
+      o = this.output(Signal(16));
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (Constant(16, -42))
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    const result = cg.generateVerilogCodeForModule(m, false);
+
+    if (result.code.type !== MODULE_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.combAssigns).to.eq(`  assign o = 16'b1111111111010110;`);
+  });
+
+  it('should able to handle positive constants', () => {
+    class UUT extends GWModule {
+      o = this.output(Signal(16));
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (Constant(16, 42))
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    const result = cg.generateVerilogCodeForModule(m, false);
+
+    if (result.code.type !== MODULE_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.combAssigns).to.eq(`  assign o = 16'b0000000000101010;`);
+  });
+
+  it('should throw if a constant is created out of the width bounds', () => {
+    class UUT extends GWModule {
+      o = this.output(Signal(16));
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (Constant(16, 66000))
+        ])
+      }
+    }
+
+    const m = new UUT();
+    expect(() => new CodeGenerator(m)).to.throw('Cannot create constant of width 16 and value 66000 (Max possible value 65535)');
+  });
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    const result = cg.generateVerilogCodeForModule(m, false);
+
+    if (result.code.type !== MODULE_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.combAssigns).to.eq(`  assign o = 16'b0000000000101010;`);
+  });
+
   it('should able to be inverted', () => {
     class UUT extends GWModule {
       in = this.input(Signal(8));

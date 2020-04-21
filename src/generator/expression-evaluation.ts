@@ -12,6 +12,17 @@ import { SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION, TERNARY_EXPRESSION } from '..
 const parenthize = (s:SignalLike, fn:(s:SignalLikeOrValue) => string):string =>
   (s.type === SIGNAL || s.type === WIRE) ? fn(s) : `(${fn(s)})`;
 
+const twosComplementNegative = (n, width) => {
+  const abs = Math.abs(n);
+  const binStr = BigInt(abs).toString(2).padStart(width, '1').split('');
+
+  const twos = (BigInt(1) + binStr.reduce((acc, x, i, a) => {
+    return acc + (BigInt(1)<<BigInt(a.length - i - 1)) * BigInt(x === '1' ? 0 : 1);
+  }, BigInt(0)));
+
+  return ('0' + twos.toString(2)).padStart(width, '1');
+};
+
 export class ExpressionEvaluator {
   private workingModule: GWModule;
 
@@ -78,6 +89,9 @@ export class ExpressionEvaluator {
   }
 
   evaluateConstant(c:ConstantT) {
+    if (c.value < 0) {
+      return `${c.width}'b${twosComplementNegative(c.value, c.width)}`;
+    }
     return `${c.width}'b${c.value.toString(2).padStart(c.width, '0')}`;
   }
 

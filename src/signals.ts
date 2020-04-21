@@ -442,6 +442,12 @@ export class ConstantT extends BaseSignalLike {
 
   constructor(width:number, value:number, signedness:Signedness) {
     super();
+
+    const max = (2**width)-1;
+    if (value > max) {
+      throw new Error(`Cannot create constant of width ${width} and value ${value} (Max possible value ${max})`);
+    }
+
     this.value = value;
     this.signedness = signedness;
     this.width = width;
