@@ -1,5 +1,5 @@
 import { IfStatement, ElseIfStatement, IfElseBlock } from './block-expressions';
-import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression, Inverse, ExplicitSignedness } from './signals';
+import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression, Inverse, ExplicitSignedness, ComparrisonT } from './signals';
 import { GWModule } from './gw-module';
 import { VendorModule } from './vendor-module';
 
@@ -65,15 +65,6 @@ export enum LogicExpressionType {
 }
 
 /** @internal */
-export interface ComparrisonExpression {
-  a: SignalLike;
-  b: SignalLikeOrValue;
-  comparrisonOp: ComparrisonOperation;
-  type: 'comparrisonExpression';
-  width: 1;
-};
-
-/** @internal */
 export interface OperationExpression {
   a: SignalLike;
   b: SignalLikeOrValue;
@@ -102,7 +93,7 @@ export interface UnaryExpression {
 export interface TernaryExpression {
   a: SignalLikeOrValue;
   b: SignalLikeOrValue;
-  comparrison: ComparrisonExpression;
+  comparrison: ComparrisonT;
   type: 'ternaryExpression';
   width: number;
 }
@@ -142,7 +133,7 @@ export type SignalLike  = BaseSignalLike
                         | ConcatT
                         | Inverse
                         | UnaryExpression
-                        | ComparrisonExpression
+                        | ComparrisonT
                         | ConstantT
                         | OperationExpression
                         | TernaryExpression

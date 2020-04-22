@@ -5,7 +5,6 @@ import {
   AssignmentExpression,
   OperationExpression,
   ComparrisonOperation,
-  ComparrisonExpression,
   SignalLike,
   BooleanOperation,
 } from "./main-types";
@@ -98,84 +97,48 @@ export abstract class BaseSignalLike {
    * Compare if this signal is equal to another [[SignalLikeOrValue]]
    * @param b
    */
-  eq(b:SignalLikeOrValue):ComparrisonExpression {
-    return {
-      a: this,
-      b,
-      comparrisonOp: ComparrisonOperation.Equal,
-      type:COMPARRISON_EXPRESSION,
-      width: 1
-    };
+  eq(b:SignalLikeOrValue):ComparrisonT {
+    return new ComparrisonT(this, b, ComparrisonOperation.Equal);
   }
 
   /**
    * Compare if this signal is less than another [[SignalLikeOrValue]]
    * @param b
    */
-  lt(b:SignalLikeOrValue):ComparrisonExpression {
-    return {
-      a: this,
-      b,
-      comparrisonOp: ComparrisonOperation.LessThan,
-      type:COMPARRISON_EXPRESSION,
-      width: 1
-    };
+  lt(b:SignalLikeOrValue):ComparrisonT {
+    return new ComparrisonT(this, b, ComparrisonOperation.LessThan);
   }
 
   /**
    * Compare if this signal is greater than another [[SignalLikeOrValue]]
    * @param b
    */
-  gt(b:SignalLikeOrValue):ComparrisonExpression {
-    return {
-      a: this,
-      b,
-      comparrisonOp: ComparrisonOperation.GreaterThan,
-      type:COMPARRISON_EXPRESSION,
-      width: 1
-    };
+  gt(b:SignalLikeOrValue):ComparrisonT {
+    return new ComparrisonT(this, b, ComparrisonOperation.GreaterThan);
   }
 
   /**
    * Compare if this signal is less than or equal to another [[SignalLikeOrValue]]
    * @param b
    */
-  lte(b:SignalLikeOrValue):ComparrisonExpression {
-    return {
-      a: this,
-      b,
-      comparrisonOp: ComparrisonOperation.LessThanOrEqualTo,
-      type:COMPARRISON_EXPRESSION,
-      width: 1
-    };
+  lte(b:SignalLikeOrValue):ComparrisonT {
+    return new ComparrisonT(this, b, ComparrisonOperation.LessThanOrEqualTo);
   }
 
   /**
    * Compare if this signal is greater than or equal to another [[SignalLikeOrValue]]
    * @param b
    */
-  gte(b:SignalLikeOrValue):ComparrisonExpression {
-    return {
-      a: this,
-      b,
-      comparrisonOp: ComparrisonOperation.GreaterThanOrEqualTo,
-      type:COMPARRISON_EXPRESSION,
-      width: 1
-    };
+  gte(b:SignalLikeOrValue):ComparrisonT {
+    return new ComparrisonT(this, b, ComparrisonOperation.GreaterThanOrEqualTo);
   }
 
   /**
    * Compare if this signal is not equal to another [[SignalLikeOrValue]]
    * @param b
    */
-  neq(b:SignalLikeOrValue):ComparrisonExpression {
-    return {
-      a: this,
-      b,
-      comparrisonOp: ComparrisonOperation.NotEqual,
-      type:COMPARRISON_EXPRESSION,
-      width: 1
-    };
+  neq(b:SignalLikeOrValue):ComparrisonT {
+    return new ComparrisonT(this, b, ComparrisonOperation.NotEqual);
   }
 
   /**
@@ -590,6 +553,27 @@ export class ExplicitSignedness extends BaseSignalLike {
     this.signal = signal;
   }
 };
+
+/**
+ * Type representing the comparrison of  two [[SignalLike]]s. Always returns a one-bit wide signal.
+ * Should not be instantiated directly, instead use [[BaseSignalLike.eq]], [[BaseSignalLike.lt]], etc
+ */
+export class ComparrisonT extends BaseSignalLike {
+  width: 1;
+  a: SignalLike;
+  b: SignalLikeOrValue;
+  comparrisonOp: ComparrisonOperation;
+  signal: SignalLike;
+  readonly type:string = COMPARRISON_EXPRESSION;
+
+  constructor(a:SignalLike, b:SignalLikeOrValue, comparrisonOp: ComparrisonOperation) {
+    super();
+    this.a = a;
+    this.b = b;
+    this.comparrisonOp = comparrisonOp;
+  }
+};
+
 
 /**
  * Treat the given signal as signed

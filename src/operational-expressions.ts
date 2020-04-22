@@ -1,6 +1,6 @@
 import { UNARY_EXPRESSION, TERNARY_EXPRESSION, COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION } from './constants';
-import { SignalLike, UnaryExpression, Operation, ComparrisonExpression, SignalLikeOrValue, TernaryExpression, Port, CombinationalSwitchAssignmentExpression } from './main-types';
-import { Slice, Inverse, ConstantT } from './signals';
+import { SignalLike, UnaryExpression, Operation, SignalLikeOrValue, TernaryExpression, Port, CombinationalSwitchAssignmentExpression } from './main-types';
+import { Slice, Inverse, ConstantT, ComparrisonT } from './signals';
 
 /**
  * Bitwise invert all the bits in a [[SignalLike]]
@@ -33,7 +33,7 @@ export const Bit = (s:SignalLike, index:number) =>
  * @param a
  * @param b
  */
-export const Ternary = (comparrison:ComparrisonExpression, a:SignalLike, b:SignalLike):TernaryExpression => {
+export const Ternary = (comparrison:ComparrisonT, a:SignalLike, b:SignalLike):TernaryExpression => {
   if (a.width !== b.width) {
     throw new Error('Invalid ternary - inputs must have the same width');
   }

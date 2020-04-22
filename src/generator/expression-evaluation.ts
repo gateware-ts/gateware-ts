@@ -2,9 +2,9 @@
  * @internal
  * @packageDocumentation
  */
-import { Inverse, ExplicitSignedness } from './../signals';
+import { Inverse, ExplicitSignedness, ComparrisonT } from './../signals';
 import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE, EXPLICIT_SIGNEDNESS } from './../constants';
-import { UnaryExpression, Operation, SignalLikeOrValue, TernaryExpression, ComparrisonExpression, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation, Signedness } from './../main-types';
+import { UnaryExpression, Operation, SignalLikeOrValue, TernaryExpression, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation, Signedness } from './../main-types';
 import { GWModule } from "../gw-module"
 import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpression } from "../signals";
 import { SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION, TERNARY_EXPRESSION } from '../constants';
@@ -60,7 +60,7 @@ export class ExpressionEvaluator {
         return this.evaluateInverse(expr as Inverse);
       }
       case COMPARRISON_EXPRESSION:{
-        return this.evaluateComparrisonExpression(expr as ComparrisonExpression);
+        return this.evaluateComparrisonExpression(expr as ComparrisonT);
       }
       case TERNARY_EXPRESSION:{
         return this.evaluateTernaryExpression(expr as TernaryExpression);
@@ -126,7 +126,7 @@ export class ExpressionEvaluator {
     }
   }
 
-  evaluateComparrisonExpression(c:ComparrisonExpression) {
+  evaluateComparrisonExpression(c:ComparrisonT) {
     let op:string;
 
     if (c.comparrisonOp === ComparrisonOperation.Equal)
