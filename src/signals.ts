@@ -19,7 +19,8 @@ import {
   INVERSE,
   WIRE,
   BOOLEAN_EXPRESSION,
-  EXPLICIT_SIGNEDNESS
+  EXPLICIT_SIGNEDNESS,
+  TERNARY_EXPRESSION
 } from "./constants";
 import { Bit } from "./operational-expressions";
 
@@ -574,6 +575,24 @@ export class ComparrisonT extends BaseSignalLike {
   }
 };
 
+/**
+ * Type representing the multiplexing of two [[SignalLike]]s into one, using the comparrison signal to select
+ * Should not be instantiated directly, instead use [[Ternary]] or [[BaseSignalLike.ternary]]
+ */
+export class TernaryT extends BaseSignalLike {
+  width: number;
+  a: SignalLikeOrValue;
+  b: SignalLikeOrValue;
+  comparrison: SignalLike;
+  readonly type:string = TERNARY_EXPRESSION;
+
+  constructor(comparrison: SignalLike, a: SignalLikeOrValue, b: SignalLikeOrValue) {
+    super();
+    this.comparrison = comparrison;
+    this.a = a;
+    this.b = b;
+  }
+};
 
 /**
  * Treat the given signal as signed
@@ -620,6 +639,16 @@ export const Constant = (width:number = 1, value:number = 0, signedness:Signedne
  * @param signals All the [[SignalLike]]s that should be concatenated
  */
 export const Concat = (signals:SignalLike[]) => new ConcatT(signals);
+
+/**
+ * Multiplex two [[SignalLike]]s into one, using the comparrison to select
+ * @param comparrison Selector that in the 0 case selects a, and in the 1 case selects b
+ * @param a
+ * @param b
+ */
+export const Ternary = (comparrison:SignalLike, a:SignalLike, b:SignalLike) => {
+  return new TernaryT(comparrison, a, b);
+};
 
 /**
  * A constant logic-level HIGH signal

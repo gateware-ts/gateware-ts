@@ -1,8 +1,7 @@
-import { Ternary } from './../../src/operational-expressions';
 import { MODULE_CODE_ELEMENTS } from '../../src/constants';
 import * as mocha from 'mocha';
 import * as chai from 'chai';
-import { Signal, Constant, SignalT, asSigned, asUnsigned } from '../../src/signals';
+import { Signal, Constant, SignalT, asSigned, asUnsigned, Ternary } from '../../src/signals';
 import { CodeGenerator } from '../../src/generator/index';
 import { GWModule, Not } from '../../src/index';
 

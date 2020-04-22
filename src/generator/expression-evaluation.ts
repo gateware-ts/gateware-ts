@@ -2,9 +2,9 @@
  * @internal
  * @packageDocumentation
  */
-import { Inverse, ExplicitSignedness, ComparrisonT } from './../signals';
+import { Inverse, ExplicitSignedness, ComparrisonT, TernaryT } from './../signals';
 import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE, EXPLICIT_SIGNEDNESS } from './../constants';
-import { UnaryExpression, Operation, SignalLikeOrValue, TernaryExpression, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation, Signedness } from './../main-types';
+import { UnaryExpression, Operation, SignalLikeOrValue, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation, Signedness } from './../main-types';
 import { GWModule } from "../gw-module"
 import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpression } from "../signals";
 import { SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION, TERNARY_EXPRESSION } from '../constants';
@@ -63,10 +63,7 @@ export class ExpressionEvaluator {
         return this.evaluateComparrisonExpression(expr as ComparrisonT);
       }
       case TERNARY_EXPRESSION:{
-        return this.evaluateTernaryExpression(expr as TernaryExpression);
-      }
-      case TERNARY_EXPRESSION:{
-        return this.evaluateTernaryExpression(expr as TernaryExpression);
+        return this.evaluateTernaryExpression(expr as TernaryT);
       }
       case BOOLEAN_EXPRESSION:{
         return this.evaluateBooleanExpression(expr as BooleanExpression);
@@ -195,8 +192,8 @@ export class ExpressionEvaluator {
     return `${parenthize(expr.a, this.evaluate)} ${op} ${this.evaluate(expr.b)}`;
   }
 
-  evaluateTernaryExpression(t:TernaryExpression) {
-    return `${this.evaluateComparrisonExpression(t.comparrison)} ? ${this.evaluate(t.a)} : ${this.evaluate(t.b)}`;
+  evaluateTernaryExpression(t:TernaryT) {
+    return `${this.evaluate(t.comparrison)} ? ${this.evaluate(t.a)} : ${this.evaluate(t.b)}`;
   }
 
   evaluateOperationExpression(o:OperationExpression) {

@@ -1,5 +1,5 @@
 import { IfStatement, ElseIfStatement, IfElseBlock } from './block-expressions';
-import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression, Inverse, ExplicitSignedness, ComparrisonT } from './signals';
+import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression, Inverse, ExplicitSignedness, ComparrisonT, TernaryT } from './signals';
 import { GWModule } from './gw-module';
 import { VendorModule } from './vendor-module';
 
@@ -90,15 +90,6 @@ export interface UnaryExpression {
 }
 
 /** @internal */
-export interface TernaryExpression {
-  a: SignalLikeOrValue;
-  b: SignalLikeOrValue;
-  comparrison: ComparrisonT;
-  type: 'ternaryExpression';
-  width: number;
-}
-
-/** @internal */
 export interface SwitchExpression {
   type: 'switchExpression';
   subject: SignalLike;
@@ -136,7 +127,7 @@ export type SignalLike  = BaseSignalLike
                         | ComparrisonT
                         | ConstantT
                         | OperationExpression
-                        | TernaryExpression
+                        | TernaryT
                         | BooleanExpression
                         | ExplicitSignedness;
 
