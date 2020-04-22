@@ -1,8 +1,7 @@
 import { EDGE_ASSERTION, DISPLAY_EXPRESSION, REPEATED_EDGE_ASSERTION, TIMESCALE_VALUE, FINISH_EXPRESSION } from './constants';
 import { BlockExpression, Port, Edge, BlockExpressionsAndTime, SimulationExpression, DisplayExpression, RepeatedEdgeAssertion, EdgeAssertion, TimeScaleValue, TimeScale, FinishExpression, SignalLike } from './main-types';
-import { SignalT } from './signals';
+import { SignalT, Not } from './signals';
 import { SIf } from './block-expressions';
-import { Not } from './operational-expressions';
 
 /**
  * Assert a positive or negative edge on a given [[Port]]

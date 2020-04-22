@@ -2,12 +2,6 @@ import { COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION } from './constants';
 import { SignalLike, SignalLikeOrValue, Port, CombinationalSwitchAssignmentExpression } from './main-types';
 import { Slice, Inverse, ConstantT } from './signals';
 
-/**
- * Bitwise invert all the bits in a [[SignalLike]]
- * @param s The [[SignalLike]] whose bits should be flipped
- */
-export const Not = (s:SignalLike) => new Inverse(s);
-
 
 /**
  * Isolate a single bit from a [[SignalLike]]

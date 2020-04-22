@@ -691,6 +691,12 @@ export const Ternary = (comparrison:SignalLike, a:SignalLike, b:SignalLike) => {
 };
 
 /**
+ * Bitwise invert all the bits in a [[SignalLike]]
+ * @param s The [[SignalLike]] whose bits should be flipped
+ */
+export const Not = (s:SignalLike) => new Inverse(s);
+
+/**
  * A constant logic-level HIGH signal
  */
 export const HIGH = Constant(1, 1);
