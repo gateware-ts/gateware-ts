@@ -251,6 +251,15 @@ export abstract class BaseSignalLike {
   }
 
   /**
+   * Multiplex two [[SignalLike]]s into one, using this signal to select
+   * @param a
+   * @param b
+   */
+  ternary(a:SignalLikeOrValue, b:SignalLikeOrValue) {
+    return new TernaryT(this, a, b);
+  }
+
+  /**
    * Alias of [[BaseSignalLike.plus]]
    */
   ['+'](b:SignalLikeOrValue) {
@@ -374,6 +383,13 @@ export abstract class BaseSignalLike {
    */
   ['>='](b:SignalLikeOrValue) {
     return this.gte(b);
+  }
+
+  /**
+   * Alias of [[BaseSignalLike.ternary]]
+   */
+  ['?'](a:SignalLikeOrValue, b:SignalLikeOrValue) {
+    return this.ternary(a, b);
   }
 }
 

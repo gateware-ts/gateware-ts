@@ -164,6 +164,34 @@ describe('signals', () => {
     expect(result.code.combAssigns).to.eq(`  assign o = {in[11], in[11], in[11], in[11], in};`);
   });
 
+  it('should able to be used as a ternary selector', () => {
+    class UUT extends GWModule {
+      in = this.input(Signal(12));
+      o = this.output(Signal(12));
+      o2 = this.output(Signal(12));
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (this.in.ternary(1, 2)),
+          this.o2 ['='] (this.in ['?'] (1, 2)),
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    const result = cg.generateVerilogCodeForModule(m, false);
+
+    if (result.code.type !== MODULE_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.combAssigns).to.eq([
+      '  assign o = in ? 1 : 2;',
+      '  assign o2 = in ? 1 : 2;',
+    ].join('\n'));
+  });
+
   it('should able to get a signal bit', () => {
     class UUT extends GWModule {
       in = this.input(Signal(8));
