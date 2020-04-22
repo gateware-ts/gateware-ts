@@ -5,7 +5,6 @@ import {
   AssignmentExpression,
   OperationExpression,
   ComparrisonOperation,
-  ComparrisonExpression,
   SignalLike,
   BooleanOperation,
 } from "./main-types";
@@ -20,7 +19,8 @@ import {
   INVERSE,
   WIRE,
   BOOLEAN_EXPRESSION,
-  EXPLICIT_SIGNEDNESS
+  EXPLICIT_SIGNEDNESS,
+  TERNARY_EXPRESSION
 } from "./constants";
 import { Bit } from "./operational-expressions";
 
@@ -98,84 +98,48 @@ export abstract class BaseSignalLike {
    * Compare if this signal is equal to another [[SignalLikeOrValue]]
    * @param b
    */
-  eq(b:SignalLikeOrValue):ComparrisonExpression {
-    return {
-      a: this,
-      b,
-      comparrisonOp: ComparrisonOperation.Equal,
-      type:COMPARRISON_EXPRESSION,
-      width: 1
-    };
+  eq(b:SignalLikeOrValue):ComparrisonT {
+    return new ComparrisonT(this, b, ComparrisonOperation.Equal);
   }
 
   /**
    * Compare if this signal is less than another [[SignalLikeOrValue]]
    * @param b
    */
-  lt(b:SignalLikeOrValue):ComparrisonExpression {
-    return {
-      a: this,
-      b,
-      comparrisonOp: ComparrisonOperation.LessThan,
-      type:COMPARRISON_EXPRESSION,
-      width: 1
-    };
+  lt(b:SignalLikeOrValue):ComparrisonT {
+    return new ComparrisonT(this, b, ComparrisonOperation.LessThan);
   }
 
   /**
    * Compare if this signal is greater than another [[SignalLikeOrValue]]
    * @param b
    */
-  gt(b:SignalLikeOrValue):ComparrisonExpression {
-    return {
-      a: this,
-      b,
-      comparrisonOp: ComparrisonOperation.GreaterThan,
-      type:COMPARRISON_EXPRESSION,
-      width: 1
-    };
+  gt(b:SignalLikeOrValue):ComparrisonT {
+    return new ComparrisonT(this, b, ComparrisonOperation.GreaterThan);
   }
 
   /**
    * Compare if this signal is less than or equal to another [[SignalLikeOrValue]]
    * @param b
    */
-  lte(b:SignalLikeOrValue):ComparrisonExpression {
-    return {
-      a: this,
-      b,
-      comparrisonOp: ComparrisonOperation.LessThanOrEqualTo,
-      type:COMPARRISON_EXPRESSION,
-      width: 1
-    };
+  lte(b:SignalLikeOrValue):ComparrisonT {
+    return new ComparrisonT(this, b, ComparrisonOperation.LessThanOrEqualTo);
   }
 
   /**
    * Compare if this signal is greater than or equal to another [[SignalLikeOrValue]]
    * @param b
    */
-  gte(b:SignalLikeOrValue):ComparrisonExpression {
-    return {
-      a: this,
-      b,
-      comparrisonOp: ComparrisonOperation.GreaterThanOrEqualTo,
-      type:COMPARRISON_EXPRESSION,
-      width: 1
-    };
+  gte(b:SignalLikeOrValue):ComparrisonT {
+    return new ComparrisonT(this, b, ComparrisonOperation.GreaterThanOrEqualTo);
   }
 
   /**
    * Compare if this signal is not equal to another [[SignalLikeOrValue]]
    * @param b
    */
-  neq(b:SignalLikeOrValue):ComparrisonExpression {
-    return {
-      a: this,
-      b,
-      comparrisonOp: ComparrisonOperation.NotEqual,
-      type:COMPARRISON_EXPRESSION,
-      width: 1
-    };
+  neq(b:SignalLikeOrValue):ComparrisonT {
+    return new ComparrisonT(this, b, ComparrisonOperation.NotEqual);
   }
 
   /**
@@ -284,6 +248,15 @@ export abstract class BaseSignalLike {
  */
   bit(index:number) {
     return Bit(this, index);
+  }
+
+  /**
+   * Multiplex two [[SignalLike]]s into one, using this signal to select
+   * @param a
+   * @param b
+   */
+  ternary(a:SignalLikeOrValue, b:SignalLikeOrValue) {
+    return new TernaryT(this, a, b);
   }
 
   /**
@@ -410,6 +383,13 @@ export abstract class BaseSignalLike {
    */
   ['>='](b:SignalLikeOrValue) {
     return this.gte(b);
+  }
+
+  /**
+   * Alias of [[BaseSignalLike.ternary]]
+   */
+  ['?'](a:SignalLikeOrValue, b:SignalLikeOrValue) {
+    return this.ternary(a, b);
   }
 }
 
@@ -592,6 +572,45 @@ export class ExplicitSignedness extends BaseSignalLike {
 };
 
 /**
+ * Type representing the comparrison of  two [[SignalLike]]s. Always returns a one-bit wide signal.
+ * Should not be instantiated directly, instead use [[BaseSignalLike.eq]], [[BaseSignalLike.lt]], etc
+ */
+export class ComparrisonT extends BaseSignalLike {
+  width: 1;
+  a: SignalLike;
+  b: SignalLikeOrValue;
+  comparrisonOp: ComparrisonOperation;
+  signal: SignalLike;
+  readonly type:string = COMPARRISON_EXPRESSION;
+
+  constructor(a:SignalLike, b:SignalLikeOrValue, comparrisonOp: ComparrisonOperation) {
+    super();
+    this.a = a;
+    this.b = b;
+    this.comparrisonOp = comparrisonOp;
+  }
+};
+
+/**
+ * Type representing the multiplexing of two [[SignalLike]]s into one, using the comparrison signal to select
+ * Should not be instantiated directly, instead use [[Ternary]] or [[BaseSignalLike.ternary]]
+ */
+export class TernaryT extends BaseSignalLike {
+  width: number;
+  a: SignalLikeOrValue;
+  b: SignalLikeOrValue;
+  comparrison: SignalLike;
+  readonly type:string = TERNARY_EXPRESSION;
+
+  constructor(comparrison: SignalLike, a: SignalLikeOrValue, b: SignalLikeOrValue) {
+    super();
+    this.comparrison = comparrison;
+    this.a = a;
+    this.b = b;
+  }
+};
+
+/**
  * Treat the given signal as signed
  * @param signal
  */
@@ -636,6 +655,16 @@ export const Constant = (width:number = 1, value:number = 0, signedness:Signedne
  * @param signals All the [[SignalLike]]s that should be concatenated
  */
 export const Concat = (signals:SignalLike[]) => new ConcatT(signals);
+
+/**
+ * Multiplex two [[SignalLike]]s into one, using the comparrison to select
+ * @param comparrison Selector that in the 0 case selects a, and in the 1 case selects b
+ * @param a
+ * @param b
+ */
+export const Ternary = (comparrison:SignalLike, a:SignalLike, b:SignalLike) => {
+  return new TernaryT(comparrison, a, b);
+};
 
 /**
  * A constant logic-level HIGH signal

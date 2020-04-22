@@ -1,8 +1,7 @@
-import { Ternary } from './../../src/operational-expressions';
 import { nanoseconds, picoseconds, edge, edges, assert } from './../../src/simulation';
 import { SIf } from './../../src/block-expressions';
 import { Edge, SimulationCodeElements } from './../../src/main-types';
-import { Signal } from './../../src/signals';
+import { Signal, Ternary } from './../../src/signals';
 import * as mocha from 'mocha';
 import * as chai from 'chai';
 import { Constant } from '../../src/signals';

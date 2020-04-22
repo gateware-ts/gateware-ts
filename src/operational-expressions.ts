@@ -1,6 +1,6 @@
-import { UNARY_EXPRESSION, TERNARY_EXPRESSION, COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION } from './constants';
-import { SignalLike, UnaryExpression, Operation, ComparrisonExpression, SignalLikeOrValue, TernaryExpression, Port, CombinationalSwitchAssignmentExpression } from './main-types';
-import { Slice, Inverse, ConstantT } from './signals';
+import { UNARY_EXPRESSION, COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION } from './constants';
+import { SignalLike, UnaryExpression, Operation, SignalLikeOrValue, Port, CombinationalSwitchAssignmentExpression } from './main-types';
+import { Slice, Inverse, ConstantT,  TernaryT } from './signals';
 
 /**
  * Bitwise invert all the bits in a [[SignalLike]]
@@ -26,26 +26,6 @@ export const LogicalNot = (s:SignalLike): UnaryExpression => ({
  */
 export const Bit = (s:SignalLike, index:number) =>
   Slice(s, index, index);
-
-/**
- * Multiplex two [[SignalLike]]s into one, using the comparrison to select
- * @param comparrison Selector that in the 0 case selects a, and in the 1 case selects b
- * @param a
- * @param b
- */
-export const Ternary = (comparrison:ComparrisonExpression, a:SignalLike, b:SignalLike):TernaryExpression => {
-  if (a.width !== b.width) {
-    throw new Error('Invalid ternary - inputs must have the same width');
-  }
-
-  return {
-    a,
-    b,
-    comparrison,
-    type: TERNARY_EXPRESSION,
-    width: a.width
-  };
-}
 
 /**
  * Combinational assignment to [[Port]] `to`, where based on the value of `conditionalSignal`, a case is selected as the output
