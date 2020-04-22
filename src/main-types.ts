@@ -1,5 +1,5 @@
 import { IfStatement, ElseIfStatement, IfElseBlock } from './block-expressions';
-import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression, Inverse, ExplicitSignedness, ComparrisonT, TernaryT } from './signals';
+import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression, Inverse, ExplicitSignedness, ComparrisonT, TernaryT, UnaryT } from './signals';
 import { GWModule } from './gw-module';
 import { VendorModule } from './vendor-module';
 
@@ -82,14 +82,6 @@ export interface AssignmentExpression {
 };
 
 /** @internal */
-export interface UnaryExpression {
-  a: SignalLike;
-  op: Operation;
-  type: 'unaryExpression';
-  width: number;
-}
-
-/** @internal */
 export interface SwitchExpression {
   type: 'switchExpression';
   subject: SignalLike;
@@ -123,7 +115,7 @@ export type SignalLike  = BaseSignalLike
                         | SliceT
                         | ConcatT
                         | Inverse
-                        | UnaryExpression
+                        | UnaryT
                         | ComparrisonT
                         | ConstantT
                         | OperationExpression
@@ -140,7 +132,7 @@ export type SignalLikeOrValue = SignalLike | number;
 /**
  * Any [[SignalLike]] that can be sliced (indexed)
  */
-export type Slicable = SignalT | SliceT | UnaryExpression | ConstantT | OperationExpression;
+export type Slicable = SignalT | SliceT | ConstantT | OperationExpression;
 
 export type CaseExpression = SubjectiveCaseExpression | DefaultCaseExpression;
 

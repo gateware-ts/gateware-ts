@@ -2,9 +2,9 @@
  * @internal
  * @packageDocumentation
  */
-import { Inverse, ExplicitSignedness, ComparrisonT, TernaryT } from './../signals';
+import { Inverse, ExplicitSignedness, ComparrisonT, TernaryT, UnaryT } from './../signals';
 import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE, EXPLICIT_SIGNEDNESS } from './../constants';
-import { UnaryExpression, Operation, SignalLikeOrValue, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation, Signedness } from './../main-types';
+import { Operation, SignalLikeOrValue, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation, Signedness } from './../main-types';
 import { GWModule } from "../gw-module"
 import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpression } from "../signals";
 import { SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION, TERNARY_EXPRESSION } from '../constants';
@@ -54,7 +54,7 @@ export class ExpressionEvaluator {
         return this.evaluateConcat(expr as ConcatT);
       }
       case UNARY_EXPRESSION:{
-        return this.evaluateUnaryExpression(expr as UnaryExpression);
+        return this.evaluateUnaryExpression(expr as UnaryT);
       }
       case INVERSE:{
         return this.evaluateInverse(expr as Inverse);
@@ -107,7 +107,7 @@ export class ExpressionEvaluator {
     return `~${parenthize(i.a, this.evaluate)}`;
   }
 
-  evaluateUnaryExpression(u:UnaryExpression) {
+  evaluateUnaryExpression(u:UnaryT) {
     switch (u.op) {
       case Operation.Not: {
         return `~${parenthize(u.a, this.evaluate)}`;

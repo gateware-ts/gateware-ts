@@ -20,7 +20,8 @@ import {
   WIRE,
   BOOLEAN_EXPRESSION,
   EXPLICIT_SIGNEDNESS,
-  TERNARY_EXPRESSION
+  TERNARY_EXPRESSION,
+  UNARY_EXPRESSION
 } from "./constants";
 import { Bit } from "./operational-expressions";
 
@@ -609,6 +610,29 @@ export class TernaryT extends BaseSignalLike {
     this.b = b;
   }
 };
+
+/**
+ * Type representing a unary operation on a [[SignalLike]]
+ * Should not be instantiated directly, instead use [[LogicalNot]]
+ */
+export class UnaryT extends BaseSignalLike {
+  width: number;
+  a: SignalLike;
+  op: Operation;
+  readonly type:string = UNARY_EXPRESSION;
+
+  constructor(a: SignalLike, op:Operation) {
+    super();
+    this.op = op;
+    this.a = a;
+  }
+};
+
+/**
+ * Like [[Not]] but always returns a 1-bit wide [[SignalLike]]
+ * @param s The [[SignalLike]] whose bits should be flipped
+ */
+export const LogicalNot = (s:SignalLike) => new UnaryT(s, Operation.LogicalNot);
 
 /**
  * Treat the given signal as signed

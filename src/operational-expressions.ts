@@ -1,6 +1,6 @@
-import { UNARY_EXPRESSION, COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION } from './constants';
-import { SignalLike, UnaryExpression, Operation, SignalLikeOrValue, Port, CombinationalSwitchAssignmentExpression } from './main-types';
-import { Slice, Inverse, ConstantT,  TernaryT } from './signals';
+import { COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION } from './constants';
+import { SignalLike, SignalLikeOrValue, Port, CombinationalSwitchAssignmentExpression } from './main-types';
+import { Slice, Inverse, ConstantT } from './signals';
 
 /**
  * Bitwise invert all the bits in a [[SignalLike]]
@@ -8,16 +8,6 @@ import { Slice, Inverse, ConstantT,  TernaryT } from './signals';
  */
 export const Not = (s:SignalLike) => new Inverse(s);
 
-/**
- * Like [[Not]] but always returns a 1-bit wide [[SignalLike]]
- * @param s The [[SignalLike]] whose bits should be flipped
- */
-export const LogicalNot = (s:SignalLike): UnaryExpression => ({
-  a: s,
-  op: Operation.LogicalNot,
-  type: UNARY_EXPRESSION,
-  width: 1
-});
 
 /**
  * Isolate a single bit from a [[SignalLike]]
