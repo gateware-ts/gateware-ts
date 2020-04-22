@@ -129,11 +129,6 @@ export type SignalLike  = BaseSignalLike
  */
 export type SignalLikeOrValue = SignalLike | number;
 
-/**
- * Any [[SignalLike]] that can be sliced (indexed)
- */
-export type Slicable = SignalT | SliceT | ConstantT | OperationExpression;
-
 export type CaseExpression = SubjectiveCaseExpression | DefaultCaseExpression;
 
 /**
@@ -252,7 +247,6 @@ export type DrivenSignal = {
   signal: SignalT;
   name: string;
 };
-
 
 export type ParameterString = {
   type: 'parameterString',
