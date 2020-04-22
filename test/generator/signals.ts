@@ -52,7 +52,7 @@ const comparrisonTest = (op:string, a:SignalT, b:SignalT, expectation:string) =>
     throw new Error('Wrong module type generated');
   }
 
-  expect(result.code.combAssigns).to.eq(`  assign o = ${expectation} ? a : b;`);
+  expect(result.code.combAssigns).to.eq(`  assign o = (${expectation} ? a : b);`);
 }
 
 describe('signals', () => {
@@ -187,8 +187,8 @@ describe('signals', () => {
     }
 
     expect(result.code.combAssigns).to.eq([
-      '  assign o = in ? 1 : 2;',
-      '  assign o2 = in ? 1 : 2;',
+      '  assign o = (in ? 1 : 2);',
+      '  assign o2 = (in ? 1 : 2);',
     ].join('\n'));
   });
 

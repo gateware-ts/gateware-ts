@@ -193,7 +193,7 @@ export class ExpressionEvaluator {
   }
 
   evaluateTernaryExpression(t:TernaryT) {
-    return `${this.evaluate(t.comparrison)} ? ${this.evaluate(t.a)} : ${this.evaluate(t.b)}`;
+    return `(${this.evaluate(t.comparrison)} ? ${this.evaluate(t.a)} : ${this.evaluate(t.b)})`;
   }
 
   evaluateOperationExpression(o:OperationExpression) {
