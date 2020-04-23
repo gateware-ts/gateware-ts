@@ -4,10 +4,10 @@
  */
 import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
-import { AssignmentExpression, CombinationalLogic } from '../main-types';
-import { ASSIGNMENT_EXPRESSION, COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION } from '../constants';
+import { AssignmentStatement, CombinationalLogic } from '../main-types';
+import { ASSIGNMENT_EXPRESSION, COMBINATIONAL_SWITCH_ASSIGNMENT_STATEMENT } from '../constants';
 import { TabLevel } from '../helpers';
-import { CombinationalSwitchAssignmentExpression, Port, CombinationalSignalType } from './../main-types';
+import { CombinationalSwitchAssignmentStatement, Port, CombinationalSignalType } from './../main-types';
 
 export class CombLogicEvaluator {
   private workingModule: GWModule;
@@ -53,16 +53,16 @@ export class CombLogicEvaluator {
   evaluate(expr:CombinationalLogic) {
     switch (expr.type) {
       case ASSIGNMENT_EXPRESSION: {
-        return this.evaluateAssignmentExpression(expr as AssignmentExpression);
+        return this.evaluateAssignmentExpression(expr as AssignmentStatement);
       }
 
-      case COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION: {
-        return this.evaluateSwitchAssignmentExpression(expr as CombinationalSwitchAssignmentExpression);
+      case COMBINATIONAL_SWITCH_ASSIGNMENT_STATEMENT: {
+        return this.evaluateSwitchAssignmentExpression(expr as CombinationalSwitchAssignmentStatement);
       }
     }
   }
 
-  evaluateAssignmentExpression(expr:AssignmentExpression) {
+  evaluateAssignmentExpression(expr:AssignmentStatement) {
     const assigningRegister = this.workingModule.getModuleSignalDescriptor(expr.a);
 
     if (assigningRegister.type === 'input') {
@@ -75,7 +75,7 @@ export class CombLogicEvaluator {
     return `${this.t.l()}assign ${assigningRegister.name} = ${this.expr.evaluate(expr.b)};`;
   }
 
-  evaluateSwitchAssignmentExpression(expr:CombinationalSwitchAssignmentExpression) {
+  evaluateSwitchAssignmentExpression(expr:CombinationalSwitchAssignmentStatement) {
     const assigningRegister = this.workingModule.getModuleSignalDescriptor(expr.to);
     if (assigningRegister.type === 'input') {
       throw new Error('Cannot assign to an input in combinational logic.');

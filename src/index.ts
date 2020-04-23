@@ -1,5 +1,5 @@
 export * from './main-types';
-export * from './block-expressions';
+export * from './block-statements';
 export * from './constants';
 export * from './generator/index';
 export * from './gw-module';

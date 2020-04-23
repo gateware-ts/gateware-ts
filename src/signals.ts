@@ -2,7 +2,7 @@ import {
   Signedness,
   SignalLikeOrValue,
   Operation,
-  AssignmentExpression,
+  AssignmentStatement,
   ComparrisonOperation,
   SignalLike,
   BooleanOperation,
@@ -523,7 +523,7 @@ export class SignalT extends BaseSignalLike {
    * Assign this signals value to another [[SignalLikeOrValue]]
    * @param b 
    */
-  setTo(b:SignalLikeOrValue):AssignmentExpression {
+  setTo(b:SignalLikeOrValue):AssignmentStatement {
     return {
       a: this,
       b,

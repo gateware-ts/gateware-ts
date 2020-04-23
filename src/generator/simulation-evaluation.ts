@@ -6,9 +6,9 @@ import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
 import {
   SimulationExpression,
-  AssignmentExpression,
-  SwitchExpression,
-  SubjectiveCaseExpression,
+  AssignmentStatement,
+  SwitchStatement,
+  SubjectiveCaseStatement,
   SyncBlock,
   Edge,
   EdgeAssertion,
@@ -17,16 +17,16 @@ import {
 } from '../main-types';
 import {
   ASSIGNMENT_EXPRESSION,
-  IF_EXPRESSION,
-  CASE_EXPRESSION,
+  IF_STATEMENT,
+  CASE_STATEMENT,
   EDGE_ASSERTION,
   REPEATED_EDGE_ASSERTION,
   DISPLAY_EXPRESSION,
   FINISH_EXPRESSION,
-  ELSE_IF_EXPRESSION,
-  ELSE_EXPRESSION,
+  ELSE_IF_STATEMENT,
+  ELSE_STATEMENT,
 } from '../constants';
-import { IfStatement, IfElseBlock, ElseIfStatement } from '../block-expressions';
+import { IfStatement, IfElseBlock, ElseIfStatement } from '../block-statements';
 import { TabLevel } from '../helpers';
 import { getRegSize } from './common';
 import { SignalT } from '../signals';
@@ -162,19 +162,19 @@ export class SimulationEvaluator {
   evaluate(expr:SimulationExpression) {
     switch (expr.type) {
       case ASSIGNMENT_EXPRESSION: {
-        return this.evaluateAssignmentExpression(expr as AssignmentExpression);
+        return this.evaluateAssignmentExpression(expr as AssignmentStatement);
       }
 
-      case IF_EXPRESSION: {
-        return this.evaluateIfExpression(expr);
+      case IF_STATEMENT: {
+        return this.evaluateIfStatement(expr);
       }
 
-      case ELSE_IF_EXPRESSION: {
-        return this.evaluateElseIfExpression(expr);
+      case ELSE_IF_STATEMENT: {
+        return this.evaluateElseIfStatement(expr);
       }
 
-      case ELSE_EXPRESSION: {
-        return this.evaluateElseExpression(expr);
+      case ELSE_STATEMENT: {
+        return this.evaluateElseStatement(expr);
       }
 
       case EDGE_ASSERTION: {
@@ -227,12 +227,12 @@ export class SimulationEvaluator {
     return out.join('\n');
   }
 
-  evaluateAssignmentExpression(aExpr:AssignmentExpression) {
+  evaluateAssignmentExpression(aExpr:AssignmentStatement) {
     let assigningRegister = this.workingModule.getModuleSignalDescriptor(aExpr.a);
     return `${this.t.l()}${assigningRegister.name} = ${this.expr.evaluate(aExpr.b)};`;
   }
 
-  evaluateIfExpression(iExpr:IfStatement<SimulationExpression>) {
+  evaluateIfStatement(iExpr:IfStatement<SimulationExpression>) {
     const out = [];
 
     out.push(`${this.t.l()}if (${this.expr.evaluate(iExpr.subject)}) begin`);
@@ -245,12 +245,12 @@ export class SimulationEvaluator {
     return out.join('\n');
   }
 
-  evaluateElseIfExpression(iExpr:ElseIfStatement<SimulationExpression>) {
+  evaluateElseIfStatement(iExpr:ElseIfStatement<SimulationExpression>) {
     const out = [];
 
-    const parentIf = iExpr.parentStatement.type === IF_EXPRESSION
-      ? this.evaluateIfExpression(iExpr.parentStatement)
-      : this.evaluateElseIfExpression(iExpr.parentStatement);
+    const parentIf = iExpr.parentStatement.type === IF_STATEMENT
+      ? this.evaluateIfStatement(iExpr.parentStatement)
+      : this.evaluateElseIfStatement(iExpr.parentStatement);
 
     const elseIf = `${this.t.l()}else if (${this.expr.evaluate(iExpr.elseSubject)}) begin`;
     const endElse = `${this.t.l()}end`;
@@ -266,12 +266,12 @@ export class SimulationEvaluator {
     return out.join('\n');
   }
 
-  evaluateElseExpression(iExpr:IfElseBlock<SimulationExpression>) {
+  evaluateElseStatement(iExpr:IfElseBlock<SimulationExpression>) {
     const out = [];
 
-    const parentIf = iExpr.parent.type === IF_EXPRESSION
-      ? this.evaluateIfExpression(iExpr.parent)
-      : this.evaluateElseIfExpression(iExpr.parent);
+    const parentIf = iExpr.parent.type === IF_STATEMENT
+      ? this.evaluateIfStatement(iExpr.parent)
+      : this.evaluateElseIfStatement(iExpr.parent);
 
     const elseStart = `${this.t.l()}else begin`;
     const endElse = `${this.t.l()}end`;
@@ -287,7 +287,7 @@ export class SimulationEvaluator {
     return out.join('\n');
   }
 
-  evaluateSwitchExpression(sExpr:SwitchExpression) {
+  evaluateSwitchStatement(sExpr:SwitchStatement) {
     const out = [];
     out.push(`${this.t.l()}case (${this.expr.evaluate(sExpr.subject)})`);
     this.t.push();
@@ -296,8 +296,8 @@ export class SimulationEvaluator {
       sExpr.cases.map(expr => {
         const caseOut = [];
 
-        if (expr.type === CASE_EXPRESSION) {
-          const caseExpr = expr as SubjectiveCaseExpression;
+        if (expr.type === CASE_STATEMENT) {
+          const caseExpr = expr as SubjectiveCaseStatement;
           caseOut.push(`${this.t.l()}${this.expr.evaluate(caseExpr.subject)} : begin`);
         } else {
           caseOut.push(`${this.t.l()}default : begin`);

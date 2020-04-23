@@ -1,4 +1,4 @@
-import { IfStatement, ElseIfStatement, IfElseBlock } from './block-expressions';
+import { IfStatement, ElseIfStatement, IfElseBlock } from './block-statements';
 import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpressionT, Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT, BinaryT } from './signals';
 import { GWModule } from './gw-module';
 import { VendorModule } from './vendor-module';
@@ -65,7 +65,7 @@ export enum LogicExpressionType {
 }
 
 /** @internal */
-export interface AssignmentExpression {
+export interface AssignmentStatement {
   a: SignalT;
   b: SignalLikeOrValue;
   type: 'assignmentExpression';
@@ -73,23 +73,23 @@ export interface AssignmentExpression {
 };
 
 /** @internal */
-export interface SwitchExpression {
-  type: 'switchExpression';
+export interface SwitchStatement {
+  type: 'switchStatement';
   subject: SignalLike;
   cases: CaseExpression[];
 }
 
 /** @internal */
-export interface SubjectiveCaseExpression {
-  type: 'caseExpression';
+export interface SubjectiveCaseStatement {
+  type: 'caseStatement';
   subject: SignalLikeOrValue;
-  body: BlockExpression[];
+  body: BlockStatement[];
 };
 
 /** @internal */
-export interface DefaultCaseExpression {
-  type: 'defaultCaseExpression';
-  body: BlockExpression[];
+export interface DefaultCaseStatement {
+  type: 'defaultCaseStatement';
+  body: BlockStatement[];
 };
 
 /**
@@ -120,20 +120,20 @@ export type SignalLike  = BaseSignalLike
  */
 export type SignalLikeOrValue = SignalLike | number;
 
-export type CaseExpression = SubjectiveCaseExpression | DefaultCaseExpression;
+export type CaseExpression = SubjectiveCaseStatement | DefaultCaseStatement;
 
 /**
  * Logic expressions can only be used in synchronous blocks
  */
-export type LogicExpression = IfStatement<BlockExpression>
-                            | ElseIfStatement<BlockExpression>
-                            | IfElseBlock<BlockExpression>
-                            | SwitchExpression;
-export type BlockExpression = LogicExpression | AssignmentExpression;
+export type LogicStatement  = IfStatement<BlockStatement>
+                            | ElseIfStatement<BlockStatement>
+                            | IfElseBlock<BlockStatement>
+                            | SwitchStatement;
+export type BlockStatement = LogicStatement | AssignmentStatement;
 
 /** @internal */
-export type CombinationalSwitchAssignmentExpression = {
-  type: 'combinationalSwitchAssignmentExpression';
+export type CombinationalSwitchAssignmentStatement = {
+  type: 'combinationalSwitchAssignmentStatement';
   to: Port;
   conditionalSignal: SignalLike;
   cases: [ConstantT | number, SignalLikeOrValue][];
@@ -144,13 +144,13 @@ export type CombinationalSwitchAssignmentExpression = {
 /**
  * Various kinds of combinational assignments that can be made
  */
-export type CombinationalLogic = AssignmentExpression | CombinationalSwitchAssignmentExpression;
+export type CombinationalLogic = AssignmentStatement | CombinationalSwitchAssignmentStatement;
 
 /** @internal */
 export type SyncBlock  = {
   signal: SignalT;
   edge: Edge;
-  block: BlockExpression[];
+  block: BlockStatement[];
 }
 
 /** @internal */
@@ -253,7 +253,7 @@ export type VendorSignalMap = {
 /**
  * Any valid expression within a simulation
  */
-export type SimulationExpression  = BlockExpression
+export type SimulationExpression  = BlockStatement
                                   | EdgeAssertion
                                   | RepeatedEdgeAssertion
                                   | DisplayExpression
@@ -266,7 +266,7 @@ export type SimulationExpression  = BlockExpression
 export type IfStatementLike<BodyExprsT> = IfStatement<BodyExprsT> | ElseIfStatement<BodyExprsT>;
 
 /** @internal */
-export type BlockExpressionsAndTime = [number, BlockExpression[]];
+export type BlockExpressionsAndTime = [number, BlockStatement[]];
 
 /** @internal */
 export interface EdgeAssertion {

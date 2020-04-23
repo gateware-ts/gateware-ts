@@ -2,7 +2,7 @@ import { Simulation } from './simulation';
 import { VendorModule } from './vendor-module';
 import {
   SyncBlock,
-  BlockExpression,
+  BlockStatement,
   Edge,
   ModuleSignalDescriptor,
   Port,
@@ -173,7 +173,7 @@ export abstract class GWModule {
    * @param edge Either a positive or negative edge (can be hardware dependant)
    * @param block A block of expressions
    */
-  syncBlock(signal:SignalT, edge:Edge, block:BlockExpression[]):void {
+  syncBlock(signal:SignalT, edge:Edge, block:BlockStatement[]):void {
     this.syncBlocks.push({signal, edge, block});
   }
 

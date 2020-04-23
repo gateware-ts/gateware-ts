@@ -4,90 +4,90 @@
  */
 
 import {
-  IF_EXPRESSION,
-  ELSE_EXPRESSION,
-  ELSE_IF_EXPRESSION,
-  SWITCH_EXPRESSION,
-  CASE_EXPRESSION,
-  DEFAULT_CASE_EXPRESSION,
-  COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION
+  IF_STATEMENT,
+  ELSE_STATEMENT,
+  ELSE_IF_STATEMENT,
+  SWITCH_STATEMENT,
+  CASE_STATEMENT,
+  DEFAULT_CASE_STATEMENT,
+  COMBINATIONAL_SWITCH_ASSIGNMENT_STATEMENT
 } from './constants';
 import {
-  BlockExpression,
+  BlockStatement,
   SignalLike,
   CaseExpression,
-  SwitchExpression,
-  SubjectiveCaseExpression,
-  DefaultCaseExpression,
+  SwitchStatement,
+  SubjectiveCaseStatement,
+  DefaultCaseStatement,
   SignalLikeOrValue,
   SimulationExpression,
   IfStatementLike,
   Port,
-  CombinationalSwitchAssignmentExpression
+  CombinationalSwitchAssignmentStatement
 } from './main-types';
 import { ConstantT } from './signals';
 
 /**
  * Should not be used directly, instead use [[If]] or [[SIf]]
 */
-export interface IfElseBlock<BodyExprsT> {
-  type: 'elseExpression';
-  parent: IfStatementLike<BodyExprsT>;
-  elseClause: BodyExprsT[];
+export interface IfElseBlock<BodyStatementsT> {
+  type: 'elseStatement';
+  parent: IfStatementLike<BodyStatementsT>;
+  elseClause: BodyStatementsT[];
 };
 
 /**
  * Should not be used directly, instead use [[If]] or [[SIf]]
 */
-export class ElseIfStatement<BodyExprsT> {
-  readonly type = ELSE_IF_EXPRESSION;
-  parentStatement: IfStatementLike<BodyExprsT>;
+export class ElseIfStatement<BodyStatementsT> {
+  readonly type = ELSE_IF_STATEMENT;
+  parentStatement: IfStatementLike<BodyStatementsT>;
 
   elseSubject: SignalLike;
-  elseExprs: BodyExprsT[];
+  elseExprs: BodyStatementsT[];
 
-  constructor(parent:IfStatement<BodyExprsT> | ElseIfStatement<BodyExprsT>, expr:SignalLike, body:BodyExprsT[]) {
+  constructor(parent:IfStatement<BodyStatementsT> | ElseIfStatement<BodyStatementsT>, expr:SignalLike, body:BodyStatementsT[]) {
     this.parentStatement = parent;
     this.elseSubject = expr;
     this.elseExprs = body;
   }
 
-  Else(exprs:BodyExprsT[]):IfElseBlock<BodyExprsT> {
+  Else(exprs:BodyStatementsT[]):IfElseBlock<BodyStatementsT> {
     return ({
-      type: ELSE_EXPRESSION,
+      type: ELSE_STATEMENT,
       parent: this,
       elseClause: exprs
     });
   }
 
-  ElseIf(expr:SignalLike, body:BodyExprsT[]) {
-    return new ElseIfStatement<BodyExprsT>(this, expr, body);
+  ElseIf(expr:SignalLike, body:BodyStatementsT[]) {
+    return new ElseIfStatement<BodyStatementsT>(this, expr, body);
   }
 }
 
 /**
  * Should not be used directly, instead use [[If]] or [[SIf]]
 */
-export class IfStatement<BodyExprsT> {
-  readonly type = IF_EXPRESSION;
+export class IfStatement<BodyStatementsT> {
+  readonly type = IF_STATEMENT;
   subject: SignalLike;
-  exprs: BodyExprsT[];
+  exprs: BodyStatementsT[];
 
-  constructor(expr:SignalLike, body:BodyExprsT[]) {
+  constructor(expr:SignalLike, body:BodyStatementsT[]) {
     this.exprs = body;
     this.subject = expr;
   }
 
-  Else(exprs:BodyExprsT[]):IfElseBlock<BodyExprsT> {
+  Else(exprs:BodyStatementsT[]):IfElseBlock<BodyStatementsT> {
     return ({
-      type: ELSE_EXPRESSION,
+      type: ELSE_STATEMENT,
       parent: this,
       elseClause: exprs
     });
   }
 
-  ElseIf(expr:SignalLike, body:BodyExprsT[]) {
-    return new ElseIfStatement<BodyExprsT>(this, expr, body);
+  ElseIf(expr:SignalLike, body:BodyStatementsT[]) {
+    return new ElseIfStatement<BodyStatementsT>(this, expr, body);
   }
 }
 
@@ -96,7 +96,7 @@ export class IfStatement<BodyExprsT> {
  * @param expr Expression to check
  * @param body Body of expressions to run if the expr condition is true
  */
-export const If = (expr:SignalLike, body:BlockExpression[]):IfStatement<BlockExpression> => new IfStatement<BlockExpression>(expr, body);
+export const If = (expr:SignalLike, body:BlockStatement[]):IfStatement<BlockStatement> => new IfStatement<BlockStatement>(expr, body);
 
 /**
  * Conditionally run some logic, including simulation only expressions
@@ -110,8 +110,8 @@ export const SIf = (expr:SignalLike, body:SimulationExpression[]):IfStatement<Si
  * @param s The conditional signal
  * @param cases Cases for particular values
  */
-export const Switch = (s:SignalLike, cases:CaseExpression[]):SwitchExpression => ({
-  type: SWITCH_EXPRESSION,
+export const Switch = (s:SignalLike, cases:CaseExpression[]):SwitchStatement => ({
+  type: SWITCH_STATEMENT,
   subject: s,
   cases
 });
@@ -121,8 +121,8 @@ export const Switch = (s:SignalLike, cases:CaseExpression[]):SwitchExpression =>
  * @param s The associated value
  * @param body Body of expressions to run in this case
  */
-export const Case = (s:SignalLikeOrValue, body:BlockExpression[]):SubjectiveCaseExpression => ({
-  type: CASE_EXPRESSION,
+export const Case = (s:SignalLikeOrValue, body:BlockStatement[]):SubjectiveCaseStatement => ({
+  type: CASE_STATEMENT,
   subject: s,
   body
 });
@@ -131,7 +131,7 @@ export const Case = (s:SignalLikeOrValue, body:BlockExpression[]):SubjectiveCase
  * The default block of logic in a [[Switch]] Expression
  * @param body Body of expressions to run in this case
  */
-export const Default = (body:BlockExpression[]):DefaultCaseExpression => ({ body, type: DEFAULT_CASE_EXPRESSION });
+export const Default = (body:BlockStatement[]):DefaultCaseStatement => ({ body, type: DEFAULT_CASE_STATEMENT });
 
 /**
  * Combinational assignment to [[Port]] `to`, where based on the value of `conditionalSignal`, a case is selected as the output
@@ -140,9 +140,9 @@ export const Default = (body:BlockExpression[]):DefaultCaseExpression => ({ body
  * @param cases An array of pairs (array with two elements), where the first element is the comparrison value, and the output is the value
  * @param defaultCase A value to take on if no cases are used
  */
-export const CombinationalSwitchAssignment = (to:Port, conditionalSignal:SignalLike, cases: [ConstantT | number, SignalLikeOrValue][], defaultCase:SignalLikeOrValue = 1):CombinationalSwitchAssignmentExpression => {
+export const CombinationalSwitchAssignment = (to:Port, conditionalSignal:SignalLike, cases: [ConstantT | number, SignalLikeOrValue][], defaultCase:SignalLikeOrValue = 1):CombinationalSwitchAssignmentStatement => {
   return {
-    type: COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION,
+    type: COMBINATIONAL_SWITCH_ASSIGNMENT_STATEMENT,
     to,
     conditionalSignal,
     cases,
