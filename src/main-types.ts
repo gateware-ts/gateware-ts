@@ -1,5 +1,5 @@
 import { IfStatement, ElseIfStatement, IfElseBlock } from './block-expressions';
-import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpressionT, Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT } from './signals';
+import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpressionT, Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT, BinaryT } from './signals';
 import { GWModule } from './gw-module';
 import { VendorModule } from './vendor-module';
 
@@ -65,15 +65,6 @@ export enum LogicExpressionType {
 }
 
 /** @internal */
-export interface OperationExpression {
-  a: SignalLike;
-  b: SignalLikeOrValue;
-  op: Operation;
-  type: 'operationExpression';
-  width: number;
-};
-
-/** @internal */
 export interface AssignmentExpression {
   a: SignalT;
   b: SignalLikeOrValue;
@@ -118,7 +109,7 @@ export type SignalLike  = BaseSignalLike
                         | UnaryT
                         | ComparrisonT
                         | ConstantT
-                        | OperationExpression
+                        | BinaryT
                         | TernaryT
                         | BooleanExpressionT
                         | ExplicitSignednessT;

@@ -3,14 +3,13 @@ import {
   SignalLikeOrValue,
   Operation,
   AssignmentExpression,
-  OperationExpression,
   ComparrisonOperation,
   SignalLike,
   BooleanOperation,
 } from "./main-types";
 import {
   ASSIGNMENT_EXPRESSION,
-  OPERATION_EXPRESSION,
+  BINARY_EXPRESSION,
   COMPARRISON_EXPRESSION,
   SIGNAL,
   CONSTANT,
@@ -145,30 +144,18 @@ export abstract class BaseSignalLike {
 
   /**
    * Describe adding another [[SignalLikeOrValue]] to this signal
-   * @param b 
+   * @param b
    */
-  plus(b:SignalLikeOrValue):OperationExpression {
-    return {
-      a: this,
-      b,
-      op: Operation.Plus,
-      type: OPERATION_EXPRESSION,
-      width: this.width
-    };
+  plus(b:SignalLikeOrValue):BinaryT {
+    return new BinaryT(this, b, Operation.Plus);
   }
 
   /**
    * Describe subtracting this signal from another [[SignalLikeOrValue]]
-   * @param b 
+   * @param b
    */
-  minus(b:SignalLikeOrValue):OperationExpression {
-    return {
-      a: this,
-      b,
-      op: Operation.Minus,
-      type: OPERATION_EXPRESSION,
-      width: this.width
-    };
+  minus(b:SignalLikeOrValue):BinaryT {
+    return new BinaryT(this, b, Operation.Minus);
   }
 
   /**
@@ -627,6 +614,27 @@ export class UnaryT extends BaseSignalLike {
     this.a = a;
   }
 };
+
+/**
+ * Type representing a binary operation on two [[SignalLike]]s
+ * Should not be instantiated directly, instead use [[BaseSignalLike.plus]], [[BaseSignalLike.minus]], etc
+ */
+export class BinaryT extends BaseSignalLike {
+  width: number;
+  a: SignalLike;
+  b: SignalLikeOrValue;
+  op: Operation;
+  readonly type:string = BINARY_EXPRESSION;
+
+  constructor(a: SignalLike, b:SignalLikeOrValue, op:Operation) {
+    super();
+    this.width = a.width;
+    this.op = op;
+    this.a = a;
+    this.b = b;
+  }
+};
+
 
 /**
  * Like [[Not]] but always returns a 1-bit wide [[SignalLike]]

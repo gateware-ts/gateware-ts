@@ -2,9 +2,9 @@
  * @internal
  * @packageDocumentation
  */
-import { Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT } from './../signals';
-import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE, EXPLICIT_SIGNEDNESS } from './../constants';
-import { Operation, SignalLikeOrValue, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation, Signedness } from './../main-types';
+import { Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT, BinaryT } from './../signals';
+import { COMPARRISON_EXPRESSION, BINARY_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE, EXPLICIT_SIGNEDNESS } from './../constants';
+import { Operation, SignalLikeOrValue, ComparrisonOperation, SignalLike, BooleanOperation, Signedness } from './../main-types';
 import { GWModule } from "../gw-module"
 import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpressionT } from "../signals";
 import { SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION, TERNARY_EXPRESSION } from '../constants';
@@ -68,8 +68,8 @@ export class ExpressionEvaluator {
       case BOOLEAN_EXPRESSION:{
         return this.evaluateBooleanExpression(expr as BooleanExpressionT);
       }
-      case OPERATION_EXPRESSION: {
-        return this.evaluateOperationExpression(expr as OperationExpression);
+      case BINARY_EXPRESSION: {
+        return this.evaluateBinaryExpression(expr as BinaryT);
       }
       case SLICE: {
         return this.evaluateSlice(expr as SliceT);
@@ -196,7 +196,7 @@ export class ExpressionEvaluator {
     return `(${this.evaluate(t.comparrison)} ? ${this.evaluate(t.a)} : ${this.evaluate(t.b)})`;
   }
 
-  evaluateOperationExpression(o:OperationExpression) {
+  evaluateBinaryExpression(o:BinaryT) {
     let op:string;
     if (o.op === Operation.Plus)
       op = '+';
