@@ -1,15 +1,6 @@
 import { COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION } from './constants';
 import { SignalLike, SignalLikeOrValue, Port, CombinationalSwitchAssignmentExpression } from './main-types';
-import { Slice, Inverse, ConstantT } from './signals';
-
-
-/**
- * Isolate a single bit from a [[SignalLike]]
- * @param s
- * @param index the index to isolate
- */
-export const Bit = (s:SignalLike, index:number) =>
-  Slice(s, index, index);
+import { ConstantT } from './signals';
 
 /**
  * Combinational assignment to [[Port]] `to`, where based on the value of `conditionalSignal`, a case is selected as the output

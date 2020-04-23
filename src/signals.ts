@@ -22,7 +22,6 @@ import {
   TERNARY_EXPRESSION,
   UNARY_EXPRESSION
 } from "./constants";
-import { Bit } from "./operational-expressions";
 
 /**
  * Base class for all [[SignalLike]]s.
@@ -672,6 +671,14 @@ export const Signal = (width = 1, signedness:Signedness = Signedness.Unsigned, d
  */
 export const Slice = (a:SignalLike, fromBit:number, toBit:number) =>
   new SliceT(a, fromBit, toBit);
+
+/**
+ * Isolate a single bit from a [[SignalLike]]
+ * @param s
+ * @param index the index to isolate
+ */
+export const Bit = (s:SignalLike, index:number) =>
+  Slice(s, index, index);
 
 /**
  * Create a constant
