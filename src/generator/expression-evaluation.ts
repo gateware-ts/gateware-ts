@@ -2,7 +2,7 @@
  * @internal
  * @packageDocumentation
  */
-import { Inverse, ExplicitSignedness, ComparrisonT, TernaryT, UnaryT } from './../signals';
+import { Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT } from './../signals';
 import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE, EXPLICIT_SIGNEDNESS } from './../constants';
 import { Operation, SignalLikeOrValue, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation, Signedness } from './../main-types';
 import { GWModule } from "../gw-module"
@@ -75,7 +75,7 @@ export class ExpressionEvaluator {
         return this.evaluateSlice(expr as SliceT);
       }
       case EXPLICIT_SIGNEDNESS: {
-        return this.evaluateExplicitSignedness(expr as ExplicitSignedness);
+        return this.evaluateExplicitSignedness(expr as ExplicitSignednessT);
       }
       default: {
         debugger;
@@ -84,7 +84,7 @@ export class ExpressionEvaluator {
     }
   }
 
-  evaluateExplicitSignedness(s:ExplicitSignedness) {
+  evaluateExplicitSignedness(s:ExplicitSignednessT) {
     return `$${s.signedness === Signedness.Unsigned ? 'un' : ''}signed(${this.evaluate(s.signal)})`;
   }
 

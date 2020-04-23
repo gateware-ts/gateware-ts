@@ -1,5 +1,5 @@
 import { IfStatement, ElseIfStatement, IfElseBlock } from './block-expressions';
-import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression, Inverse, ExplicitSignedness, ComparrisonT, TernaryT, UnaryT } from './signals';
+import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpression, Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT } from './signals';
 import { GWModule } from './gw-module';
 import { VendorModule } from './vendor-module';
 
@@ -121,7 +121,7 @@ export type SignalLike  = BaseSignalLike
                         | OperationExpression
                         | TernaryT
                         | BooleanExpression
-                        | ExplicitSignedness;
+                        | ExplicitSignednessT;
 
 /**
  * Like [[SignalLike]] except allows for numbers (issues will occur if non-integers are used)

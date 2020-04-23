@@ -558,7 +558,7 @@ export class SignalT extends BaseSignalLike {
  * Type representing some [[SignalLike]] being treated as explicitly Signed or Unsigned.
  * Should not be instantiated directly, instead use [[asSigned]] or [[asUnsigned]]
  */
-export class ExplicitSignedness extends BaseSignalLike {
+export class ExplicitSignednessT extends BaseSignalLike {
   width: number;
   signedness: Signedness;
   signal: SignalLike;
@@ -638,13 +638,13 @@ export const LogicalNot = (s:SignalLike) => new UnaryT(s, Operation.LogicalNot);
  * Treat the given signal as signed
  * @param signal
  */
-export const asSigned = (signal:SignalLike) => new ExplicitSignedness(signal, Signedness.Signed);
+export const asSigned = (signal:SignalLike) => new ExplicitSignednessT(signal, Signedness.Signed);
 
 /**
  * Treat the given signal as unsigned
  * @param signal
  */
-export const asUnsigned = (signal:SignalLike) => new ExplicitSignedness(signal, Signedness.Unsigned);
+export const asUnsigned = (signal:SignalLike) => new ExplicitSignednessT(signal, Signedness.Unsigned);
 
 
 /**
