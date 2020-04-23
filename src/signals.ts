@@ -175,72 +175,72 @@ export abstract class BaseSignalLike {
    * Bitwise and of this signal and another [[SignalLikeOrValue]]
    * @param b
    */
-  and(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.And, this.width);
+  and(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.And, this.width);
   }
 
   /**
    * Logical and of this signal and another [[SignalLikeOrValue]] (produces a 1-bit wide signal)
    * @param b
    */
-  andLogical(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.LogicalAnd, 1);
+  andLogical(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.LogicalAnd, 1);
   }
 
   /**
    * Bitwise or of this signal and another [[SignalLikeOrValue]]
    * @param b
    */
-  orLogical(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.LogicalOr, 1);
+  orLogical(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.LogicalOr, 1);
   }
 
   /**
    * Logical or of this signal and another [[SignalLikeOrValue]] (produces a 1-bit wide signal)
    * @param b
    */
-  or(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.Or, this.width);
+  or(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.Or, this.width);
   }
 
   /**
    * Bitwise xor of this signal and another [[SignalLikeOrValue]]
    * @param b
    */
-  xor(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.Xor, this.width);
+  xor(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.Xor, this.width);
   }
 
   /**
    * Bitwise left shift of this signal by another [[SignalLikeOrValue]]
    * @param b
    */
-  shiftLeft(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.LeftShift, this.width);
+  shiftLeft(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.LeftShift, this.width);
   }
 
   /**
    * Bitwise right shift of this signal by another [[SignalLikeOrValue]]
    * @param b
    */
-  shiftRight(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.RightShift, this.width);
+  shiftRight(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.RightShift, this.width);
   }
 
   /**
    * Arithmetic left shift of this signal by another [[SignalLikeOrValue]]
    * @param b
    */
-  shiftLeftA(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.LeftArithmeticShift, this.width);
+  shiftLeftA(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.LeftArithmeticShift, this.width);
   }
 
   /**
    * Arithmetic right shift of this signal by another [[SignalLikeOrValue]]
    * @param b
    */
-  shiftRightA(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.RightArithmeticShift, this.width);
+  shiftRightA(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.RightArithmeticShift, this.width);
   }
 
   /**
@@ -413,7 +413,7 @@ export class Inverse extends BaseSignalLike {
  * [[SignalLike]] representing an operation on two [[SignalLike]]s.
  * Should not be instantiated directly, instead use methods like [[BaseSignalLike.and]], [[BaseSignalLike.or]], etc
  */
-export class BooleanExpression extends BaseSignalLike {
+export class BooleanExpressionT extends BaseSignalLike {
   readonly type:string = BOOLEAN_EXPRESSION;
   a:SignalLike;
   b:SignalLikeOrValue;

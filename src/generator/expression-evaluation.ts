@@ -6,7 +6,7 @@ import { Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT } from './
 import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE, EXPLICIT_SIGNEDNESS } from './../constants';
 import { Operation, SignalLikeOrValue, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation, Signedness } from './../main-types';
 import { GWModule } from "../gw-module"
-import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpression } from "../signals";
+import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpressionT } from "../signals";
 import { SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION, TERNARY_EXPRESSION } from '../constants';
 
 const parenthize = (s:SignalLike, fn:(s:SignalLikeOrValue) => string):string =>
@@ -66,7 +66,7 @@ export class ExpressionEvaluator {
         return this.evaluateTernaryExpression(expr as TernaryT);
       }
       case BOOLEAN_EXPRESSION:{
-        return this.evaluateBooleanExpression(expr as BooleanExpression);
+        return this.evaluateBooleanExpression(expr as BooleanExpressionT);
       }
       case OPERATION_EXPRESSION: {
         return this.evaluateOperationExpression(expr as OperationExpression);
@@ -144,7 +144,7 @@ export class ExpressionEvaluator {
     return `${parenthize(c.a, this.evaluate)} ${op} ${this.evaluate(c.b)}`;
   }
 
-  evaluateBooleanExpression(expr:BooleanExpression) {
+  evaluateBooleanExpression(expr:BooleanExpressionT) {
     let op:string;
 
     switch (expr.op) {
