@@ -4,7 +4,7 @@ import {
   LOW,
   HIGH,
   Edge,
-  BlockExpression,
+  BlockStatement,
   Bit,
   Not,
   Ternary,
@@ -41,7 +41,7 @@ export class UART_TX extends GWModule {
   state = this.internal(uSignal(minimumBitsToFit(11), TXStates.Idle));
   counter = this.internal(uSignal(minimumBitsToFit(CLOCK_CYCLES_PER_BIT)));
 
-  onIdle():BlockExpression[] {
+  onIdle():BlockStatement[] {
     return [
       // We're ready to receive and have data ready to send
       If (this.sendEnable['=='](HIGH), [
@@ -56,7 +56,7 @@ export class UART_TX extends GWModule {
     ];
   }
 
-  onSendStartBit():BlockExpression[] {
+  onSendStartBit():BlockStatement[] {
     return [
       // The start bit is a low signal for the entire duration
       this.txOut ['='] (LOW),
@@ -76,7 +76,7 @@ export class UART_TX extends GWModule {
     ];
   }
 
-  onSendBit(bitIndex:number, nextState:TXStates):BlockExpression[] {
+  onSendBit(bitIndex:number, nextState:TXStates):BlockStatement[] {
     return [
 
       If (this.counter ['<'] (CLOCK_CYCLES_PER_BIT - 1), [
@@ -98,7 +98,7 @@ export class UART_TX extends GWModule {
     ];
   }
 
-  onSendStopBit():BlockExpression[] {
+  onSendStopBit():BlockStatement[] {
     return [
       // The start bit is a low signal for the entire duration
       this.txOut ['='] (HIGH),

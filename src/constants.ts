@@ -2,17 +2,17 @@
  * @internal
  * @packageDocumentation
  */
-export const IF_EXPRESSION = 'ifExpression';
-export const ELSE_EXPRESSION = 'elseExpression';
-export const ELSE_IF_EXPRESSION = 'elseIfExpression';
+export const IF_STATEMENT = 'ifStatement';
+export const ELSE_STATEMENT = 'elseStatement';
+export const ELSE_IF_STATEMENT = 'elseIfStatement';
+export const SIMULATION_IF_STATEMENT = 'simulationIfStatement';
+export const SWITCH_STATEMENT = 'switchStatement';
+export const COMBINATIONAL_SWITCH_ASSIGNMENT_STATEMENT = 'combinationalSwitchAssignmentStatement';
+export const CASE_STATEMENT = 'caseStatement';
+export const DEFAULT_CASE_STATEMENT = 'defaultCaseStatement';
 
-export const SIMULATION_IF_EXPRESSION = 'simulationIfExpression';
-export const SWITCH_EXPRESSION = 'switchExpression';
-export const COMBINATIONAL_SWITCH_ASSIGNMENT_EXPRESSION = 'combinationalSwitchAssignmentExpression';
-export const CASE_EXPRESSION = 'caseExpression';
-export const DEFAULT_CASE_EXPRESSION = 'defaultCaseExpression';
 export const COMPARRISON_EXPRESSION = 'comparrisonExpression';
-export const OPERATION_EXPRESSION = 'operationExpression';
+export const BINARY_EXPRESSION = 'binaryExpression';
 export const ASSIGNMENT_EXPRESSION = 'assignmentExpression';
 export const BOOLEAN_EXPRESSION = 'booleanExpression';
 export const UNARY_EXPRESSION = 'unaryExpression';

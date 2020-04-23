@@ -2,11 +2,11 @@
  * @internal
  * @packageDocumentation
  */
-import { Inverse, ExplicitSignedness, ComparrisonT, TernaryT } from './../signals';
-import { COMPARRISON_EXPRESSION, OPERATION_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE, EXPLICIT_SIGNEDNESS } from './../constants';
-import { UnaryExpression, Operation, SignalLikeOrValue, ComparrisonOperation, OperationExpression, SignalLike, BooleanOperation, Signedness } from './../main-types';
+import { Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT, BinaryT } from './../signals';
+import { COMPARRISON_EXPRESSION, BINARY_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE, EXPLICIT_SIGNEDNESS } from './../constants';
+import { Operation, SignalLikeOrValue, ComparrisonOperation, SignalLike, BooleanOperation, Signedness } from './../main-types';
 import { GWModule } from "../gw-module"
-import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpression } from "../signals";
+import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpressionT } from "../signals";
 import { SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION, TERNARY_EXPRESSION } from '../constants';
 
 const parenthize = (s:SignalLike, fn:(s:SignalLikeOrValue) => string):string =>
@@ -54,7 +54,7 @@ export class ExpressionEvaluator {
         return this.evaluateConcat(expr as ConcatT);
       }
       case UNARY_EXPRESSION:{
-        return this.evaluateUnaryExpression(expr as UnaryExpression);
+        return this.evaluateUnaryExpression(expr as UnaryT);
       }
       case INVERSE:{
         return this.evaluateInverse(expr as Inverse);
@@ -66,16 +66,16 @@ export class ExpressionEvaluator {
         return this.evaluateTernaryExpression(expr as TernaryT);
       }
       case BOOLEAN_EXPRESSION:{
-        return this.evaluateBooleanExpression(expr as BooleanExpression);
+        return this.evaluateBooleanExpression(expr as BooleanExpressionT);
       }
-      case OPERATION_EXPRESSION: {
-        return this.evaluateOperationExpression(expr as OperationExpression);
+      case BINARY_EXPRESSION: {
+        return this.evaluateBinaryExpression(expr as BinaryT);
       }
       case SLICE: {
         return this.evaluateSlice(expr as SliceT);
       }
       case EXPLICIT_SIGNEDNESS: {
-        return this.evaluateExplicitSignedness(expr as ExplicitSignedness);
+        return this.evaluateExplicitSignedness(expr as ExplicitSignednessT);
       }
       default: {
         debugger;
@@ -84,7 +84,7 @@ export class ExpressionEvaluator {
     }
   }
 
-  evaluateExplicitSignedness(s:ExplicitSignedness) {
+  evaluateExplicitSignedness(s:ExplicitSignednessT) {
     return `$${s.signedness === Signedness.Unsigned ? 'un' : ''}signed(${this.evaluate(s.signal)})`;
   }
 
@@ -107,7 +107,7 @@ export class ExpressionEvaluator {
     return `~${parenthize(i.a, this.evaluate)}`;
   }
 
-  evaluateUnaryExpression(u:UnaryExpression) {
+  evaluateUnaryExpression(u:UnaryT) {
     switch (u.op) {
       case Operation.Not: {
         return `~${parenthize(u.a, this.evaluate)}`;
@@ -144,7 +144,7 @@ export class ExpressionEvaluator {
     return `${parenthize(c.a, this.evaluate)} ${op} ${this.evaluate(c.b)}`;
   }
 
-  evaluateBooleanExpression(expr:BooleanExpression) {
+  evaluateBooleanExpression(expr:BooleanExpressionT) {
     let op:string;
 
     switch (expr.op) {
@@ -196,7 +196,7 @@ export class ExpressionEvaluator {
     return `(${this.evaluate(t.comparrison)} ? ${this.evaluate(t.a)} : ${this.evaluate(t.b)})`;
   }
 
-  evaluateOperationExpression(o:OperationExpression) {
+  evaluateBinaryExpression(o:BinaryT) {
     let op:string;
     if (o.op === Operation.Plus)
       op = '+';

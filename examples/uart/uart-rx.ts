@@ -5,7 +5,7 @@ import {
   HIGH,
   Concat,
   Edge,
-  BlockExpression,
+  BlockStatement,
   Switch,
   Case,
   If,
@@ -52,7 +52,7 @@ export class UART_RX extends GWModule {
   state = this.internal(uSignal(minimumBitsToFit(12))); // 12 different states
   bit = this.internal(uSignal(minimumBitsToFit(8), 0));
 
-  onIdle():BlockExpression[] {
+  onIdle():BlockStatement[] {
     return [
       If (this.rx ['=='] (LOW), [
         this.state ['='] (RXStates.ReceiveStartBit),
@@ -61,7 +61,7 @@ export class UART_RX extends GWModule {
     ];
   }
 
-  onReceiveStartBit():BlockExpression[] {
+  onReceiveStartBit():BlockStatement[] {
     return [
       // Reset what we have in the shift register
       this.out ['='] (0),
@@ -76,7 +76,7 @@ export class UART_RX extends GWModule {
     ];
   }
 
-  onReceiveBit(bitIndex:number, nextState:RXStates):BlockExpression[] {
+  onReceiveBit(bitIndex:number, nextState:RXStates):BlockStatement[] {
     return [
       If (this.count ['!='] (CLOCK_CYCLES_PER_BIT), [
         inc(this.count)
@@ -93,7 +93,7 @@ export class UART_RX extends GWModule {
     ];
   }
 
-  onReceiveStopBit():BlockExpression[] {
+  onReceiveStopBit():BlockStatement[] {
     return [
       If (this.count ['!='] (CLOCK_CYCLES_PER_BIT), [
         inc(this.count),
@@ -104,7 +104,7 @@ export class UART_RX extends GWModule {
     ];
   }
 
-  onEmitByte():BlockExpression[] {
+  onEmitByte():BlockStatement[] {
     return [
       this.valid ['='] (HIGH),
       this.state ['='] (RXStates.Idle),

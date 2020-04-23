@@ -1,5 +1,5 @@
 import { nanoseconds, picoseconds, edge, edges, assert } from './../../src/simulation';
-import { SIf } from './../../src/block-expressions';
+import { SIf } from '../../src/block-statements';
 import { Edge, SimulationCodeElements } from './../../src/main-types';
 import { Signal, Ternary } from './../../src/signals';
 import * as mocha from 'mocha';

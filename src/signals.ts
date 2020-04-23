@@ -2,15 +2,14 @@ import {
   Signedness,
   SignalLikeOrValue,
   Operation,
-  AssignmentExpression,
-  OperationExpression,
+  AssignmentStatement,
   ComparrisonOperation,
   SignalLike,
   BooleanOperation,
 } from "./main-types";
 import {
   ASSIGNMENT_EXPRESSION,
-  OPERATION_EXPRESSION,
+  BINARY_EXPRESSION,
   COMPARRISON_EXPRESSION,
   SIGNAL,
   CONSTANT,
@@ -20,9 +19,9 @@ import {
   WIRE,
   BOOLEAN_EXPRESSION,
   EXPLICIT_SIGNEDNESS,
-  TERNARY_EXPRESSION
+  TERNARY_EXPRESSION,
+  UNARY_EXPRESSION
 } from "./constants";
-import { Bit } from "./operational-expressions";
 
 /**
  * Base class for all [[SignalLike]]s.
@@ -144,102 +143,90 @@ export abstract class BaseSignalLike {
 
   /**
    * Describe adding another [[SignalLikeOrValue]] to this signal
-   * @param b 
+   * @param b
    */
-  plus(b:SignalLikeOrValue):OperationExpression {
-    return {
-      a: this,
-      b,
-      op: Operation.Plus,
-      type: OPERATION_EXPRESSION,
-      width: this.width
-    };
+  plus(b:SignalLikeOrValue):BinaryT {
+    return new BinaryT(this, b, Operation.Plus);
   }
 
   /**
    * Describe subtracting this signal from another [[SignalLikeOrValue]]
-   * @param b 
+   * @param b
    */
-  minus(b:SignalLikeOrValue):OperationExpression {
-    return {
-      a: this,
-      b,
-      op: Operation.Minus,
-      type: OPERATION_EXPRESSION,
-      width: this.width
-    };
+  minus(b:SignalLikeOrValue):BinaryT {
+    return new BinaryT(this, b, Operation.Minus);
   }
 
   /**
    * Bitwise and of this signal and another [[SignalLikeOrValue]]
    * @param b
    */
-  and(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.And, this.width);
+  and(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.And, this.width);
   }
 
   /**
    * Logical and of this signal and another [[SignalLikeOrValue]] (produces a 1-bit wide signal)
    * @param b
    */
-  andLogical(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.LogicalAnd, 1);
+  andLogical(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.LogicalAnd, 1);
   }
 
   /**
    * Bitwise or of this signal and another [[SignalLikeOrValue]]
    * @param b
    */
-  orLogical(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.LogicalOr, 1);
+  orLogical(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.LogicalOr, 1);
   }
 
   /**
    * Logical or of this signal and another [[SignalLikeOrValue]] (produces a 1-bit wide signal)
    * @param b
    */
-  or(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.Or, this.width);
+  or(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.Or, this.width);
   }
 
   /**
    * Bitwise xor of this signal and another [[SignalLikeOrValue]]
    * @param b
    */
-  xor(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.Xor, this.width);
+  xor(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.Xor, this.width);
   }
 
   /**
    * Bitwise left shift of this signal by another [[SignalLikeOrValue]]
    * @param b
    */
-  shiftLeft(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.LeftShift, this.width);
+  shiftLeft(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.LeftShift, this.width);
   }
 
   /**
    * Bitwise right shift of this signal by another [[SignalLikeOrValue]]
    * @param b
    */
-  shiftRight(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.RightShift, this.width);
+  shiftRight(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.RightShift, this.width);
   }
 
   /**
    * Arithmetic left shift of this signal by another [[SignalLikeOrValue]]
    * @param b
    */
-  shiftLeftA(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.LeftArithmeticShift, this.width);
+  shiftLeftA(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.LeftArithmeticShift, this.width);
   }
 
   /**
    * Arithmetic right shift of this signal by another [[SignalLikeOrValue]]
    * @param b
    */
-  shiftRightA(b:SignalLikeOrValue):BooleanExpression {
-    return new BooleanExpression(this, b, BooleanOperation.RightArithmeticShift, this.width);
+  shiftRightA(b:SignalLikeOrValue):BooleanExpressionT {
+    return new BooleanExpressionT(this, b, BooleanOperation.RightArithmeticShift, this.width);
   }
 
   /**
@@ -412,7 +399,7 @@ export class Inverse extends BaseSignalLike {
  * [[SignalLike]] representing an operation on two [[SignalLike]]s.
  * Should not be instantiated directly, instead use methods like [[BaseSignalLike.and]], [[BaseSignalLike.or]], etc
  */
-export class BooleanExpression extends BaseSignalLike {
+export class BooleanExpressionT extends BaseSignalLike {
   readonly type:string = BOOLEAN_EXPRESSION;
   a:SignalLike;
   b:SignalLikeOrValue;
@@ -536,7 +523,7 @@ export class SignalT extends BaseSignalLike {
    * Assign this signals value to another [[SignalLikeOrValue]]
    * @param b 
    */
-  setTo(b:SignalLikeOrValue):AssignmentExpression {
+  setTo(b:SignalLikeOrValue):AssignmentStatement {
     return {
       a: this,
       b,
@@ -557,7 +544,7 @@ export class SignalT extends BaseSignalLike {
  * Type representing some [[SignalLike]] being treated as explicitly Signed or Unsigned.
  * Should not be instantiated directly, instead use [[asSigned]] or [[asUnsigned]]
  */
-export class ExplicitSignedness extends BaseSignalLike {
+export class ExplicitSignednessT extends BaseSignalLike {
   width: number;
   signedness: Signedness;
   signal: SignalLike;
@@ -611,16 +598,60 @@ export class TernaryT extends BaseSignalLike {
 };
 
 /**
+ * Type representing a unary operation on a [[SignalLike]]
+ * Should not be instantiated directly, instead use [[LogicalNot]]
+ */
+export class UnaryT extends BaseSignalLike {
+  width: number;
+  a: SignalLike;
+  op: Operation;
+  readonly type:string = UNARY_EXPRESSION;
+
+  constructor(a: SignalLike, op:Operation) {
+    super();
+    this.op = op;
+    this.a = a;
+  }
+};
+
+/**
+ * Type representing a binary operation on two [[SignalLike]]s
+ * Should not be instantiated directly, instead use [[BaseSignalLike.plus]], [[BaseSignalLike.minus]], etc
+ */
+export class BinaryT extends BaseSignalLike {
+  width: number;
+  a: SignalLike;
+  b: SignalLikeOrValue;
+  op: Operation;
+  readonly type:string = BINARY_EXPRESSION;
+
+  constructor(a: SignalLike, b:SignalLikeOrValue, op:Operation) {
+    super();
+    this.width = a.width;
+    this.op = op;
+    this.a = a;
+    this.b = b;
+  }
+};
+
+
+/**
+ * Like [[Not]] but always returns a 1-bit wide [[SignalLike]]
+ * @param s The [[SignalLike]] whose bits should be flipped
+ */
+export const LogicalNot = (s:SignalLike) => new UnaryT(s, Operation.LogicalNot);
+
+/**
  * Treat the given signal as signed
  * @param signal
  */
-export const asSigned = (signal:SignalLike) => new ExplicitSignedness(signal, Signedness.Signed);
+export const asSigned = (signal:SignalLike) => new ExplicitSignednessT(signal, Signedness.Signed);
 
 /**
  * Treat the given signal as unsigned
  * @param signal
  */
-export const asUnsigned = (signal:SignalLike) => new ExplicitSignedness(signal, Signedness.Unsigned);
+export const asUnsigned = (signal:SignalLike) => new ExplicitSignednessT(signal, Signedness.Unsigned);
 
 
 /**
@@ -640,6 +671,14 @@ export const Signal = (width = 1, signedness:Signedness = Signedness.Unsigned, d
  */
 export const Slice = (a:SignalLike, fromBit:number, toBit:number) =>
   new SliceT(a, fromBit, toBit);
+
+/**
+ * Isolate a single bit from a [[SignalLike]]
+ * @param s
+ * @param index the index to isolate
+ */
+export const Bit = (s:SignalLike, index:number) =>
+  Slice(s, index, index);
 
 /**
  * Create a constant
@@ -665,6 +704,12 @@ export const Concat = (signals:SignalLike[]) => new ConcatT(signals);
 export const Ternary = (comparrison:SignalLike, a:SignalLike, b:SignalLike) => {
   return new TernaryT(comparrison, a, b);
 };
+
+/**
+ * Bitwise invert all the bits in a [[SignalLike]]
+ * @param s The [[SignalLike]] whose bits should be flipped
+ */
+export const Not = (s:SignalLike) => new Inverse(s);
 
 /**
  * A constant logic-level HIGH signal
