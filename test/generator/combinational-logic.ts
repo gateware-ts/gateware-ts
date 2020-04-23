@@ -1,10 +1,9 @@
 import * as mocha from 'mocha';
-import { CombinationalSwitchAssignment } from './../../src/operational-expressions';
 import * as chai from 'chai';
 import { MODULE_CODE_ELEMENTS } from '../../src/constants';
 import { Signal } from '../../src/signals';
 import { CodeGenerator } from '../../src/generator/index';
-import { GWModule } from '../../src/index';
+import { GWModule, CombinationalSwitchAssignment } from '../../src/index';
 
 const expect = chai.expect;
 
