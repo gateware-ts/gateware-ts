@@ -1,3 +1,4 @@
+import { UnsliceableExpression, UnsliceableExpressionMap } from './../main-types';
 /**
  * @internal
  * @packageDocumentation
@@ -45,11 +46,11 @@ export class SimulationEvaluator {
   private expr: ExpressionEvaluator;
   private t: TabLevel;
 
-  constructor(m:GWModule, indentLevel:number = 1) {
+  constructor(m:GWModule, uem:UnsliceableExpressionMap, indentLevel:number = 1) {
     this.t = new TabLevel('  ', indentLevel);
 
     this.workingModule = m;
-    this.expr = new ExpressionEvaluator(m);
+    this.expr = new ExpressionEvaluator(m, uem);
     this.evaluate = this.evaluate.bind(this);
   }
 

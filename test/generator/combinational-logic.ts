@@ -99,6 +99,38 @@ describe('combinationalLogic', () => {
     ].join('\n'));
   });
 
+  it('should correctly generate slices of sub-expressions', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      in = this.input(Signal(10));
+      in2 = this.input(Signal(10));
+      o = this.output(Signal());
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (this.in ['&'] (this.in2) .slice(5, 0))
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    const result = cg.generateVerilogCodeForModule(m, false);
+
+    if (result.code.type !== MODULE_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.wireDeclarations).to.eq([
+      '  wire [9:0] gwGeneratedSlice0;'
+    ].join('\n'));
+
+    expect(result.code.combAssigns).to.eq([
+      '  assign gwGeneratedSlice0 = in & in2;',
+      '  assign o = gwGeneratedSlice0[5:0];'
+    ].join('\n'));
+  });
+
   it('should disallow driving a combinational output signal as a wire and a register', () => {
     class UUT extends GWModule {
       in = this.input(Signal(2));

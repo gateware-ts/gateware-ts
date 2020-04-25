@@ -42,6 +42,52 @@ describe('syncBlocks', () => {
     ].join('\n'));
   });
 
+  it('should correctly generate slices of sub-expressions', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      in = this.input(Signal(10));
+      in2 = this.input(Signal(10));
+      o = this.output(Signal());
+      o2 = this.output(Signal());
+      o3 = this.output(Signal());
+
+      describe() {
+        this.syncBlock(this.clk, Edge.Positive, [
+          this.o ['='] (this.in ['&'] (this.in2) .slice(5, 0)),
+          this.o2 ['='] (this.in ['|'] (this.in2) .slice(5, 0)),
+          this.o3 ['='] (this.in ['&'] (this.in2) .slice(5, 0)),
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    const result = cg.generateVerilogCodeForModule(m, false);
+
+    if (result.code.type !== MODULE_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.syncBlocks).to.eq([
+      '  always @(posedge clk) begin',
+      '    o <= gwGeneratedSlice0[5:0];',
+      '    o2 <= gwGeneratedSlice1[5:0];',
+      '    o3 <= gwGeneratedSlice0[5:0];',
+      '  end'
+    ].join('\n'));
+
+    expect(result.code.wireDeclarations).to.eq([
+      '  wire [9:0] gwGeneratedSlice0;',
+      '  wire [9:0] gwGeneratedSlice1;'
+    ].join('\n'));
+
+    expect(result.code.combAssigns).to.eq([
+      '  assign gwGeneratedSlice0 = in & in2;',
+      '',
+      '  assign gwGeneratedSlice1 = in | in2;',
+    ].join('\n'));
+  });
+
   it('should correctly generate if statements (if-elseif expression)', () => {
     class UUT extends GWModule {
       clk = this.input(Signal());

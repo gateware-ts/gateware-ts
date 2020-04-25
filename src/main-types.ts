@@ -114,6 +114,21 @@ export type SignalLike  = BaseSignalLike
                         | BooleanExpressionT
                         | ExplicitSignednessT;
 
+/** @internal */
+export type UnsliceableExpression = SliceT
+                                  | ConcatT
+                                  | ComparrisonT
+                                  | BinaryT
+                                  | TernaryT
+                                  | BooleanExpressionT
+                                  | ExplicitSignednessT;
+/** @internal */
+export type WireName = string;
+/** @internal */
+export type VerilogCode = string;
+/** @internal */
+export type UnsliceableExpressionMap = [UnsliceableExpression, WireName, VerilogCode][];
+
 /**
  * Like [[SignalLike]] except allows for numbers (issues will occur if non-integers are used)
  * Likely to be removed in the future.
@@ -183,6 +198,7 @@ export interface SimulationCodeElements {
   header: string;
   registers: string;
   wires: string;
+  alwaysStarBlock: string;
   submodules: string;
   everyTimescaleBlocks: string;
   simulationRunBlock: string;

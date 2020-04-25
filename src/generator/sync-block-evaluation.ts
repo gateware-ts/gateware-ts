@@ -4,7 +4,7 @@
  */
 import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
-import { AssignmentStatement, BlockStatement, SwitchStatement, SubjectiveCaseStatement, SyncBlock, Edge } from '../main-types';
+import { AssignmentStatement, BlockStatement, SwitchStatement, SubjectiveCaseStatement, SyncBlock, Edge, UnsliceableExpression, UnsliceableExpressionMap } from '../main-types';
 import { SignalT } from '../signals';
 import { ASSIGNMENT_EXPRESSION, IF_STATEMENT, SWITCH_STATEMENT, CASE_STATEMENT, ELSE_IF_STATEMENT, ELSE_STATEMENT } from '../constants';
 import { IfStatement, ElseIfStatement, IfElseBlock } from '../block-statements';
@@ -19,11 +19,11 @@ export class SyncBlockEvaluator {
 
   getDrivenSignals() { return this.drivenSignals; }
 
-  constructor(m:GWModule, indentLevel:number = 1) {
+  constructor(m:GWModule, uem:UnsliceableExpressionMap, indentLevel:number = 1) {
     this.t = new TabLevel('  ', indentLevel);
 
     this.workingModule = m;
-    this.expr = new ExpressionEvaluator(m);
+    this.expr = new ExpressionEvaluator(m, uem);
     this.evaluate = this.evaluate.bind(this);
   }
 
