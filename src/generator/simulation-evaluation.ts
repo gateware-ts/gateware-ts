@@ -110,7 +110,16 @@ export class SimulationEvaluator {
   getSubmodules() {
     const out = [];
     const args = [];
-    this.workingModule.getSubmodules().forEach(smRef => {
+    const submodules = this.workingModule.getSubmodules();
+
+    if (submodules.length > 1) {
+      throw new Error([
+        'A simulation can only have a single submodule (the unit under test).',
+        'If you want to test multiple submodules working together, they must be combined into a single, top level module.'
+      ].join('\n'));
+    }
+
+    submodules.forEach(smRef => {
       out.push(`${this.t.l()}${smRef.m.moduleName} ${smRef.submoduleName} (`);
       this.t.push();
 
@@ -136,6 +145,7 @@ export class SimulationEvaluator {
       this.t.pop();
       out.push(`${this.t.l()});`);
     });
+
     return out.join('\n');
   }
 

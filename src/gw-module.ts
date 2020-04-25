@@ -404,7 +404,7 @@ export abstract class GWModule {
             throw new Error(`${descriptor.name} is not an output of module ${this.moduleName}.`);
           }
         } else {
-          throw new Error(`Submodule error: No such port ${m.constructor.name}.${name}`);
+          throw new Error(`Vendor module error: No such port ${m.constructor.name}.${name}`);
         }
       })
     });
