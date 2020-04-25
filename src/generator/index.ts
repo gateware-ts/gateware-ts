@@ -387,22 +387,26 @@ export class CodeGenerator {
     const secondaryAssignments = [];
     allChildModules.forEach(sm => {
       Object.entries(sm.mapping.outputs).forEach(([portName, associatedSignals]) => {
-        const firstSignal = associatedSignals[0];
-        const portDescriptor = m.findAnyModuleSignalDescriptor(firstSignal);
-        const drivenWire = wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name];
-
-        // Place this into the port mapping
-        wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name] = drivenWire;
-        wireMap.get(sm.m)[portName] = drivenWire;
-
-        // For any other inputs driven by this output, an assignment to the
-        // driven wire needs to happen.
-
-        associatedSignals.slice(1).forEach(s => {
-          const portDescriptor = m.findAnyModuleSignalDescriptor(s);
-          const inputWire = wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name];
-          secondaryAssignments.push(`${t.l()}assign ${inputWire} = ${drivenWire};`);
-        });
+        try {
+          const firstSignal = associatedSignals[0];
+          const portDescriptor = m.findAnyModuleSignalDescriptor(firstSignal);
+          const drivenWire = wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name];
+  
+          // Place this into the port mapping
+          wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name] = drivenWire;
+          wireMap.get(sm.m)[portName] = drivenWire;
+  
+          // For any other inputs driven by this output, an assignment to the
+          // driven wire needs to happen.
+          associatedSignals.slice(1).forEach(s => {
+            const portDescriptor = m.findAnyModuleSignalDescriptor(s);
+            const inputWire = wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name];
+            secondaryAssignments.push(`${t.l()}assign ${inputWire} = ${drivenWire};`);
+          });
+        } catch (ex) {
+          let ref = ('submoduleName' in sm ? `${sm.submoduleName}.` : '') + portName;
+          throw new Error(`Error wiring net for ${ref}.`)
+        }
       });
     });
 
