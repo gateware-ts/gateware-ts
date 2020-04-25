@@ -3,11 +3,10 @@
  * @packageDocumentation
  */
 import { Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT, BinaryT } from './../signals';
-import { COMPARRISON_EXPRESSION, BINARY_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE, EXPLICIT_SIGNEDNESS } from './../constants';
-import { Operation, SignalLikeOrValue, ComparrisonOperation, SignalLike, BooleanOperation, Signedness } from './../main-types';
+import { COMPARRISON_EXPRESSION, BINARY_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE, EXPLICIT_SIGNEDNESS, TERNARY_EXPRESSION, SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION } from './../constants';
+import { Operation, SignalLikeOrValue, ComparrisonOperation, SignalLike, BooleanOperation, Signedness, UnsliceableExpression, UnsliceableExpressionMap } from './../main-types';
 import { GWModule } from "../gw-module"
 import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpressionT } from "../signals";
-import { SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION, TERNARY_EXPRESSION } from '../constants';
 
 const parenthize = (s:SignalLike, fn:(s:SignalLikeOrValue) => string):string =>
   (s.type === SIGNAL || s.type === WIRE) ? fn(s) : `(${fn(s)})`;
@@ -23,11 +22,23 @@ const twosComplementNegative = (n, width) => {
   return ('0' + twos.toString(2)).padStart(width, '1');
 };
 
+const unsliceableTypes = [
+  SLICE,
+  CONCAT,
+  COMPARRISON_EXPRESSION,
+  BINARY_EXPRESSION,
+  TERNARY_EXPRESSION,
+  BOOLEAN_EXPRESSION,
+  EXPLICIT_SIGNEDNESS
+];
+
 export class ExpressionEvaluator {
   private workingModule: GWModule;
+  private uem: UnsliceableExpressionMap;
 
-  constructor(m:GWModule) {
+  constructor(m:GWModule, uem:UnsliceableExpressionMap) {
     this.workingModule = m;
+    this.uem = uem;
     this.evaluate = this.evaluate.bind(this);
   }
 
@@ -209,8 +220,26 @@ export class ExpressionEvaluator {
   }
 
   evaluateSlice(s:SliceT) {
+    let expr;
+    if (unsliceableTypes.includes(s.a.type)) {
+      const cachedUnsliceable = this.uem.find(([signal]) => signal.isEqual(s.a));
+      if (!cachedUnsliceable) {
+        const generatedInternalName = `gwGeneratedSlice${this.uem.length}`;
+        this.uem.push([
+          s.a as UnsliceableExpression,
+          generatedInternalName,
+          this.evaluate(s.a)
+        ]);
+        expr = generatedInternalName;
+      } else {
+        expr = cachedUnsliceable[1];
+      }
+    } else {
+      expr = this.evaluate(s.a);
+    }
+
     return (s.fromBit === s.toBit)
-      ? `${parenthize(s.a, this.evaluate)}[${s.fromBit}]`
-      : `${parenthize(s.a, this.evaluate)}[${s.fromBit}:${s.toBit}]`;
+      ? `${expr}[${s.fromBit}]`
+      : `${expr}[${s.fromBit}:${s.toBit}]`;
   }
 }

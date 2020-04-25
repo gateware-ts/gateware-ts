@@ -4,7 +4,7 @@
  */
 import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
-import { AssignmentStatement, CombinationalLogic } from '../main-types';
+import { AssignmentStatement, CombinationalLogic, UnsliceableExpressionMap } from '../main-types';
 import { ASSIGNMENT_EXPRESSION, COMBINATIONAL_SWITCH_ASSIGNMENT_STATEMENT } from '../constants';
 import { TabLevel } from '../helpers';
 import { CombinationalSwitchAssignmentStatement, Port, CombinationalSignalType } from './../main-types';
@@ -19,10 +19,10 @@ export class CombLogicEvaluator {
   getDrivenSignals() { return this.drivenSignals; }
   getSignalTypes() { return this.signalTypes; }
 
-  constructor(m:GWModule, indentLevel:number = 1) {
+  constructor(m:GWModule, uem:UnsliceableExpressionMap, indentLevel:number = 1) {
     this.t = new TabLevel('  ', indentLevel);
     this.workingModule = m;
-    this.expr = new ExpressionEvaluator(m);
+    this.expr = new ExpressionEvaluator(m, uem);
     this.evaluate = this.evaluate.bind(this);
   }
 

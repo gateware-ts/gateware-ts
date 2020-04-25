@@ -4,7 +4,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 
 import { MODULE_CODE_ELEMENTS, SIMULATION_CODE_ELEMENTS, ASSIGNMENT_EXPRESSION } from './../constants';
-import { CodeElements, SimulationCodeElements, ModuleCodeElements, CombinationalSignalType, Port } from './../main-types';
+import { CodeElements, SimulationCodeElements, ModuleCodeElements, CombinationalSignalType, Port, UnsliceableExpressionMap } from './../main-types';
 import { TabLevel, flatten } from '../helpers';
 import { GWModule } from "../gw-module";
 import { SignalT, ConstantT } from "../signals";
@@ -45,6 +45,7 @@ const codeElementsToString = (ce:CodeElements) => {
       ce.header + '\n' +
       ce.registers + '\n' +
       ce.wires + '\n\n' +
+      ce.alwaysStarBlock + '\n\n' +
       ce.submodules + '\n\n' +
       ce.everyTimescaleBlocks + '\n\n' +
       ce.simulationRunBlock + '\n' +
@@ -216,19 +217,33 @@ export class CodeGenerator {
       internal: mapNamesToSignals(signalMap.internal),
     };
 
-    const syncEval = new SyncBlockEvaluator(m, 1);
-    const combEval = new CombLogicEvaluator(m, 1);
-    const simEval = new SimulationEvaluator(m, 1);
+    const unsliceableExpressionMap:UnsliceableExpressionMap = [];
+
+    const syncEval = new SyncBlockEvaluator(m, unsliceableExpressionMap, 1);
+    const combEval = new CombLogicEvaluator(m, unsliceableExpressionMap, 1);
+    const simEval = new SimulationEvaluator(m, unsliceableExpressionMap, 1);
     const paramEval = new ParameterEvaluator();
 
     if (thisIsASimulation) {
       const everyTimescaleBlocks = simEval.getEveryTimescaleBlocks();
       const simulationRunBlock = simEval.getRunBlock();
+      const unsliceableWires = unsliceableExpressionMap.map(([signal, name]) => {
+        return `${t.l()}wire ${getRegSize(signal as Port)}${name};`;
+      }).join('\n');
       const header = `module ${this.m.moduleName};`;
       const registers = simEval.getRegisterBlock();
-      const wires = simEval.getWireBlock();
+      const wires = simEval.getWireBlock() + '\n' + unsliceableWires;
       const submodules = simEval.getSubmodules();
       const vcdBlock = simEval.getVcdBlock();
+
+      const alwaysStarBlock = [
+        `${t.l()}always @(*) begin`,
+        ...unsliceableExpressionMap.map(([_, name, code]) =>  {
+          return `${t.l(1)}assign ${name} = ${code};`;
+        }),
+        `${t.l()}end`,
+      ].join('\n');
+
 
       const ts = this.options.simulation.timescale;
       const timescale = `\`timescale ${''
@@ -241,6 +256,7 @@ export class CodeGenerator {
         header,
         registers,
         wires,
+        alwaysStarBlock,
         submodules,
         everyTimescaleBlocks,
         simulationRunBlock,
@@ -265,6 +281,14 @@ export class CodeGenerator {
         combAlways += `${code}\n`;
       }
     });
+
+    const unsliceableWires = unsliceableExpressionMap.map(([signal, name]) => {
+      return `${t.l()}wire ${getRegSize(signal as Port)}${name};`;
+    }).join('\n');
+    combAssigns = unsliceableExpressionMap.map(([_, name, value]) => {
+      return `${t.l()}assign ${name} = ${value};\n`;
+    }).join('\n') + combAssigns;
+
     combAlways += `${t.l()}end`;
     combAssigns = combAssigns.trimEnd();
 
@@ -417,7 +441,9 @@ export class CodeGenerator {
       // as ones I generate
       ...(thisModuleHasSubmodules ? inputWires : []),
       ...(thisModuleHasSubmodules ? globalOutputWires : [])
-    ].map(([w, regSize]) => `${t.l()}wire ${regSize}${w};`).concat(internalWires).join('\n');
+    ].map(([w, regSize]) => `${t.l()}wire ${regSize}${w};`)
+    .concat(internalWires).join('\n')
+    + unsliceableWires;
 
     const allAssignments = [
       ...(thisModuleHasSubmodules ? globalOutputAssignments : []),

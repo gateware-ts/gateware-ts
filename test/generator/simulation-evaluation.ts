@@ -1,10 +1,10 @@
+import { SIMULATION_CODE_ELEMENTS } from './../../src/constants';
 import { nanoseconds, picoseconds, edge, edges, assert } from './../../src/simulation';
 import { SIf } from '../../src/block-statements';
-import { Edge, SimulationCodeElements } from './../../src/main-types';
-import { Signal, Ternary } from './../../src/signals';
+import { Edge, SimulationCodeElements, UnsliceableExpressionMap } from './../../src/main-types';
+import { Signal, Ternary, Constant } from './../../src/signals';
 import * as mocha from 'mocha';
 import * as chai from 'chai';
-import { Constant } from '../../src/signals';
 import { SimulationEvaluator } from '../../src/generator/simulation-evaluation';
 import { GWModule, display, finish, CodeGenerator, Not } from '../../src/index';
 
@@ -40,7 +40,8 @@ class DummyModule extends GWModule {
 
 describe('simulationEvaluation', () => {
   it('should correctly generate an empty vcd block', () => {
-    const se = new SimulationEvaluator(new DummyUUT());
+    const uem:UnsliceableExpressionMap = [];
+    const se = new SimulationEvaluator(new DummyUUT(), uem);
     expect(se.getVcdBlock()).to.equal('');
   });
 
@@ -77,7 +78,8 @@ describe('simulationEvaluation', () => {
   });
 
   it('should correctly generate assert expressions', () => {
-    const se = new SimulationEvaluator(new DummyUUT());
+    const uem:UnsliceableExpressionMap = [];
+    const se = new SimulationEvaluator(new DummyUUT(), uem);
     const expr = assert(Constant(1, 1) ['=='] (3), [ '1 is not equal to 3!' ]);
 
     expect(se.evaluate(expr)).to.equal([
@@ -89,7 +91,8 @@ describe('simulationEvaluation', () => {
   });
 
   it('should correctly generate display expressions', () => {
-    const se = new SimulationEvaluator(new DummyUUT());
+    const uem:UnsliceableExpressionMap = [];
+    const se = new SimulationEvaluator(new DummyUUT(), uem);
     const expr = display('This is a message');
 
     expect(se.evaluate(expr)).to.equal(
@@ -121,7 +124,8 @@ describe('simulationEvaluation', () => {
   });
 
   it('should correctly generate finish expressions', () => {
-    const se = new SimulationEvaluator(new DummyUUT());
+    const uem:UnsliceableExpressionMap = [];
+    const se = new SimulationEvaluator(new DummyUUT(), uem);
     const expr = finish();
 
     expect(se.evaluate(expr)).to.equal(
@@ -336,6 +340,7 @@ describe('simulationEvaluation', () => {
     ].join('\n'));
     expect(code.wires).to.eq([
       '  wire [1:0] o;',
+      ''
     ].join('\n'));
 
     expect(code.simulationRunBlock).to.eq([
@@ -403,6 +408,57 @@ describe('simulationEvaluation', () => {
       '    @(posedge clk);',
       '    repeat(10) @(negedge clk);',
       '    $finish;',
+      '  end',
+    ].join('\n'));
+  });
+
+  it('should correctly generate slices of sub-expressions', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      in = this.input(Signal(10));
+      in2 = this.input(Signal(10));
+      o = this.output(Signal());
+      o2 = this.output(Signal());
+      o3 = this.output(Signal());
+
+      describe() {
+        this.simulation.run([
+          this.o ['='] (this.in ['&'] (this.in2) .slice(5, 0)),
+          this.o2 ['='] (this.in ['|'] (this.in2) .slice(5, 0)),
+          this.o3 ['='] (this.in ['&'] (this.in2) .slice(5, 0)),
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m, simulationOpts);
+    const result = cg.generateVerilogCodeForModule(m, true);
+
+    if (result.code.type !== SIMULATION_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.simulationRunBlock).to.eq([
+      '  initial begin',
+      '    o = gwGeneratedSlice0[5:0];',
+      '    o2 = gwGeneratedSlice1[5:0];',
+      '    o3 = gwGeneratedSlice0[5:0];',
+      '    $finish;',
+      '  end',
+    ].join('\n'));
+
+    expect(result.code.wires).to.eq([
+      '  wire o;',
+      '  wire o2;',
+      '  wire o3;',
+      '  wire [9:0] gwGeneratedSlice0;',
+      '  wire [9:0] gwGeneratedSlice1;'
+    ].join('\n'));
+
+    expect(result.code.alwaysStarBlock).to.eq([
+      '  always @(*) begin',
+      '    assign gwGeneratedSlice0 = in & in2;',
+      '    assign gwGeneratedSlice1 = in | in2;',
       '  end',
     ].join('\n'));
   });

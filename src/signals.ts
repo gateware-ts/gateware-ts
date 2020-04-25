@@ -32,6 +32,12 @@ export abstract class BaseSignalLike {
   width:number;
 
   /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  abstract isEqual(s:BaseSignalLike);
+
+  /**
    * Treat this signal as signed
    */
   asSigned() {
@@ -388,6 +394,17 @@ export class Inverse extends BaseSignalLike {
   readonly type:string = INVERSE;
   a:SignalLike;
 
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    if (this.type !== s.type) {
+      return false;
+    }
+    return this.a.isEqual((s as Inverse).a);
+  };
+
   constructor(a:SignalLike) {
     super();
     this.a = a;
@@ -404,12 +421,32 @@ export class BooleanExpressionT extends BaseSignalLike {
   a:SignalLike;
   b:SignalLikeOrValue;
   op:BooleanOperation;
+  width:number;
+
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    if (this.type !== s.type) {
+      return false;
+    }
+
+    const bEqual = typeof this.b === 'number' || typeof (s as BooleanExpressionT).b === 'number'
+      ? this.b === (s as BooleanExpressionT).b
+      : this.b.isEqual((s as BooleanExpressionT).b as BaseSignalLike);
+
+    return this.op === (s as BooleanExpressionT).op
+      && this.a.isEqual((s as BooleanExpressionT).a)
+      && bEqual;
+  };
 
   constructor(a:SignalLike, b:SignalLikeOrValue, op:BooleanOperation, width:number) {
     super();
     this.a = a;
     this.b = b;
     this.op = op;
+    this.width  = width;
   }
 }
 
@@ -421,6 +458,19 @@ export class ConstantT extends BaseSignalLike {
   value:number;
   signedness:Signedness;
   readonly type:string = CONSTANT;
+
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    if (this.type !== s.type) {
+      return false;
+    }
+
+    return this.value === (s as ConstantT).value
+      && this.signedness === (s as ConstantT).signedness;
+  };
 
   constructor(width:number, value:number, signedness:Signedness) {
     super();
@@ -445,6 +495,24 @@ export class ConcatT extends BaseSignalLike {
   width:number;
   readonly type:string = CONCAT;
 
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    if (this.type !== s.type) {
+      return false;
+    }
+
+    if (this.signals.length !== (s as ConcatT).signals.length) {
+      return false;
+    }
+
+    return this.signals.reduce((trueness, signal, i) => {
+      return trueness && signal.isEqual((s as ConcatT).signals[i]);
+    }, this.width === s.width);
+  };
+
   constructor(signals:SignalLike[]) {
     super();
     this.signals = signals;
@@ -462,6 +530,21 @@ export class SliceT extends BaseSignalLike {
   toBit: number;
   a: SignalLike;
   readonly type:string = SLICE;
+
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    if (this.type !== s.type) {
+      return false;
+    }
+
+    return this.a.isEqual((s as SliceT).a)
+      && this.width === s.width
+      && this.fromBit === (s as SliceT).fromBit
+      && this.toBit === (s as SliceT).toBit;
+  };
 
   constructor(a:SignalLike, fromBit:number, toBit:number) {
     super();
@@ -484,6 +567,14 @@ export class WireT extends BaseSignalLike {
   width: number;
   readonly type:string = WIRE;
 
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    return this === s;
+  };
+
   constructor(width:number) {
     super();
     this.width = width;
@@ -504,6 +595,14 @@ export class SignalT extends BaseSignalLike {
   defaultValue: number;
   value: SignalLikeOrValue;
   readonly type:string = SIGNAL;
+
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    return this === s;
+  };
 
   constructor(width = 1, signedness:Signedness = Signedness.Unsigned, defaultValue = 0) {
     super();
@@ -550,6 +649,20 @@ export class ExplicitSignednessT extends BaseSignalLike {
   signal: SignalLike;
   readonly type:string = EXPLICIT_SIGNEDNESS;
 
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    if (this.type !== s.type) {
+      return false;
+    }
+
+    return this.signal.isEqual((s as ExplicitSignednessT).signal)
+      && this.width === s.width
+      && this.signedness === (s as ExplicitSignednessT).signedness;
+  };
+
   constructor(signal:SignalLike, signedness:Signedness) {
     super();
     this.width = signal.width;
@@ -567,8 +680,25 @@ export class ComparrisonT extends BaseSignalLike {
   a: SignalLike;
   b: SignalLikeOrValue;
   comparrisonOp: ComparrisonOperation;
-  signal: SignalLike;
   readonly type:string = COMPARRISON_EXPRESSION;
+
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    if (this.type !== s.type) {
+      return false;
+    }
+
+    const bEqual = typeof this.b === 'number' || typeof (s as ComparrisonT).b === 'number'
+      ? this.b === (s as ComparrisonT).b
+      : this.b.isEqual((s as ComparrisonT).b as BaseSignalLike);
+
+    return this.comparrisonOp === (s as ComparrisonT).comparrisonOp
+      && this.a.isEqual((s as ComparrisonT).a)
+      && bEqual;
+  };
 
   constructor(a:SignalLike, b:SignalLikeOrValue, comparrisonOp: ComparrisonOperation) {
     super();
@@ -589,6 +719,29 @@ export class TernaryT extends BaseSignalLike {
   comparrison: SignalLike;
   readonly type:string = TERNARY_EXPRESSION;
 
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    if (this.type !== s.type) {
+      return false;
+    }
+
+    const aEqual = typeof this.a === 'number' || typeof (s as TernaryT).a === 'number'
+      ? this.a === (s as TernaryT).a
+      : this.a.isEqual((s as TernaryT).a as BaseSignalLike);
+
+    const bEqual = typeof this.b === 'number' || typeof (s as TernaryT).b === 'number'
+      ? this.b === (s as TernaryT).b
+      : this.b.isEqual((s as TernaryT).b as BaseSignalLike);
+
+    return this.width === s.width
+      && this.comparrison === (s as TernaryT).comparrison
+      && aEqual
+      && bEqual;
+  };
+
   constructor(comparrison: SignalLike, a: SignalLikeOrValue, b: SignalLikeOrValue) {
     super();
     this.comparrison = comparrison;
@@ -607,6 +760,20 @@ export class UnaryT extends BaseSignalLike {
   op: Operation;
   readonly type:string = UNARY_EXPRESSION;
 
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    if (this.type !== s.type) {
+      return false;
+    }
+
+    return this.width === s.width
+      && this.op === (s as UnaryT).op
+      && this.a.isEqual((s as UnaryT).a as BaseSignalLike);
+  };
+
   constructor(a: SignalLike, op:Operation) {
     super();
     this.op = op;
@@ -624,6 +791,25 @@ export class BinaryT extends BaseSignalLike {
   b: SignalLikeOrValue;
   op: Operation;
   readonly type:string = BINARY_EXPRESSION;
+
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    if (this.type !== s.type) {
+      return false;
+    }
+
+    const bEqual = typeof this.b === 'number' || typeof (s as BinaryT).b === 'number'
+      ? this.b === (s as BinaryT).b
+      : this.b.isEqual((s as BinaryT).b as BaseSignalLike);
+
+    return this.width === s.width
+      && this.op === (s as BinaryT).op
+      && this.a.isEqual((s as BinaryT).a as BaseSignalLike)
+      && bEqual;
+  };
 
   constructor(a: SignalLike, b:SignalLikeOrValue, op:Operation) {
     super();
