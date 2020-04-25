@@ -210,6 +210,13 @@ export class CodeGenerator {
 
     const thisModuleHasSubmodules = (mSubmodules.length + mVendorModules.length) > 0;
 
+    const syncLogic = m.getSyncBlocks();
+    const combLogic = m.getCombinationalLogic();
+
+    if (thisModuleHasSubmodules && (syncLogic.length || combLogic.length)) {
+      throw new Error(`Module "${m.moduleName}" is a parent module, but also contains combinational and/or synchronous logic.`);
+    }
+
     const signalMap = m.getSignalMap();
     const namesToSignals = {
       input: mapNamesToSignals(signalMap.input),
@@ -269,11 +276,11 @@ export class CodeGenerator {
       };
     }
 
-    const syncBlocks = m.getSyncBlocks().map(block => syncEval.evaluateBlock(block)).join('\n\n');
+    const syncBlocks = syncLogic.map(block => syncEval.evaluateBlock(block)).join('\n\n');
 
     let combAssigns = '';
     let combAlways = `${t.l()}always @(*) begin\n`;
-    m.getCombinationalLogic().forEach(expr => {
+    combLogic.forEach(expr => {
       const code = combEval.evaluate(expr);
       if (expr.type === ASSIGNMENT_EXPRESSION) {
         combAssigns += `${code}\n`;
@@ -387,22 +394,26 @@ export class CodeGenerator {
     const secondaryAssignments = [];
     allChildModules.forEach(sm => {
       Object.entries(sm.mapping.outputs).forEach(([portName, associatedSignals]) => {
-        const firstSignal = associatedSignals[0];
-        const portDescriptor = m.findAnyModuleSignalDescriptor(firstSignal);
-        const drivenWire = wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name];
+        try {
+          const firstSignal = associatedSignals[0];
+          const portDescriptor = m.findAnyModuleSignalDescriptor(firstSignal);
+          const drivenWire = wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name];
 
-        // Place this into the port mapping
-        wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name] = drivenWire;
-        wireMap.get(sm.m)[portName] = drivenWire;
+          // Place this into the port mapping
+          wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name] = drivenWire;
+          wireMap.get(sm.m)[portName] = drivenWire;
 
-        // For any other inputs driven by this output, an assignment to the
-        // driven wire needs to happen.
-
-        associatedSignals.slice(1).forEach(s => {
-          const portDescriptor = m.findAnyModuleSignalDescriptor(s);
-          const inputWire = wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name];
-          secondaryAssignments.push(`${t.l()}assign ${inputWire} = ${drivenWire};`);
-        });
+          // For any other inputs driven by this output, an assignment to the
+          // driven wire needs to happen.
+          associatedSignals.slice(1).forEach(s => {
+            const portDescriptor = m.findAnyModuleSignalDescriptor(s);
+            const inputWire = wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name];
+            secondaryAssignments.push(`${t.l()}assign ${inputWire} = ${drivenWire};`);
+          });
+        } catch (ex) {
+          let ref = ('submoduleName' in sm ? `${sm.submoduleName}.` : '') + portName;
+          throw new Error(`Error wiring net for ${ref}.`)
+        }
       });
     });
 
