@@ -1,11 +1,10 @@
-import { UnsliceableExpression, UnsliceableExpressionMap } from './../main-types';
 /**
  * @internal
  * @packageDocumentation
  */
-import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
 import {
+  UnsliceableExpressionMap,
   SimulationExpression,
   AssignmentStatement,
   SwitchStatement,
@@ -15,6 +14,7 @@ import {
   EdgeAssertion,
   RepeatedEdgeAssertion,
   DisplayExpression,
+  SimulationSignalLike,
 } from '../main-types';
 import {
   ASSIGNMENT_EXPRESSION,
@@ -31,6 +31,7 @@ import { IfStatement, IfElseBlock, ElseIfStatement } from '../block-statements';
 import { TabLevel } from '../helpers';
 import { getRegSize } from './common';
 import { SignalT } from '../signals';
+import { SimulationExpressionEvaluator } from './simulation-expression-evaluation';
 
 const edgeToString = (e:Edge) => {
   if (e === Edge.Positive) {
@@ -43,14 +44,14 @@ const edgeToString = (e:Edge) => {
 
 export class SimulationEvaluator {
   private workingModule: GWModule;
-  private expr: ExpressionEvaluator;
+  private expr: SimulationExpressionEvaluator;
   private t: TabLevel;
 
   constructor(m:GWModule, uem:UnsliceableExpressionMap, indentLevel:number = 1) {
     this.t = new TabLevel('  ', indentLevel);
 
     this.workingModule = m;
-    this.expr = new ExpressionEvaluator(m, uem);
+    this.expr = new SimulationExpressionEvaluator(m, uem);
     this.evaluate = this.evaluate.bind(this);
   }
 
@@ -243,7 +244,7 @@ export class SimulationEvaluator {
     return `${this.t.l()}${assigningRegister.name} = ${this.expr.evaluate(aExpr.b)};`;
   }
 
-  evaluateIfStatement(iExpr:IfStatement<SimulationExpression>) {
+  evaluateIfStatement(iExpr:IfStatement<SimulationSignalLike, SimulationExpression>) {
     const out = [];
 
     out.push(`${this.t.l()}if (${this.expr.evaluate(iExpr.subject)}) begin`);
@@ -256,7 +257,7 @@ export class SimulationEvaluator {
     return out.join('\n');
   }
 
-  evaluateElseIfStatement(iExpr:ElseIfStatement<SimulationExpression>) {
+  evaluateElseIfStatement(iExpr:ElseIfStatement<SimulationSignalLike, SimulationExpression>) {
     const out = [];
 
     const parentIf = iExpr.parentStatement.type === IF_STATEMENT
@@ -277,7 +278,7 @@ export class SimulationEvaluator {
     return out.join('\n');
   }
 
-  evaluateElseStatement(iExpr:IfElseBlock<SimulationExpression>) {
+  evaluateElseStatement(iExpr:IfElseBlock<SimulationSignalLike, SimulationExpression>) {
     const out = [];
 
     const parentIf = iExpr.parent.type === IF_STATEMENT

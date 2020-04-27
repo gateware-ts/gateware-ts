@@ -11,6 +11,7 @@ export const COMBINATIONAL_SWITCH_ASSIGNMENT_STATEMENT = 'combinationalSwitchAss
 export const CASE_STATEMENT = 'caseStatement';
 export const DEFAULT_CASE_STATEMENT = 'defaultCaseStatement';
 
+export const SUBMODULE_PATH_EXPRESSION = 'submodulePathExpression';
 export const COMPARRISON_EXPRESSION = 'comparrisonExpression';
 export const BINARY_EXPRESSION = 'binaryExpression';
 export const ASSIGNMENT_EXPRESSION = 'assignmentExpression';

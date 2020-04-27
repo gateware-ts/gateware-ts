@@ -2,7 +2,7 @@ import { SIMULATION_CODE_ELEMENTS } from './../../src/constants';
 import { nanoseconds, picoseconds, edge, edges, assert } from './../../src/simulation';
 import { SIf } from '../../src/block-statements';
 import { Edge, SimulationCodeElements, UnsliceableExpressionMap } from './../../src/main-types';
-import { Signal, Ternary, Constant } from './../../src/signals';
+import { Signal, Ternary, Constant, SubmodulePath } from './../../src/signals';
 import * as mocha from 'mocha';
 import * as chai from 'chai';
 import { SimulationEvaluator } from '../../src/generator/simulation-evaluation';
@@ -407,6 +407,58 @@ describe('simulationEvaluation', () => {
       '  initial begin',
       '    @(posedge clk);',
       '    repeat(10) @(negedge clk);',
+      '    $finish;',
+      '  end',
+    ].join('\n'));
+  });
+
+  it('should correctly generate submodule path expressions', () => {
+    class Dummy extends GWModule {
+      in = this.input(Signal());
+      int = this.internal(Signal());
+      out = this.output(Signal());
+
+      describe() {
+        this.combinationalLogic([
+          this.int ['='] (1),
+          this.out ['='] (this.in ['^'] (this.int)),
+        ])
+      }
+    }
+
+    class UUT extends GWModule {
+      in = this.input(Signal());
+      out = this.output(Signal());
+
+      describe() {
+        const sm = new Dummy();
+        this.addSubmodule(sm, 'sm', {
+          inputs: {
+            in: this.in
+          },
+          outputs: {
+            out: [this.out]
+          }
+        });
+
+        this.simulation.run([
+          assert(SubmodulePath('sm.int') ['=='] (1), [
+            `it didn't equal one!`
+          ])
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m, simulationOpts);
+    const code = cg.generateVerilogCodeForModule(m, true).code as SimulationCodeElements;
+
+    expect(code.simulationRunBlock).to.eq([
+      '  initial begin',
+      "    if (~((sm.int) == 1)) begin",
+      `      $display("it didn't equal one!");`,
+      '      $finish();',
+      '    end',
       '    $finish;',
       '  end',
     ].join('\n'));

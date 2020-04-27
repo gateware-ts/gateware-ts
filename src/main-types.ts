@@ -1,5 +1,5 @@
 import { IfStatement, ElseIfStatement, IfElseBlock } from './block-statements';
-import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpressionT, Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT, BinaryT } from './signals';
+import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpressionT, Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT, BinaryT, SubmodulePathT } from './signals';
 import { GWModule } from './gw-module';
 import { VendorModule } from './vendor-module';
 
@@ -114,6 +114,11 @@ export type SignalLike  = BaseSignalLike
                         | BooleanExpressionT
                         | ExplicitSignednessT;
 
+/**
+ * Regular [[SignalLike]]s, plus SignalLike types that can only be used in simulation
+ */
+export type SimulationSignalLike = SignalLike | SubmodulePathT;
+
 /** @internal */
 export type UnsliceableExpression = SliceT
                                   | ConcatT
@@ -140,9 +145,9 @@ export type CaseExpression = SubjectiveCaseStatement | DefaultCaseStatement;
 /**
  * Logic expressions can only be used in synchronous blocks
  */
-export type LogicStatement  = IfStatement<BlockStatement>
-                            | ElseIfStatement<BlockStatement>
-                            | IfElseBlock<BlockStatement>
+export type LogicStatement  = IfStatement<SignalLike, BlockStatement>
+                            | ElseIfStatement<SignalLike, BlockStatement>
+                            | IfElseBlock<SignalLike, BlockStatement>
                             | SwitchStatement;
 export type BlockStatement = LogicStatement | AssignmentStatement;
 
@@ -155,7 +160,6 @@ export type CombinationalSwitchAssignmentStatement = {
   defaultCase: SignalLikeOrValue;
 };
 
-// TODO: In future, support generically-typed If expressions
 /**
  * Various kinds of combinational assignments that can be made
  */
@@ -274,12 +278,13 @@ export type SimulationExpression  = BlockStatement
                                   | RepeatedEdgeAssertion
                                   | DisplayExpression
                                   | FinishExpression
-                                  | IfStatement<SimulationExpression>
-                                  | ElseIfStatement<SimulationExpression>
-                                  | IfElseBlock<SimulationExpression>;
+                                  | IfStatement<SimulationSignalLike, SimulationExpression>
+                                  | ElseIfStatement<SimulationSignalLike, SimulationExpression>
+                                  | IfElseBlock<SimulationSignalLike, SimulationExpression>;
 
 /** @internal */
-export type IfStatementLike<BodyExprsT> = IfStatement<BodyExprsT> | ElseIfStatement<BodyExprsT>;
+export type IfStatementLike<SubjectType, BodyExprsT> = IfStatement<SubjectType, BodyExprsT>
+                                                     | ElseIfStatement<SubjectType, BodyExprsT>;
 
 /** @internal */
 export type BlockExpressionsAndTime = [number, BlockStatement[]];

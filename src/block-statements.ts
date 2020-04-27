@@ -23,36 +23,37 @@ import {
   SimulationExpression,
   IfStatementLike,
   Port,
-  CombinationalSwitchAssignmentStatement
+  CombinationalSwitchAssignmentStatement,
+  SimulationSignalLike
 } from './main-types';
 import { ConstantT } from './signals';
 
 /**
  * Should not be used directly, instead use [[If]] or [[SIf]]
 */
-export interface IfElseBlock<BodyStatementsT> {
+export interface IfElseBlock<SubjectType, BodyStatementsT> {
   type: 'elseStatement';
-  parent: IfStatementLike<BodyStatementsT>;
+  parent: IfStatementLike<SubjectType, BodyStatementsT>;
   elseClause: BodyStatementsT[];
 };
 
 /**
  * Should not be used directly, instead use [[If]] or [[SIf]]
 */
-export class ElseIfStatement<BodyStatementsT> {
+export class ElseIfStatement<SubjectType, BodyStatementsT> {
   readonly type = ELSE_IF_STATEMENT;
-  parentStatement: IfStatementLike<BodyStatementsT>;
+  parentStatement: IfStatementLike<SubjectType, BodyStatementsT>;
 
-  elseSubject: SignalLike;
+  elseSubject: SubjectType;
   elseExprs: BodyStatementsT[];
 
-  constructor(parent:IfStatement<BodyStatementsT> | ElseIfStatement<BodyStatementsT>, expr:SignalLike, body:BodyStatementsT[]) {
+  constructor(parent:IfStatement<SubjectType, BodyStatementsT> | ElseIfStatement<SubjectType, BodyStatementsT>, expr:SubjectType, body:BodyStatementsT[]) {
     this.parentStatement = parent;
     this.elseSubject = expr;
     this.elseExprs = body;
   }
 
-  Else(exprs:BodyStatementsT[]):IfElseBlock<BodyStatementsT> {
+  Else(exprs:BodyStatementsT[]):IfElseBlock<SubjectType, BodyStatementsT> {
     return ({
       type: ELSE_STATEMENT,
       parent: this,
@@ -60,25 +61,25 @@ export class ElseIfStatement<BodyStatementsT> {
     });
   }
 
-  ElseIf(expr:SignalLike, body:BodyStatementsT[]) {
-    return new ElseIfStatement<BodyStatementsT>(this, expr, body);
+  ElseIf(expr:SubjectType, body:BodyStatementsT[]) {
+    return new ElseIfStatement<SubjectType, BodyStatementsT>(this, expr, body);
   }
 }
 
 /**
  * Should not be used directly, instead use [[If]] or [[SIf]]
 */
-export class IfStatement<BodyStatementsT> {
+export class IfStatement<SubjectType, BodyStatementsT> {
   readonly type = IF_STATEMENT;
-  subject: SignalLike;
+  subject: SubjectType;
   exprs: BodyStatementsT[];
 
-  constructor(expr:SignalLike, body:BodyStatementsT[]) {
+  constructor(expr:SubjectType, body:BodyStatementsT[]) {
     this.exprs = body;
     this.subject = expr;
   }
 
-  Else(exprs:BodyStatementsT[]):IfElseBlock<BodyStatementsT> {
+  Else(exprs:BodyStatementsT[]):IfElseBlock<SubjectType, BodyStatementsT> {
     return ({
       type: ELSE_STATEMENT,
       parent: this,
@@ -86,8 +87,8 @@ export class IfStatement<BodyStatementsT> {
     });
   }
 
-  ElseIf(expr:SignalLike, body:BodyStatementsT[]) {
-    return new ElseIfStatement<BodyStatementsT>(this, expr, body);
+  ElseIf(expr:SubjectType, body:BodyStatementsT[]) {
+    return new ElseIfStatement<SubjectType, BodyStatementsT>(this, expr, body);
   }
 }
 
@@ -96,14 +97,16 @@ export class IfStatement<BodyStatementsT> {
  * @param expr Expression to check
  * @param body Body of expressions to run if the expr condition is true
  */
-export const If = (expr:SignalLike, body:BlockStatement[]):IfStatement<BlockStatement> => new IfStatement<BlockStatement>(expr, body);
+export const If = (expr:SignalLike, body:BlockStatement[]) =>
+  new IfStatement<SignalLike, BlockStatement>(expr, body);
 
 /**
  * Conditionally run some logic, including simulation only expressions
  * @param expr Expression to check
  * @param body Body of expressions to run if the expr condition is true
  */
-export const SIf = (expr:SignalLike, body:SimulationExpression[]):IfStatement<SimulationExpression> => new IfStatement<SimulationExpression>(expr, body);
+export const SIf = (expr:SignalLike, body:SimulationExpression[]) =>
+  new IfStatement<SimulationSignalLike, SimulationExpression>(expr, body);
 
 /**
  * Choose which logic to run based on the value at a signal
