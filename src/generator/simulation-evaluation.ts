@@ -2,7 +2,6 @@
  * @internal
  * @packageDocumentation
  */
-import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
 import {
   UnsliceableExpressionMap,
@@ -32,6 +31,7 @@ import { IfStatement, IfElseBlock, ElseIfStatement } from '../block-statements';
 import { TabLevel } from '../helpers';
 import { getRegSize } from './common';
 import { SignalT } from '../signals';
+import { SimulationExpressionEvaluator } from './simulation-expression-evaluation';
 
 const edgeToString = (e:Edge) => {
   if (e === Edge.Positive) {
@@ -44,14 +44,14 @@ const edgeToString = (e:Edge) => {
 
 export class SimulationEvaluator {
   private workingModule: GWModule;
-  private expr: ExpressionEvaluator;
+  private expr: SimulationExpressionEvaluator;
   private t: TabLevel;
 
   constructor(m:GWModule, uem:UnsliceableExpressionMap, indentLevel:number = 1) {
     this.t = new TabLevel('  ', indentLevel);
 
     this.workingModule = m;
-    this.expr = new ExpressionEvaluator(m, uem);
+    this.expr = new SimulationExpressionEvaluator(m, uem);
     this.evaluate = this.evaluate.bind(this);
   }
 

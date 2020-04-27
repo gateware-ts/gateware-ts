@@ -850,6 +850,7 @@ export class SubmodulePathT extends BaseSignalLike {
   }
 };
 
+export const SubmodulePath = (path:string) => new SubmodulePathT(path);
 
 /**
  * Like [[Not]] but always returns a 1-bit wide [[SignalLike]]
