@@ -1,4 +1,3 @@
-import { UnsliceableExpression, UnsliceableExpressionMap } from './../main-types';
 /**
  * @internal
  * @packageDocumentation
@@ -6,6 +5,7 @@ import { UnsliceableExpression, UnsliceableExpressionMap } from './../main-types
 import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
 import {
+  UnsliceableExpressionMap,
   SimulationExpression,
   AssignmentStatement,
   SwitchStatement,
@@ -15,6 +15,7 @@ import {
   EdgeAssertion,
   RepeatedEdgeAssertion,
   DisplayExpression,
+  SimulationSignalLike,
 } from '../main-types';
 import {
   ASSIGNMENT_EXPRESSION,
@@ -243,7 +244,7 @@ export class SimulationEvaluator {
     return `${this.t.l()}${assigningRegister.name} = ${this.expr.evaluate(aExpr.b)};`;
   }
 
-  evaluateIfStatement(iExpr:IfStatement<SimulationExpression>) {
+  evaluateIfStatement(iExpr:IfStatement<SimulationSignalLike, SimulationExpression>) {
     const out = [];
 
     out.push(`${this.t.l()}if (${this.expr.evaluate(iExpr.subject)}) begin`);
@@ -256,7 +257,7 @@ export class SimulationEvaluator {
     return out.join('\n');
   }
 
-  evaluateElseIfStatement(iExpr:ElseIfStatement<SimulationExpression>) {
+  evaluateElseIfStatement(iExpr:ElseIfStatement<SimulationSignalLike, SimulationExpression>) {
     const out = [];
 
     const parentIf = iExpr.parentStatement.type === IF_STATEMENT
@@ -277,7 +278,7 @@ export class SimulationEvaluator {
     return out.join('\n');
   }
 
-  evaluateElseStatement(iExpr:IfElseBlock<SimulationExpression>) {
+  evaluateElseStatement(iExpr:IfElseBlock<SimulationSignalLike, SimulationExpression>) {
     const out = [];
 
     const parentIf = iExpr.parent.type === IF_STATEMENT

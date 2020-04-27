@@ -4,7 +4,7 @@
  */
 import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
-import { AssignmentStatement, BlockStatement, SwitchStatement, SubjectiveCaseStatement, SyncBlock, Edge, UnsliceableExpression, UnsliceableExpressionMap } from '../main-types';
+import { AssignmentStatement, BlockStatement, SwitchStatement, SubjectiveCaseStatement, SyncBlock, Edge, UnsliceableExpressionMap, SignalLike } from '../main-types';
 import { SignalT } from '../signals';
 import { ASSIGNMENT_EXPRESSION, IF_STATEMENT, SWITCH_STATEMENT, CASE_STATEMENT, ELSE_IF_STATEMENT, ELSE_STATEMENT } from '../constants';
 import { IfStatement, ElseIfStatement, IfElseBlock } from '../block-statements';
@@ -103,7 +103,7 @@ export class SyncBlockEvaluator {
     return `${this.t.l()}${assigningRegister.name} <= ${this.expr.evaluate(aExpr.b)};`;
   }
 
-  evaluateIfStatement(iExpr:IfStatement<BlockStatement>) {
+  evaluateIfStatement(iExpr:IfStatement<SignalLike, BlockStatement>) {
     const out = [];
 
     out.push(`${this.t.l()}if (${this.expr.evaluate(iExpr.subject)}) begin`);
@@ -116,7 +116,7 @@ export class SyncBlockEvaluator {
     return out.join('\n');
   }
 
-  evaluateElseStatement(iExpr:IfElseBlock<BlockStatement>) {
+  evaluateElseStatement(iExpr:IfElseBlock<SignalLike, BlockStatement>) {
     const out = [];
 
     const parentIf = iExpr.parent.type === IF_STATEMENT
@@ -137,7 +137,7 @@ export class SyncBlockEvaluator {
     return out.join('\n');
   }
 
-  evaluateElseIfStatement(iExpr:ElseIfStatement<BlockStatement>) {
+  evaluateElseIfStatement(iExpr:ElseIfStatement<SignalLike, BlockStatement>) {
     const out = [];
 
     const parentIf = iExpr.parentStatement.type === IF_STATEMENT

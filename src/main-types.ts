@@ -145,9 +145,9 @@ export type CaseExpression = SubjectiveCaseStatement | DefaultCaseStatement;
 /**
  * Logic expressions can only be used in synchronous blocks
  */
-export type LogicStatement  = IfStatement<BlockStatement>
-                            | ElseIfStatement<BlockStatement>
-                            | IfElseBlock<BlockStatement>
+export type LogicStatement  = IfStatement<SignalLike, BlockStatement>
+                            | ElseIfStatement<SignalLike, BlockStatement>
+                            | IfElseBlock<SignalLike, BlockStatement>
                             | SwitchStatement;
 export type BlockStatement = LogicStatement | AssignmentStatement;
 
@@ -278,12 +278,13 @@ export type SimulationExpression  = BlockStatement
                                   | RepeatedEdgeAssertion
                                   | DisplayExpression
                                   | FinishExpression
-                                  | IfStatement<SimulationExpression>
-                                  | ElseIfStatement<SimulationExpression>
-                                  | IfElseBlock<SimulationExpression>;
+                                  | IfStatement<SimulationSignalLike, SimulationExpression>
+                                  | ElseIfStatement<SimulationSignalLike, SimulationExpression>
+                                  | IfElseBlock<SimulationSignalLike, SimulationExpression>;
 
 /** @internal */
-export type IfStatementLike<BodyExprsT> = IfStatement<BodyExprsT> | ElseIfStatement<BodyExprsT>;
+export type IfStatementLike<SubjectType, BodyExprsT> = IfStatement<SubjectType, BodyExprsT>
+                                                     | ElseIfStatement<SubjectType, BodyExprsT>;
 
 /** @internal */
 export type BlockExpressionsAndTime = [number, BlockStatement[]];
