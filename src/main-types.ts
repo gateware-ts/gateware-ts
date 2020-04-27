@@ -155,7 +155,6 @@ export type CombinationalSwitchAssignmentStatement = {
   defaultCase: SignalLikeOrValue;
 };
 
-// TODO: In future, support generically-typed If expressions
 /**
  * Various kinds of combinational assignments that can be made
  */
