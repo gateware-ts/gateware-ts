@@ -20,7 +20,8 @@ import {
   BOOLEAN_EXPRESSION,
   EXPLICIT_SIGNEDNESS,
   TERNARY_EXPRESSION,
-  UNARY_EXPRESSION
+  UNARY_EXPRESSION,
+  SUBMODULE_PATH_EXPRESSION
 } from "./constants";
 
 /**
@@ -817,6 +818,35 @@ export class BinaryT extends BaseSignalLike {
     this.op = op;
     this.a = a;
     this.b = b;
+  }
+};
+
+/**
+ * Type representing a path into a signal deeply nested in submodules. Only available in simulation.
+ * Error prone because it relies on string, and therefore cannot perform any type checking.
+ * Should not be instantiated directly.
+ */
+export class SubmodulePathT extends BaseSignalLike {
+  width: number;
+  path: string;
+  readonly type:string = SUBMODULE_PATH_EXPRESSION;
+
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    if (this.type !== s.type) {
+      return false;
+    }
+    return this.path === (s as SubmodulePathT).path;
+  };
+
+  constructor(path:string) {
+    super();
+    // This might be a source of problems in the future (or now)
+    this.width = 0;
+    this.path = path;
   }
 };
 

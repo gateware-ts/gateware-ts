@@ -1,5 +1,5 @@
 import { IfStatement, ElseIfStatement, IfElseBlock } from './block-statements';
-import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpressionT, Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT, BinaryT } from './signals';
+import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpressionT, Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT, BinaryT, SubmodulePathT } from './signals';
 import { GWModule } from './gw-module';
 import { VendorModule } from './vendor-module';
 
@@ -113,6 +113,11 @@ export type SignalLike  = BaseSignalLike
                         | TernaryT
                         | BooleanExpressionT
                         | ExplicitSignednessT;
+
+/**
+ * Regular [[SignalLike]]s, plus SignalLike types that can only be used in simulation
+ */
+export type SimulationSignalLike = SignalLike | SubmodulePathT;
 
 /** @internal */
 export type UnsliceableExpression = SliceT
