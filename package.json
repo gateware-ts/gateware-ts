@@ -2,7 +2,10 @@
   "name": "gateware-ts",
   "version": "1.0.0",
   "description": "",
-  "main": "src/index.ts",
+  "main": "./src/index.ts",
+  "bin": {
+    "testware": "./bin/testware.js"
+  },
   "scripts": {
     "test": "mocha --reporter spec --require ts-node/register test/**/*.ts",
     "test:coverage": "nyc --reporter=lcov npm run test",
@@ -11,7 +14,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/node": "^13.7.7"
+    "@types/node": "^13.7.7",
+    "arcsecond": "^2.0.4"
   },
   "devDependencies": {
     "@types/chai": "^4.2.11",
