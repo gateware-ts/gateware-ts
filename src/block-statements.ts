@@ -105,7 +105,7 @@ export const If = (expr:SignalLike, body:BlockStatement[]) =>
  * @param expr Expression to check
  * @param body Body of expressions to run if the expr condition is true
  */
-export const SIf = (expr:SignalLike, body:SimulationExpression[]) =>
+export const SIf = (expr:SimulationSignalLike, body:SimulationExpression[]) =>
   new IfStatement<SimulationSignalLike, SimulationExpression>(expr, body);
 
 /**
