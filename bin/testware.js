@@ -75,6 +75,7 @@ const suiteParser = A.coroutine(function* () {
 
   return {
     suiteId,
+    header,
     results,
     passed
   };
@@ -106,11 +107,14 @@ const parseOutput = output => {
     process.exit(1);
   }
 
+  console.log(`${result.header.description.replace(/\\\\n/g, '\n')}`);
+
   result.results.forEach(({type, description}, i) => {
-    console.log(`${i+1}) ${type === 'pass' ? '✅' : '❌'} ${description.replace(/\\\\n/g, '\n')}`);
+    console.log(`  ${i+1}) ${type === 'pass' ? '✅' : '❌'} ${description.replace(/\\\\n/g, '\n')}`);
   });
 
   if (result.passed) {
+    console.log('');
     process.exit(0);
   }
 
