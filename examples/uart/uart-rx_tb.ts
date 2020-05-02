@@ -1,3 +1,4 @@
+import { describe, test } from './../../testware/index';
 import { SimulationExpression } from './../../src/main-types';
 import { UART_RX } from './uart-rx';
 import {
@@ -10,7 +11,10 @@ import {
   edges,
   display,
   edge,
-  assert
+  assert,
+  CodeGenerator,
+  microseconds,
+  nanoseconds
 } from "../../src/index";
 import { CLOCK_CYCLES_PER_BIT, uSignal } from './common';
 
@@ -53,19 +57,32 @@ export class UART_RX_TestBench extends GWModule {
       return out;
     }
 
-    this.simulation.run([
-      // Pulse the clock
-      edge(Edge.Positive, this.clk),
-      // Start bit
-      this.rx ['='] (LOW),
-      pulseClockForPeriod,
-      ...sendByte(0x37),
+    this.simulation.run(describe('UART Receive', [
+      test('it should receive multiple bytes', expect => [
+        edge(Edge.Positive, this.clk),
+        // Start bit
+        this.rx ['='] (LOW),
+        pulseClockForPeriod,
+        ...sendByte(0x37),
+        expect(this.out ['=='] (Constant(8, 0x37)), ''),
+        pulseClockForPeriod,
 
-      assert(this.out ['=='] (Constant(8, 0x37)), [
-        "Test failed - Incorrect Byte Received"
-      ]),
-
-      display("Test Passed - Correct Byte Received")
-    ])
+        // Start bit
+        this.rx ['='] (LOW),
+        pulseClockForPeriod,
+        ...sendByte(0xAA),
+        expect(this.out ['=='] (Constant(8, 0xAA)), ''),
+      ])
+    ]));
   }
 }
+
+const testBench = new UART_RX_TestBench();
+const tbCg = new CodeGenerator(testBench, {
+  simulation: {
+    enabled: true,
+    timescale: [ microseconds(1), nanoseconds(10) ]
+  }
+});
+
+tbCg.runSimulation('uart-tx');

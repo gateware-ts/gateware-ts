@@ -1,6 +1,7 @@
+import { describe, test } from './../../testware/index';
 import { LOW, HIGH } from './../../src/signals';
 import { createOneShotDebouncer } from './one-shot-debouncer';
-import { GWModule, Signal, Not, edges, Edge, assert, display, If } from '../../src/index';
+import { GWModule, Signal, Not, edges, Edge, assert, display, If, CodeGenerator, microseconds, nanoseconds } from '../../src/index';
 
 const COUNTER_BITS = 8;
 const OneShotDebouncer = createOneShotDebouncer(COUNTER_BITS);
@@ -30,26 +31,41 @@ export class OneShotDebouncerTB extends GWModule {
       ])
     ]);
 
-    this.simulation.run([
-      pulse(),
+    this.simulation.run(
+      describe("One shot debouncer", [
+        test(`It shouldn't send an output pulse before it's triggered`, expect => [
+          pulse(),
+          expect(this.out ['=='] (LOW), '')
+        ]),
 
-      assert(this.out ['=='] (LOW), [
-        'Test failed - sending an output pulse before triggered'
-      ]),
+        test(`It shouldn't prematurely send an output signal`, expect => [
+          this.trigger ['='] (HIGH),
+          pulse((1 << (COUNTER_BITS - 1)) - 1),
+          expect(this.out ['=='] (LOW), ''),
+        ]),
 
-      this.trigger ['='] (HIGH),
-      pulse((1 << (COUNTER_BITS - 1)) - 1),
+        test(`It should send an output signal at the correct time`, expect => [
+          pulse(2),
+          this.trigger ['='] (LOW),
+          pulse(),
+          expect(this.out ['=='] (HIGH), ''),
+        ]),
 
-      assert(this.out ['=='] (LOW), [ 'Test failed - output went high too early!' ]),
-      pulse(2),
-      this.trigger ['='] (LOW),
-      pulse(),
-      assert(this.out ['=='] (HIGH), [ 'Test failed - output not high when it should be' ]),
-
-      pulse(),
-      assert(this.out ['=='] (LOW), [ 'Test failed - output was high for longer than one clock cycle' ]),
-
-      display("Test passed!")
-    ])
+        test(`It should only send a HIGH output signal for a single clock cycle`, expect => [
+          pulse(),
+          expect(this.out ['=='] (LOW), ''),
+        ])
+      ])
+    );
   }
 }
+
+const testBench = new OneShotDebouncerTB();
+const tbCg = new CodeGenerator(testBench, {
+  simulation: {
+    enabled: true,
+    timescale: [ microseconds(1), nanoseconds(10) ]
+  }
+});
+
+tbCg.runSimulation('one-shot-debouncer', 'one-shot-debouncer.vcd');
