@@ -1,3 +1,4 @@
+import { describe, test } from './../../testware/index';
 import { flatten } from './../../src/helpers';
 import { SimulationExpression } from './../../src/main-types';
 import {
@@ -10,7 +11,10 @@ import {
   display,
   edge,
   If,
-  assert
+  assert,
+  CodeGenerator,
+  microseconds,
+  nanoseconds
 } from "../../src/index";
 import { CLOCK_CYCLES_PER_BIT, uSignal } from './common';
 import { UART_TX } from './uart-tx';
@@ -56,39 +60,44 @@ export class UART_TX_TestBench extends GWModule {
     // Function to create clock cycles lasting an entire bit period
     const pulseClockForPeriod  = () => edges(CLOCK_CYCLES_PER_BIT, Edge.Positive, this.clk);
 
-    const assertBitReceived = (bit:number):SimulationExpression => (
-      assert(
-        this.txLine ['=='] (getBitOfByte(VALUE_TO_BE_TRANSMITTED, bit)),
-        [
-          `Test failed - tx line failed to the ${bit}th bit. Counter = %h`,
-          this.counter
-        ]
-      )
-    )
+    this.simulation.run(describe('UART Transmit', [
+      test('it should correctly transmit a byte', expect => {
+        const expectBitReceived = (bit:number) => (
+          expect(this.txLine ['=='] (getBitOfByte(VALUE_TO_BE_TRANSMITTED, bit)),
+            `Failed to receive correct bit (${bit})`
+          )
+        );
 
-    this.simulation.run([
-      edge(Edge.Positive, this.clk),
+        return [
+          edge(Edge.Positive, this.clk),
 
-      this.sendEnabled ['='] (HIGH),
-      edge(Edge.Positive, this.clk),
-      this.sendEnabled ['='] (LOW),
-      edge(Edge.Positive, this.clk),
+          this.sendEnabled ['='] (HIGH),
+          edge(Edge.Positive, this.clk),
+          this.sendEnabled ['='] (LOW),
+          edge(Edge.Positive, this.clk),
 
-      assert(this.txLine ['=='] (LOW), [
-        'Test failed - tx line failed to send start bit'
-      ]),
+          expect(this.txLine ['=='] (LOW), 'tx line failed to send start bit'),
 
-      ...flatten(Array.from({length: 8}, (_, i) => [
-        pulseClockForPeriod(),
-        assertBitReceived(i),
-      ])),
+          ...flatten(Array.from({length: 8}, (_, i) => [
+            pulseClockForPeriod(),
+            expectBitReceived(i),
+          ])),
 
-      pulseClockForPeriod(),
-      assert(this.txLine ['=='] (HIGH), [
-        'Test failed - tx line failed to send stop bit'
-      ]),
-
-      display("Test passed!")
-    ])
+          pulseClockForPeriod(),
+          expect(this.txLine ['=='] (HIGH), 'tx line failed to send stop bit'),
+        ];
+      })
+    ]));
   }
 }
+
+
+const testBench = new UART_TX_TestBench();
+const tbCg = new CodeGenerator(testBench, {
+  simulation: {
+    enabled: true,
+    timescale: [ microseconds(1), nanoseconds(10) ]
+  }
+});
+
+tbCg.runSimulation('uart-tx');
