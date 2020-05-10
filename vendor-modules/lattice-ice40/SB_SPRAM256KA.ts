@@ -3,7 +3,7 @@ import { VendorModule } from '../../src/vendor-module';
 
 export class SB_SPRAM256KA extends VendorModule<{}> {
   DATAIN = this.input(Signal(16));
-  ADDRESS = this.input(Signal(10));
+  ADDRESS = this.input(Signal(14));
   WREN = this.input(Signal());
   MASKWREN = this.input(Signal(4, Signedness.Unsigned, 0b1111));
   CHIPSELECT = this.input(Signal(1, Signedness.Unsigned, 0b1));
