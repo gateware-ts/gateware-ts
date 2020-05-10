@@ -16,6 +16,7 @@ import {
   DisplayExpression,
   SimulationSignalLike,
   SimulationAssignmentStatement,
+  Port,
 } from '../main-types';
 import {
   ASSIGNMENT_EXPRESSION,
@@ -27,12 +28,13 @@ import {
   FINISH_EXPRESSION,
   ELSE_IF_STATEMENT,
   ELSE_STATEMENT,
-  SIMULATION_ASSIGNMENT_EXPRESSION
+  SIMULATION_ASSIGNMENT_EXPRESSION,
+  CONSTANT
 } from '../constants';
 import { IfStatement, IfElseBlock, ElseIfStatement } from '../block-statements';
 import { TabLevel } from '../helpers';
 import { getRegSize } from './common';
-import { SignalT } from '../signals';
+import { SignalT, ConstantT } from '../signals';
 import { SimulationExpressionEvaluator } from './simulation-expression-evaluation';
 
 const edgeToString = (e:Edge) => {
@@ -127,6 +129,9 @@ export class SimulationEvaluator {
       this.t.push();
 
       Object.entries(smRef.mapping.inputs).forEach(([name, port]) => {
+        if (port instanceof ConstantT)  {
+          return args.push(`${this.t.l()}.${name}(${this.expr.evaluate(port)})`);
+        }
         const connectingSignalName = this.workingModule.getModuleSignalDescriptor(port).name;
         args.push(`${this.t.l()}.${name}(${connectingSignalName})`);
       });

@@ -228,7 +228,7 @@ export type GeneratedVerilogObject = {
 };
 
 export type SubmodulePortMappping = {
-  inputs: { [input:string]: Port };
+  inputs: { [input:string]: Port | ConstantT };
   outputs: { [output:string]: Port[] };
 };
 

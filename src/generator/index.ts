@@ -3,7 +3,7 @@ import { writeFile } from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
-import { MODULE_CODE_ELEMENTS, SIMULATION_CODE_ELEMENTS, ASSIGNMENT_EXPRESSION } from './../constants';
+import { MODULE_CODE_ELEMENTS, SIMULATION_CODE_ELEMENTS, ASSIGNMENT_EXPRESSION, CONSTANT } from './../constants';
 import { CodeElements, SimulationCodeElements, ModuleCodeElements, CombinationalSignalType, Port, UnsliceableExpressionMap } from './../main-types';
 import { TabLevel, flatten } from '../helpers';
 import { GWModule } from "../gw-module";
@@ -21,6 +21,7 @@ import {
   ParameterString,
   TimeScaleValue
 } from "../main-types";
+import { ExpressionEvaluator } from './expression-evaluation';
 
 /** @internal */
 const codeElementsToString = (ce:CodeElements) => {
@@ -233,6 +234,7 @@ export class CodeGenerator {
     const syncEval = new SyncBlockEvaluator(m, unsliceableExpressionMap, 1);
     const combEval = new CombLogicEvaluator(m, unsliceableExpressionMap, 1);
     const simEval = new SimulationEvaluator(m, unsliceableExpressionMap, 1);
+    const exprEval = new ExpressionEvaluator(m, unsliceableExpressionMap);
     const paramEval = new ParameterEvaluator();
 
     if (thisIsASimulation) {
@@ -378,11 +380,19 @@ export class CodeGenerator {
       const portWiring:PortWiring = {};
       wireMap.set(sm.m, portWiring);
 
-      return Object.entries(sm.mapping.inputs).map(([portName, port]) => {
+      const wireSizePairs =  [];
+      for (let [portName, port] of Object.entries(sm.mapping.inputs)) {
+        if (port instanceof ConstantT)  {
+          // This input is hardwired to a constant, ignore it in the port map
+          continue;
+        }
         const wire = `w${wireIndex++}`;
+        console.log(`${portName} wire ${wire} associated with input `);
         portWiring[portName] = wire;
-        return [wire, getRegSize(port)];
-      });
+        wireSizePairs.push([wire, getRegSize(port)]);
+      }
+
+      return wireSizePairs;
     }));
 
     const globalPortWiring:PortWiring = {};
@@ -473,10 +483,20 @@ export class CodeGenerator {
       ];
       t.push();
 
+      // Find any inputs that were specified as constants
+      const constantInputs = [];
+      Object.entries(submoduleReference.mapping.inputs).forEach(([name, port]) => {
+        if (port instanceof ConstantT) {
+          constantInputs.push(`${t.l()}.${name}(${exprEval.evaluate(port)})`);
+        }
+      });
+
       out.push(
-        Object.entries(wireMap.get(submoduleReference.m)).map(([portName, wire]) => {
-          return `${t.l()}.${portName}(${wire})`
-        }).join(',\n')
+        constantInputs.concat(
+          Object.entries(wireMap.get(submoduleReference.m)).map(([portName, wire]) => {
+            return `${t.l()}.${portName}(${wire})`
+          })
+        ).join(',\n')
       );
 
       t.pop();
@@ -509,10 +529,20 @@ export class CodeGenerator {
         t.push();
       }
 
+      // Find any inputs that were specified as constants
+      const constantInputs = [];
+      Object.entries(vendorModuleReference.mapping.inputs).forEach(([name, port]) => {
+        if (port instanceof ConstantT) {
+          constantInputs.push(`${t.l()}.${name}(${exprEval.evaluate(port)})`);
+        }
+      });
+
       out.push(
-        Object.entries(wireMap.get(vendorModuleReference.m)).map(([portName, wire]) => {
-          return `${t.l()}.${portName}(${wire})`
-        }).join(',\n')
+        constantInputs.concat(
+          Object.entries(wireMap.get(vendorModuleReference.m)).map(([portName, wire]) => {
+            return `${t.l()}.${portName}(${wire})`
+          })
+        ).join(',\n')
       );
 
       t.pop();
