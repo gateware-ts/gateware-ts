@@ -15,6 +15,7 @@ import {
   RepeatedEdgeAssertion,
   DisplayExpression,
   SimulationSignalLike,
+  SimulationAssignmentStatement,
 } from '../main-types';
 import {
   ASSIGNMENT_EXPRESSION,
@@ -26,6 +27,7 @@ import {
   FINISH_EXPRESSION,
   ELSE_IF_STATEMENT,
   ELSE_STATEMENT,
+  SIMULATION_ASSIGNMENT_EXPRESSION
 } from '../constants';
 import { IfStatement, IfElseBlock, ElseIfStatement } from '../block-statements';
 import { TabLevel } from '../helpers';
@@ -204,6 +206,10 @@ export class SimulationEvaluator {
       case FINISH_EXPRESSION: {
         return `${this.t.l()}$finish();`;
       }
+
+      case SIMULATION_ASSIGNMENT_EXPRESSION: {
+        return this.evaluateSimulationAssignmentExpression(expr as SimulationAssignmentStatement);
+      }
     }
   }
 
@@ -242,6 +248,11 @@ export class SimulationEvaluator {
   evaluateAssignmentExpression(aExpr:AssignmentStatement) {
     let assigningRegister = this.workingModule.getModuleSignalDescriptor(aExpr.a);
     return `${this.t.l()}${assigningRegister.name} = ${this.expr.evaluate(aExpr.b)};`;
+  }
+
+  evaluateSimulationAssignmentExpression(aExpr:SimulationAssignmentStatement) {
+    let assigningRegister = aExpr.a.path;
+    return `${this.t.l()}${assigningRegister} = ${this.expr.evaluate(aExpr.b)};`;
   }
 
   evaluateIfStatement(iExpr:IfStatement<SimulationSignalLike, SimulationExpression>) {

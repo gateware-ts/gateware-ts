@@ -6,6 +6,7 @@ import {
   ComparrisonOperation,
   SignalLike,
   BooleanOperation,
+  SimulationAssignmentStatement,
 } from "./main-types";
 import {
   ASSIGNMENT_EXPRESSION,
@@ -21,7 +22,8 @@ import {
   EXPLICIT_SIGNEDNESS,
   TERNARY_EXPRESSION,
   UNARY_EXPRESSION,
-  SUBMODULE_PATH_EXPRESSION
+  SUBMODULE_PATH_EXPRESSION,
+  SIMULATION_ASSIGNMENT_EXPRESSION
 } from "./constants";
 
 /**
@@ -824,7 +826,7 @@ export class BinaryT extends BaseSignalLike {
 /**
  * Type representing a path into a signal deeply nested in submodules. Only available in simulation.
  * Error prone because it relies on string, and therefore cannot perform any type checking.
- * Should not be instantiated directly.
+ * Should not be instantiated directly, instead use [[SubmodulePath]].
  */
 export class SubmodulePathT extends BaseSignalLike {
   width: number;
@@ -841,6 +843,26 @@ export class SubmodulePathT extends BaseSignalLike {
     }
     return this.path === (s as SubmodulePathT).path;
   };
+
+  /**
+   * Assign the signal this path represents the value of s
+   * @param s
+   */
+  setTo(s:SignalLikeOrValue):SimulationAssignmentStatement {
+    return {
+      a: this,
+      b: s,
+      type: SIMULATION_ASSIGNMENT_EXPRESSION,
+      width: this.width
+    };
+  }
+
+  /**
+   * Alias for [[SubmodulePathT.setTo]]
+   */
+  ['='](s:SignalLikeOrValue) {
+    return this.setTo(s);
+  }
 
   constructor(path:string) {
     super();

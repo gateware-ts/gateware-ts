@@ -73,6 +73,15 @@ export interface AssignmentStatement {
 };
 
 /** @internal */
+export interface SimulationAssignmentStatement {
+  // For now this is the only SignalLike that requires this special assignment type
+  a: SubmodulePathT;
+  b: SignalLikeOrValue;
+  type: 'simulationAssignmentExpression';
+  width: number;
+};
+
+/** @internal */
 export interface SwitchStatement {
   type: 'switchStatement';
   subject: SignalLike;
@@ -280,7 +289,8 @@ export type SimulationExpression  = BlockStatement
                                   | FinishExpression
                                   | IfStatement<SimulationSignalLike, SimulationExpression>
                                   | ElseIfStatement<SimulationSignalLike, SimulationExpression>
-                                  | IfElseBlock<SimulationSignalLike, SimulationExpression>;
+                                  | IfElseBlock<SimulationSignalLike, SimulationExpression>
+                                  | SimulationAssignmentStatement;
 
 /** @internal */
 export type IfStatementLike<SubjectType, BodyExprsT> = IfStatement<SubjectType, BodyExprsT>
