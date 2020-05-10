@@ -112,7 +112,7 @@ export class CodeGenerator {
    * @param projectName the name of the project (generated files will use this name)
    * @param vcdFile the name of VCD wave file to generate
    */
-  async runSimulation(projectName:string, vcdFile?:string) {
+  async runSimulation(projectName:string, vcdFile?:string, cleanupIntermediateFiles = true) {
     try {
       if (vcdFile) {
         this.m.simulation.outputVcdFile(vcdFile);
@@ -127,18 +127,22 @@ export class CodeGenerator {
         process.stdout.write(stdout);
       });
     } catch (ex) {
-      await cleanupFiles([
-        `${projectName}-tb.v`,
-        `${projectName}.vpp`
-      ]);
+      if (cleanupIntermediateFiles) {
+        await cleanupFiles([
+          `${projectName}-tb.v`,
+          `${projectName}.vpp`
+        ]);
+      }
       throw ex;
     }
 
     process.stdout.write('gateware-ts: Finished running simulation. Cleaning up...');
-    await cleanupFiles([
-      `${projectName}-tb.v`,
-      `${projectName}.vpp`
-    ]);
+    if (cleanupIntermediateFiles) {
+      await cleanupFiles([
+        `${projectName}-tb.v`,
+        `${projectName}.vpp`
+      ]);
+    }
   }
 
   /**
