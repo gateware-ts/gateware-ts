@@ -15,6 +15,7 @@ export const SUBMODULE_PATH_EXPRESSION = 'submodulePathExpression';
 export const COMPARRISON_EXPRESSION = 'comparrisonExpression';
 export const BINARY_EXPRESSION = 'binaryExpression';
 export const ASSIGNMENT_EXPRESSION = 'assignmentExpression';
+export const SIMULATION_ASSIGNMENT_EXPRESSION = 'simulationAssignmentExpression';
 export const BOOLEAN_EXPRESSION = 'booleanExpression';
 export const UNARY_EXPRESSION = 'unaryExpression';
 export const TERNARY_EXPRESSION = 'ternaryExpression';

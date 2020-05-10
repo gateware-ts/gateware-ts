@@ -123,6 +123,42 @@ describe('simulationEvaluation', () => {
     ].join('\n'));
   });
 
+  it('should correctly generate submodule paths', () => {
+    class UUT extends GWModule {
+      i = this.input(Signal());
+      o = this.input(Signal());
+      clk = this.input(Signal());
+
+      describe() {
+        const sm = new DummyModule();
+        this.addSubmodule(sm, 'sm', {
+          inputs: {
+            someInput: this.clk,
+            someInput2: this.i,
+          },
+          outputs: {
+            someOutput: [this.o]
+          }
+        });
+
+        this.simulation.run([
+          SubmodulePath('sm.someInternal') ['='] (1)
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m, simulationOpts);
+    const code = cg.generateVerilogCodeForModule(m, true).code as SimulationCodeElements;
+
+    expect(code.simulationRunBlock).to.eq([
+      '  initial begin',
+      '    sm.someInternal = 1;',
+      '    $finish;',
+      '  end',
+    ].join('\n'));
+  });
+
   it('should correctly generate finish expressions', () => {
     const uem:UnsliceableExpressionMap = [];
     const se = new SimulationEvaluator(new DummyUUT(), uem);
