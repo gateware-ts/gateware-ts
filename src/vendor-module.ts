@@ -25,8 +25,14 @@ export class VendorModule<Params> {
   /** @internal */
   private vendorSignalMap: VendorSignalMap;
 
-  constructor(params:Params) {
+  /**
+   * For for this instantiated vendor module
+   */
+  name:string;
+
+  constructor(name:string, params:Params) {
     this.params = params;
+    this.name = name;
   }
 
   /** @internal */

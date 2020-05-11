@@ -13,7 +13,7 @@ export class SB_SPRAM256KA extends VendorModule<{}> {
   POWEROFF = this.input(Signal(1, Signedness.Unsigned, 0b1));
   DATAOUT = this.output(Signal(16));
 
-  constructor() {
-    super({});
+  constructor(name:string) {
+    super(name, {});
   }
 }
