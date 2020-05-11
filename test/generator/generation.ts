@@ -149,7 +149,7 @@ describe('generation', () => {
       dataOut = this.output(Signal(16));
 
       describe() {
-        const vm = new SB_SPRAM256KA();
+        const vm = new SB_SPRAM256KA('ram');
         this.addVendorModule(vm, {
           inputs: {
             DATAIN: this.dataIn,
@@ -178,7 +178,7 @@ describe('generation', () => {
     }
 
     expect(result.code.vendorModules).to.equal([
-      '  SB_SPRAM256KA (',
+      '  SB_SPRAM256KA ram (',
       `    .MASKWREN(4'b1111),`,
       `    .CHIPSELECT(1'b1),`,
       `    .STANDBY(1'b1),`,

@@ -31,7 +31,7 @@ export class SB_PLL40_PAD extends VendorModule<SB_PLL40_PAD_Parameters> {
   LOCK = this.output(Signal());
   PLLOUTGLOBAL = this.output(Signal());
 
-  constructor(params:SB_PLL40_PAD_Parameters) {
-    super(params);
+  constructor(name:string, params:SB_PLL40_PAD_Parameters) {
+    super(name, params);
   }
 }

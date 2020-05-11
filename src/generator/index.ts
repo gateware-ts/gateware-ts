@@ -522,10 +522,10 @@ export class CodeGenerator {
         );
 
         t.pop();
-        out.push(`${t.l()}) (`);
+        out.push(`${t.l()}) ${vendorModuleReference.m.name} (`);
         t.push();
       } else {
-        out[0] += ' (';
+        out[0] += ` ${vendorModuleReference.m.name} (`;
         t.push();
       }
 
