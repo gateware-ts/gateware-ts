@@ -132,6 +132,25 @@ export abstract class GWModule {
   }
 
   /**
+   * Create an input signal on this module with a given name
+   * @param name The name for this signal
+   * @param s A signal definition
+   */
+  createInput(name:string, s:SignalT) : SignalT {
+    if (this.checkIfSignalWasPreviouslyAdded(s)) {
+      throw new Error(`Cannot register the same signal more than once`);
+    }
+
+    if (typeof this[name] !== 'undefined') {
+      throw new Error(`${this.moduleName}.${name} already exists`);
+    }
+
+    this[name] = s;
+    this.inputs.push(s);
+    return s;
+  }
+
+  /**
    * Create a wire on this module.
    * @param width Bit width of this wire
    */
@@ -155,6 +174,25 @@ export abstract class GWModule {
   }
 
   /**
+   * Create an output signal on this module with a given name
+   * @param name The name for this signal
+   * @param s A signal definition
+   */
+  createOutput(name:string, s:SignalT) : SignalT {
+    if (this.checkIfSignalWasPreviouslyAdded(s)) {
+      throw new Error(`Cannot register the same signal more than once`);
+    }
+
+    if (typeof this[name] !== 'undefined') {
+      throw new Error(`${this.moduleName}.${name} already exists`);
+    }
+
+    this[name] = s;
+    this.outputs.push(s);
+    return s;
+  }
+
+  /**
    * Create an internal signal on this module
    * @param s A signal definition
    */
@@ -163,6 +201,25 @@ export abstract class GWModule {
       throw new Error(`Cannot register the same signal more than once`);
     }
 
+    this.internals.push(s);
+    return s;
+  }
+
+  /**
+   * Create an internal signal on this module with a given name
+   * @param name The name for this signal
+   * @param s A signal definition
+   */
+  createInternal(name:string, s:SignalT) : SignalT {
+    if (this.checkIfSignalWasPreviouslyAdded(s)) {
+      throw new Error(`Cannot register the same signal more than once`);
+    }
+
+    if (typeof this[name] !== 'undefined') {
+      throw new Error(`${this.moduleName}.${name} already exists`);
+    }
+
+    this[name] = s;
     this.internals.push(s);
     return s;
   }
