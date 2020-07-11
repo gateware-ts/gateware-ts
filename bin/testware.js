@@ -51,7 +51,7 @@ const testParser = testId => A.coroutine(function* () {
 });
 
 const suiteParser = A.coroutine(function* () {
-  yield restOfTheLine;
+  yield A.everythingUntil(A.str('Suite '));
   yield A.str('Suite ');
   const suiteId = yield restOfTheLine;
   const header = yield headerParser;
@@ -95,8 +95,10 @@ execP(`ts-node ${testPath}`)
   console.error(error);
   process.exit(1);
 })
-.then(({stdout}) => parseOutput(stdout));
-
+.then(({stdout}) => {
+  console.log('parsing output')
+  parseOutput(stdout)
+});
 
 const parseOutput = output => {
   const {result, isError, error} = suiteParser.run(output);
