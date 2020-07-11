@@ -750,6 +750,11 @@ export class TernaryT extends BaseSignalLike {
     this.comparrison = comparrison;
     this.a = a;
     this.b = b;
+    this.width = (a instanceof BaseSignalLike)
+      ? a.width
+      : (b instanceof BaseSignalLike)
+        ? b.width
+        : Math.max(Math.ceil(Math.log2(a)), Math.ceil(Math.log2(b)));
   }
 };
 
