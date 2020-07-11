@@ -144,6 +144,8 @@ export class CodeGenerator {
         `${projectName}.vpp`
       ]);
     }
+
+    process.exit(0);
   }
 
   /**
