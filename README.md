@@ -8,19 +8,10 @@ The project aims to:
 - Integrate and facilitate the use of the open source FPGA toolchains
 - Be approachable and usable by JavaScript and TypeScript developers
 
-## TODO
+## Examples
 
-- [x] Support for simulation
-- [x] Type-safe vendor module support
-- [x] Improve examples
-- [x] Interface to open source toolchain
-- [x] API documentation
-- [ ] Tutorials
-- [ ] Support for formal verification
-- [ ] Strict/Non-strict mode
-  - Enforced width matching, including constants without width specified
-- [ ] Automatic installation / compilation of tools
-- [ ] More examples
-  - Simple stuff and more complex designs
-- [ ] Support more out of the box board constraints
-- [ ] More vendor module support
+A few illustrative examples can be found in the [examples directory](./examples) (more to come in the future).
+
+## Project Status
+
+This project is very much a work in progress, and as such is likely to contain many bugs and rough edges. If you're looking for a production ready embedded HDL, the nMigen is definitely a better bet! But if you're looking to learn and hack on FPGAs in a type safe language, give this project a go.
