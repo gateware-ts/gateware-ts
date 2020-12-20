@@ -545,8 +545,8 @@ describe('simulationEvaluation', () => {
 
     expect(result.code.alwaysStarBlock).to.eq([
       '  always @(*) begin',
-      '    assign gwGeneratedSlice0 = in & in2;',
-      '    assign gwGeneratedSlice1 = in | in2;',
+      '    assign gwGeneratedSlice0 = in & (in2);',
+      '    assign gwGeneratedSlice1 = in | (in2);',
       '  end',
     ].join('\n'));
   });

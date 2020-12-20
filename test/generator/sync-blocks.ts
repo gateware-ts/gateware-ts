@@ -82,9 +82,9 @@ describe('syncBlocks', () => {
     ].join('\n'));
 
     expect(result.code.combAssigns).to.eq([
-      '  assign gwGeneratedSlice0 = in & in2;',
+      '  assign gwGeneratedSlice0 = in & (in2);',
       '',
-      '  assign gwGeneratedSlice1 = in | in2;',
+      '  assign gwGeneratedSlice1 = in | (in2);',
     ].join('\n'));
   });
 
