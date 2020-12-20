@@ -597,6 +597,7 @@ export class SignalT extends BaseSignalLike {
   signedness: Signedness;
   defaultValue: number;
   value: SignalLikeOrValue;
+  hasDefaultValue: boolean;
   readonly type:string = SIGNAL;
 
   /**
@@ -607,13 +608,14 @@ export class SignalT extends BaseSignalLike {
     return this === s;
   };
 
-  constructor(width = 1, signedness:Signedness = Signedness.Unsigned, defaultValue = 0) {
+  constructor(width = 1, signedness:Signedness = Signedness.Unsigned, defaultValue: number | undefined) {
     super();
 
     // TODO: Domain typing for all params
     this.width = width;
     this.signedness = signedness;
-    this.defaultValue = defaultValue;
+    this.defaultValue = typeof defaultValue === 'undefined' ? 0 : defaultValue;
+    this.hasDefaultValue = typeof defaultValue !== 'undefined';
     this.value = defaultValue;
   }
 
@@ -904,7 +906,7 @@ export const asUnsigned = (signal:SignalLike) => new ExplicitSignednessT(signal,
  * @param signedness signed or unsigned
  * @param defaultValue the value this signal holds by default (0 if unspecifed)
  */
-export const Signal = (width = 1, signedness:Signedness = Signedness.Unsigned, defaultValue = 0) =>
+export const Signal = (width = 1, signedness:Signedness = Signedness.Unsigned, defaultValue: number = undefined) =>
   new SignalT(width, signedness, defaultValue);
 
 /**

@@ -312,7 +312,11 @@ export class CodeGenerator {
     }
 
     const cDriven = combEval.getDrivenSignals();
-    const sDriven = syncEval.getDrivenSignals();
+    const sDriven = [
+      ...syncEval.getDrivenSignals(),
+      // If an output has a default value, it implies it must be a register
+      ...m.getOutputSignals().filter(s => s.hasDefaultValue)
+    ];
     const cSignalTypes = combEval.getSignalTypes();
 
     cDriven.forEach(cs => sDriven.forEach(ss => {
@@ -579,7 +583,7 @@ export class CodeGenerator {
   toVerilog() {
     const verilogModulesGenerated = [this.m.moduleName];
 
-    const thisIsASimulation = this.options.simulation?.enabled;
+    const thisIsASimulation = this.options.simulation && this.options.simulation.enabled;
     let thisIsTheTopLevelModule = true;
 
     const allCode:string[] = [];
