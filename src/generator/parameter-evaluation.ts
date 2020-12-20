@@ -23,7 +23,7 @@ export class ParameterEvaluator {
   }
 
   evaluateString(s:ParameterString) {
-    return s.value;
+    return `"${s.value}"`;
   }
 
   evaluateConstant(c:ConstantT) {

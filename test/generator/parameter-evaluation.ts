@@ -6,14 +6,12 @@ import { ParamString } from '../../src/vendor-module';
 
 const expect = chai.expect;
 
-
-
 describe('parameterEvaluation', () => {
   it('should correctly generate string parameters', () => {
     const pe = new ParameterEvaluator();
     const ps = ParamString("Hello World")
 
-    expect(pe.evaluate(ps)).to.eq("Hello World");
+    expect(pe.evaluate(ps)).to.eq('"Hello World"');
   });
 
   it('should correctly generate constant parameters', () => {
