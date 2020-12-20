@@ -19,7 +19,7 @@ interface SB_PLL40_PAD_Parameters {
 
 export class SB_PLL40_PAD extends VendorModule<SB_PLL40_PAD_Parameters> {
   PACKAGEPIN = this.input(Signal());
-  RESET = this.input(Signal());
+  RESETB = this.input(Signal());
   BYPASS = this.input(Signal());
   EXTFEEDBACK = this.input(Signal());
   LATCHINPUTVALUE = this.input(Signal());
