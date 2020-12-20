@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es6", /*Specify ECMAScript target version*/
+    "target": "es2020", /*Specify ECMAScript target version*/
     "lib": ["es2019", "dom"],
     "types": ["node"],
     "sourceMap": true

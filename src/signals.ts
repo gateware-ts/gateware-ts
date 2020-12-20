@@ -458,7 +458,7 @@ export class BooleanExpressionT extends BaseSignalLike {
  * Should not be instantiated directly, instead use [[Constant]]
  */
 export class ConstantT extends BaseSignalLike {
-  value:number;
+  value:number|BigInt;
   signedness:Signedness;
   readonly type:string = CONSTANT;
 
@@ -475,12 +475,19 @@ export class ConstantT extends BaseSignalLike {
       && this.signedness === (s as ConstantT).signedness;
   };
 
-  constructor(width:number, value:number, signedness:Signedness) {
+  constructor(width:number, value:number|BigInt, signedness:Signedness) {
     super();
 
-    const max = (2**width)-1;
-    if (value > max) {
-      throw new Error(`Cannot create constant of width ${width} and value ${value} (Max possible value ${max})`);
+    if (typeof value === 'bigint') {
+      const max = (2n**BigInt(width)) - 1n;
+      if (value > max) {
+        throw new Error(`Cannot create constant of width ${width} and value ${value} (Max possible value ${max})`);
+      }
+    } else {
+      const max = (2**width)-1;
+      if (value > max) {
+        throw new Error(`Cannot create constant of width ${width} and value ${value} (Max possible value ${max})`);
+      }
     }
 
     this.value = value;
@@ -597,6 +604,7 @@ export class SignalT extends BaseSignalLike {
   signedness: Signedness;
   defaultValue: number;
   value: SignalLikeOrValue;
+  hasDefaultValue: boolean;
   readonly type:string = SIGNAL;
 
   /**
@@ -607,13 +615,14 @@ export class SignalT extends BaseSignalLike {
     return this === s;
   };
 
-  constructor(width = 1, signedness:Signedness = Signedness.Unsigned, defaultValue = 0) {
+  constructor(width = 1, signedness:Signedness = Signedness.Unsigned, defaultValue: number | undefined) {
     super();
 
     // TODO: Domain typing for all params
     this.width = width;
     this.signedness = signedness;
-    this.defaultValue = defaultValue;
+    this.defaultValue = typeof defaultValue === 'undefined' ? 0 : defaultValue;
+    this.hasDefaultValue = typeof defaultValue !== 'undefined';
     this.value = defaultValue;
   }
 
@@ -904,7 +913,7 @@ export const asUnsigned = (signal:SignalLike) => new ExplicitSignednessT(signal,
  * @param signedness signed or unsigned
  * @param defaultValue the value this signal holds by default (0 if unspecifed)
  */
-export const Signal = (width = 1, signedness:Signedness = Signedness.Unsigned, defaultValue = 0) =>
+export const Signal = (width = 1, signedness:Signedness = Signedness.Unsigned, defaultValue: number = undefined) =>
   new SignalT(width, signedness, defaultValue);
 
 /**
@@ -930,7 +939,7 @@ export const Bit = (s:SignalLike, index:number) =>
  * @param value
  * @param signedness signed or unsigned
  */
-export const Constant = (width:number = 1, value:number = 0, signedness:Signedness = Signedness.Unsigned) =>
+export const Constant = (width:number = 1, value:number|BigInt = 0, signedness:Signedness = Signedness.Unsigned) =>
   new ConstantT(width, value, signedness);
 
 /**

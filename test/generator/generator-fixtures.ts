@@ -64,7 +64,7 @@ describe('generatorFixtures', () => {
       "  input childInput,",
       "  output childOutput",
       ");",
-      "  assign childOutput = ~(childInput & 1'b1);",
+      "  assign childOutput = ~(childInput & (1'b1));",
       "endmodule",
       "",
       "module Child1(",
@@ -72,7 +72,7 @@ describe('generatorFixtures', () => {
       "  input childInput,",
       "  output childOutput",
       ");",
-      "  assign childOutput = childInput ^ 1'b1;",
+      "  assign childOutput = childInput ^ (1'b1);",
       "endmodule",
     ].join('\n'));
   });

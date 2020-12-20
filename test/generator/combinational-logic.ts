@@ -126,7 +126,7 @@ describe('combinationalLogic', () => {
     ].join('\n'));
 
     expect(result.code.combAssigns).to.eq([
-      '  assign gwGeneratedSlice0 = in & in2;',
+      '  assign gwGeneratedSlice0 = in & (in2);',
       '  assign o = gwGeneratedSlice0[5:0];'
     ].join('\n'));
   });

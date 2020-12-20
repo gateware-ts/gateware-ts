@@ -8,8 +8,12 @@ import { Operation, SignalLikeOrValue, ComparrisonOperation, SignalLike, Boolean
 import { GWModule } from "../gw-module"
 import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpressionT } from "../signals";
 
-const parenthize = (s:SignalLike, fn:(s:SignalLikeOrValue) => string):string =>
-  (s.type === SIGNAL || s.type === WIRE) ? fn(s) : `(${fn(s)})`;
+const parenthize = (s:SignalLikeOrValue, fn:(s:SignalLikeOrValue) => string):string => {
+  if (typeof s !== 'object') {
+    return fn(s);
+  }
+  return (s.type === SIGNAL || s.type === WIRE) ? fn(s) : `(${fn(s)})`;
+}
 
 const twosComplementNegative = (n, width) => {
   const abs = Math.abs(n);
@@ -200,7 +204,7 @@ export class ExpressionEvaluator {
       }
     }
 
-    return `${parenthize(expr.a, this.evaluate)} ${op} ${this.evaluate(expr.b)}`;
+    return `${parenthize(expr.a, this.evaluate)} ${op} (${this.evaluate(expr.b)})`;
   }
 
   evaluateTernaryExpression(t:TernaryT) {

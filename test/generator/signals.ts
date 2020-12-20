@@ -381,15 +381,15 @@ describe('signals', () => {
 
   it('should be able be added', operationTest('+', Signal(8), Signal(8), 'a + b'));
   it('should be able be subtracted', operationTest('-', Signal(8), Signal(8), 'a - b'));
-  it('should be able be and\'d', operationTest('&', Signal(8), Signal(8), 'a & b'));
-  it('should be able be logical and\'d', operationTest('&&', Signal(8), Signal(8), 'a && b'));
-  it('should be able be logical or\'d', operationTest('||', Signal(8), Signal(8), 'a || b'));
-  it('should be able be or\'d', operationTest('|', Signal(8), Signal(8), 'a | b'));
-  it('should be able be xor\'d', operationTest('^', Signal(8), Signal(8), 'a ^ b'));
-  it('should be able be left shifted', operationTest('>>', Signal(8), Signal(8), 'a >> b'));
-  it('should be able be right shifted', operationTest('<<', Signal(8), Signal(8), 'a << b'));
-  it('should be able be left shifted (arithmetic)', operationTest('>>>', Signal(8), Signal(8), 'a >>> b'));
-  it('should be able be right shifted (arithmetic)', operationTest('<<<', Signal(8), Signal(8), 'a <<< b'));
+  it('should be able be and\'d', operationTest('&', Signal(8), Signal(8), 'a & (b)'));
+  it('should be able be logical and\'d', operationTest('&&', Signal(8), Signal(8), 'a && (b)'));
+  it('should be able be logical or\'d', operationTest('||', Signal(8), Signal(8), 'a || (b)'));
+  it('should be able be or\'d', operationTest('|', Signal(8), Signal(8), 'a | (b)'));
+  it('should be able be xor\'d', operationTest('^', Signal(8), Signal(8), 'a ^ (b)'));
+  it('should be able be left shifted', operationTest('>>', Signal(8), Signal(8), 'a >> (b)'));
+  it('should be able be right shifted', operationTest('<<', Signal(8), Signal(8), 'a << (b)'));
+  it('should be able be left shifted (arithmetic)', operationTest('>>>', Signal(8), Signal(8), 'a >>> (b)'));
+  it('should be able be right shifted (arithmetic)', operationTest('<<<', Signal(8), Signal(8), 'a <<< (b)'));
 
   it('should be able be compared for equality', comparrisonTest('==', Signal(8), Signal(8), 'a == b'));
   it('should be able be compared for non-equality', comparrisonTest('!=', Signal(8), Signal(8), 'a != b'));
@@ -421,6 +421,6 @@ describe('signals', () => {
       throw new Error('Wrong module type generated');
     }
 
-    expect(result.code.combAssigns).to.eq(`  assign o = ((~in) | {4'b0000, b}) ^ 8'b10101010;`);
+    expect(result.code.combAssigns).to.eq(`  assign o = ((~in) | ({4'b0000, b})) ^ (8'b10101010);`);
   });
 });
