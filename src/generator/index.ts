@@ -3,8 +3,16 @@ import { writeFile } from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
-import { MODULE_CODE_ELEMENTS, SIMULATION_CODE_ELEMENTS, ASSIGNMENT_EXPRESSION, CONSTANT } from './../constants';
-import { CodeElements, SimulationCodeElements, ModuleCodeElements, CombinationalSignalType, Port, UnsliceableExpressionMap } from './../main-types';
+import { MODULE_CODE_ELEMENTS, SIMULATION_CODE_ELEMENTS, ASSIGNMENT_EXPRESSION, SIGNAL_ARRAY } from './../constants';
+import {
+  CodeElements,
+  SimulationCodeElements,
+  ModuleCodeElements,
+  CombinationalSignalType,
+  Port,
+  UnsliceableExpressionMap,
+  PortOrSignalArray
+} from './../main-types';
 import { TabLevel, flatten } from '../helpers';
 import { GWModule } from "../gw-module";
 import { SignalT, ConstantT } from "../signals";
@@ -57,10 +65,10 @@ const codeElementsToString = (ce:CodeElements) => {
 };
 
 /** @internal */
-const isSyncDriven = (s:SignalT, syncDrivenSignals:SignalT[]):boolean => syncDrivenSignals.includes(s);
+const isSyncDriven = (s:PortOrSignalArray, syncDrivenSignals:PortOrSignalArray[]):boolean => syncDrivenSignals.includes(s);
 
 /** @internal */
-const isCombinationalRegister = (s:SignalT, signalTypes:Map<Port, CombinationalSignalType>):boolean => {
+const isCombinationalRegister = (s:PortOrSignalArray, signalTypes:Map<PortOrSignalArray, CombinationalSignalType>):boolean => {
   return signalTypes.get(s) === CombinationalSignalType.Register;
 }
 
@@ -365,7 +373,7 @@ export class CodeGenerator {
 
     const outputsAndInternals = [...signalMap.output.entries(), ...signalMap.internal.entries()];
     const initialRegisterAssignments = outputsAndInternals.reduce<string[]>((acc, [port, portName]) => {
-      if (isSyncDriven(port as SignalT, sDriven)) {
+      if (isSyncDriven(port as SignalT, sDriven) && port.type !== SIGNAL_ARRAY) {
         acc.push(`${t.l(1)}${portName} = ${(port as SignalT).defaultValue};`);
       }
       return acc;

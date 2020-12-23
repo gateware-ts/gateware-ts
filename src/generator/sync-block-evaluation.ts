@@ -4,8 +4,8 @@
  */
 import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
-import { AssignmentStatement, BlockStatement, SwitchStatement, SubjectiveCaseStatement, SyncBlock, Edge, UnsliceableExpressionMap, SignalLike } from '../main-types';
-import { SignalT } from '../signals';
+import { AssignmentStatement, BlockStatement, SwitchStatement, SubjectiveCaseStatement, SyncBlock, Edge, UnsliceableExpressionMap, SignalLike, PortOrSignalArray } from '../main-types';
+import { SignalArrayMemberReference, SignalArrayT, SignalT } from '../signals';
 import { ASSIGNMENT_EXPRESSION, IF_STATEMENT, SWITCH_STATEMENT, CASE_STATEMENT, ELSE_IF_STATEMENT, ELSE_STATEMENT } from '../constants';
 import { IfStatement, ElseIfStatement, IfElseBlock } from '../block-statements';
 import { TabLevel } from '../helpers';
@@ -14,7 +14,7 @@ import { getRegSize } from './common';
 export class SyncBlockEvaluator {
   private workingModule: GWModule;
   private expr: ExpressionEvaluator;
-  private drivenSignals:SignalT[] = [];
+  private drivenSignals:PortOrSignalArray[] = [];
   private t: TabLevel;
 
   getDrivenSignals() { return this.drivenSignals; }
@@ -27,7 +27,7 @@ export class SyncBlockEvaluator {
     this.evaluate = this.evaluate.bind(this);
   }
 
-  private addDrivenSignal(driven:SignalT) {
+  private addDrivenSignal(driven:PortOrSignalArray) {
     if (!this.drivenSignals.includes(driven)) {
       this.drivenSignals.push(driven);
     }
@@ -38,9 +38,14 @@ export class SyncBlockEvaluator {
     this.expr.setWorkingModule(m);
   }
 
-  generateInternalRegisterDeclarations(syncDrivenSignals:SignalT[]) {
+  generateInternalRegisterDeclarations(syncDrivenSignals:PortOrSignalArray[]) {
     return this.workingModule.getInternalSignals().map(s => {
-      return `${this.t.l()}${syncDrivenSignals.includes(s) ? 'reg' : 'wire'} ${getRegSize(s)}${this.workingModule.getModuleSignalDescriptor(s).name};`;
+      const arrayBrackets = (s instanceof SignalArrayT) ? ` [0:${s.depth-1}]` : '';
+      const type = syncDrivenSignals.includes(s) ? 'reg' : 'wire';
+      const size = getRegSize(s);
+      const name = this.workingModule.getModuleSignalDescriptor(s).name;
+
+      return `${this.t.l()}${type} ${size}${name}${arrayBrackets};`;
     }).join('\n')
   }
 
@@ -89,15 +94,27 @@ export class SyncBlockEvaluator {
   }
 
   evaluateAssignmentExpression(aExpr:AssignmentStatement) {
-    let assigningRegister = this.workingModule.getModuleSignalDescriptor(aExpr.a);
+    const assigningRegister = (aExpr.a instanceof SignalArrayMemberReference)
+      ? this.workingModule.getModuleSignalDescriptor((aExpr.a as SignalArrayMemberReference).parent)
+      : this.workingModule.getModuleSignalDescriptor(aExpr.a);
 
     if (assigningRegister.type === 'input') {
       throw new Error('Cannot assign to an input in a synchronous block');
     }
 
+    // Check for Signal Arrays
+    if (assigningRegister.type === 'internal') {
+      if (aExpr.a instanceof SignalArrayMemberReference) {
+        // We need to mark the the whole register as combinational
+        this.addDrivenSignal(aExpr.a.parent);
+
+        return `${this.t.l()}${assigningRegister.name}[${this.expr.evaluate(aExpr.a.index)}] <= ${this.expr.evaluate(aExpr.b)};`;
+      }
+    }
+
     if (assigningRegister.type === 'output' || assigningRegister.type === 'internal') {
       // Keep track of it in the driven signals
-      this.addDrivenSignal(aExpr.a);
+      this.addDrivenSignal(aExpr.a as SignalT);
     }
 
     return `${this.t.l()}${assigningRegister.name} <= ${this.expr.evaluate(aExpr.b)};`;

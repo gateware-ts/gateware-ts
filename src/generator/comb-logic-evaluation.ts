@@ -4,17 +4,18 @@
  */
 import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
-import { AssignmentStatement, CombinationalLogic, UnsliceableExpressionMap } from '../main-types';
+import { AssignmentStatement, CombinationalLogic, PortOrSignalArray, UnsliceableExpressionMap } from '../main-types';
 import { ASSIGNMENT_EXPRESSION, COMBINATIONAL_SWITCH_ASSIGNMENT_STATEMENT } from '../constants';
 import { TabLevel } from '../helpers';
 import { CombinationalSwitchAssignmentStatement, Port, CombinationalSignalType } from './../main-types';
+import { SignalArrayMemberReference, SignalT } from '../signals';
 
 export class CombLogicEvaluator {
   private workingModule: GWModule;
   private expr: ExpressionEvaluator;
   private t: TabLevel;
-  private drivenSignals:Port[] = [];
-  private signalTypes:Map<Port, CombinationalSignalType> = new Map();
+  private drivenSignals:PortOrSignalArray[] = [];
+  private signalTypes:Map<PortOrSignalArray, CombinationalSignalType> = new Map();
 
   getDrivenSignals() { return this.drivenSignals; }
   getSignalTypes() { return this.signalTypes; }
@@ -26,13 +27,13 @@ export class CombLogicEvaluator {
     this.evaluate = this.evaluate.bind(this);
   }
 
-  private addDrivenSignal(driven:Port) {
+  private addDrivenSignal(driven:PortOrSignalArray) {
     if (!this.drivenSignals.includes(driven)) {
       this.drivenSignals.push(driven);
     }
   }
 
-  private assignSignalType(s:Port, type:CombinationalSignalType) {
+  private assignSignalType(s:PortOrSignalArray, type:CombinationalSignalType) {
     const signalType = this.signalTypes.get(s);
     if (typeof signalType === 'undefined') {
       this.signalTypes.set(s, type);
@@ -63,14 +64,26 @@ export class CombLogicEvaluator {
   }
 
   evaluateAssignmentExpression(expr:AssignmentStatement) {
-    const assigningRegister = this.workingModule.getModuleSignalDescriptor(expr.a);
+    const assigningRegister = (expr.a instanceof SignalArrayMemberReference)
+      ? this.workingModule.getModuleSignalDescriptor((expr.a as SignalArrayMemberReference).parent)
+      : this.workingModule.getModuleSignalDescriptor(expr.a);
 
     if (assigningRegister.type === 'input') {
       throw new Error('Cannot assign to an input in combinational logic.');
     }
 
-    this.addDrivenSignal(expr.a);
-    this.assignSignalType(expr.a, CombinationalSignalType.Wire);
+    if (assigningRegister.type === 'internal') {
+      if (expr.a instanceof SignalArrayMemberReference) {
+        // We need to mark the the whole register as combinational
+        this.addDrivenSignal(expr.a.parent);
+        this.assignSignalType(expr.a.parent, CombinationalSignalType.Wire);
+
+        return `${this.t.l()}assign ${assigningRegister.name}[${this.expr.evaluate(expr.a.index)}] = ${this.expr.evaluate(expr.b)};`;
+      }
+    }
+
+    this.addDrivenSignal(expr.a as SignalT);
+    this.assignSignalType(expr.a as SignalT, CombinationalSignalType.Wire);
 
     return `${this.t.l()}assign ${assigningRegister.name} = ${this.expr.evaluate(expr.b)};`;
   }

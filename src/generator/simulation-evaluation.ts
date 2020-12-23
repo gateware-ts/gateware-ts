@@ -16,7 +16,6 @@ import {
   DisplayExpression,
   SimulationSignalLike,
   SimulationAssignmentStatement,
-  Port,
 } from '../main-types';
 import {
   ASSIGNMENT_EXPRESSION,
@@ -29,12 +28,12 @@ import {
   ELSE_IF_STATEMENT,
   ELSE_STATEMENT,
   SIMULATION_ASSIGNMENT_EXPRESSION,
-  CONSTANT
+  SIGNAL_ARRAY
 } from '../constants';
 import { IfStatement, IfElseBlock, ElseIfStatement } from '../block-statements';
 import { TabLevel } from '../helpers';
 import { getRegSize } from './common';
-import { SignalT, ConstantT } from '../signals';
+import { SignalT, ConstantT, SignalArrayMemberReference } from '../signals';
 import { SimulationExpressionEvaluator } from './simulation-expression-evaluation';
 
 const edgeToString = (e:Edge) => {
@@ -98,7 +97,9 @@ export class SimulationEvaluator {
     const out = [];
     const sm = this.workingModule.getSignalMap();
     [...sm.input.entries(), ...sm.internal.entries()].forEach(([port, name]) => {
-      out.push(`${this.t.l()}reg ${getRegSize(port)}${name} = ${this.expr.evaluate((port as SignalT).defaultValue)};`);
+      if (port.type !== SIGNAL_ARRAY) {
+        out.push(`${this.t.l()}reg ${getRegSize(port)}${name} = ${this.expr.evaluate((port as SignalT).defaultValue)};`);
+      }
     });
     return out.join('\n');
   }
@@ -251,8 +252,15 @@ export class SimulationEvaluator {
   }
 
   evaluateAssignmentExpression(aExpr:AssignmentStatement) {
-    let assigningRegister = this.workingModule.getModuleSignalDescriptor(aExpr.a);
-    return `${this.t.l()}${assigningRegister.name} = ${this.expr.evaluate(aExpr.b)};`;
+    const isSignalArrayReference = aExpr.a instanceof SignalArrayMemberReference;
+    const assigningRegister = (isSignalArrayReference)
+      ? this.workingModule.getModuleSignalDescriptor((aExpr.a as SignalArrayMemberReference).parent)
+      : this.workingModule.getModuleSignalDescriptor(aExpr.a as SignalT);
+
+    const arrayIndex = isSignalArrayReference
+      ? `[${this.expr.evaluate((aExpr.a as SignalArrayMemberReference).index)}]`
+      : '';
+    return `${this.t.l()}${assigningRegister.name}${arrayIndex} = ${this.expr.evaluate(aExpr.b)};`;
   }
 
   evaluateSimulationAssignmentExpression(aExpr:SimulationAssignmentStatement) {
