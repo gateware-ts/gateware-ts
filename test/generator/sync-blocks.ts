@@ -1,7 +1,7 @@
 import * as mocha from 'mocha';
 import * as chai from 'chai';
 import { MODULE_CODE_ELEMENTS } from './../../src/constants';
-import { Signal } from '../../src/signals';
+import { Constant, Signal, SignalArray } from '../../src/signals';
 import { CodeGenerator } from '../../src/generator/index';
 import { GWModule, Edge, If, Switch, Case, Default } from '../../src/index';
 
@@ -281,5 +281,39 @@ describe('syncBlocks', () => {
       'Driver-driver conflict on UUT.o. A signal cannot be driven by both syncronous and combinational logic.'
     )
 
+  });
+
+  it('should correctly generate signal arrays', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      value = this.input(Signal(8));
+      addr = this.input(Signal(2));
+      regArr = this.internal(SignalArray(8, 4));
+      o = this.output(Signal(4));
+
+      describe() {
+        this.syncBlock(this.clk, Edge.Positive, [
+          this.regArr.at(this.addr) ['='] (this.value),
+          this.o ['='] (this.regArr.at(Constant(2, 0b01)).slice(7, 4))
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    const result = cg.generateVerilogCodeForModule(m, false);
+
+    if (result.code.type !== MODULE_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.initialBlock).to.eq('');
+    expect(result.code.internalRegisters).to.eq('  reg [7:0] regArr [0:3];');
+    expect(result.code.syncBlocks).to.eq([
+      '  always @(posedge clk) begin',
+      '    regArr[addr] <= value;',
+      `    o <= regArr[2'b01][7:4];`,
+      '  end'
+    ].join('\n'));
   });
 });

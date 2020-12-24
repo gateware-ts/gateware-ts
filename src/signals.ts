@@ -18,6 +18,8 @@ import {
   SLICE,
   INVERSE,
   WIRE,
+  SIGNAL_ARRAY,
+  SIGNAL_ARRAY_REFERENCE,
   BOOLEAN_EXPRESSION,
   EXPLICIT_SIGNEDNESS,
   TERNARY_EXPRESSION,
@@ -386,6 +388,84 @@ export abstract class BaseSignalLike {
    */
   ['?'](a:SignalLikeOrValue, b:SignalLikeOrValue) {
     return this.ternary(a, b);
+  }
+}
+
+/**
+ * An addressable array of signals. Can be used to build/infer a memory or FIFO.
+ * Should not be instantiated directly, instead use [[SignalArray]]
+ */
+export class SignalArrayT {
+  readonly type:string = SIGNAL_ARRAY;
+  width: number;
+  depth: number;
+
+  constructor(width: number, depth: number) {
+    this.width = width;
+    this.depth = depth;
+  }
+
+  /**
+   * Get the signal at a given index/address
+   * @param index Signal representing the index or address of the member
+   * @returns [[SignalArrayMemberReference]]
+   */
+  at(index: SignalLike) {
+    return new SignalArrayMemberReference(this, index);
+  }
+}
+
+/**
+ * [[SignalLike]] representing an addressable signal in a [[SignalArray]].
+ * Should not be instantiated directly.
+ * Only ever returned from [[SignalArray.at]]
+ */
+export class SignalArrayMemberReference extends BaseSignalLike {
+  readonly type:string = SIGNAL_ARRAY_REFERENCE;
+  parent: SignalArrayT;
+  index: SignalLike;
+  width: number;
+
+  constructor(parent:SignalArrayT, index: SignalLike) {
+    super();
+    this.parent = parent;
+    this.index = index;
+    this.width = parent.width;
+  }
+
+  /**
+   * Compare two [[SignalLike]]s
+   * @param s Signal to compare with
+   */
+  isEqual(s:BaseSignalLike) {
+    if (this.type !== s.type) {
+      return false;
+    }
+    const sa = s as SignalArrayMemberReference;
+    return (
+      this.parent === sa.parent
+      && this.index.isEqual(sa.index)
+    );
+  };
+
+  /**
+   * Assign this signals value to another [[SignalLikeOrValue]]
+   * @param b
+   */
+  setTo(b:SignalLikeOrValue):AssignmentStatement {
+    return {
+      a: this,
+      b,
+      type: ASSIGNMENT_EXPRESSION,
+      width: this.width
+    };
+  }
+
+  /**
+   * Alias of [[SignalT.setTo]]
+   */
+  ['='](b:SignalLikeOrValue) {
+    return this.setTo(b);
   }
 }
 
@@ -963,6 +1043,11 @@ export const Ternary = (comparrison:SignalLike, a:SignalLike, b:SignalLike) => {
  * @param s The [[SignalLike]] whose bits should be flipped
  */
 export const Not = (s:SignalLike) => new Inverse(s);
+
+/**
+ * An addressable array of signals. Can be used to build/infer a memory of FIFO.
+ */
+export const SignalArray = (width: number, depth: number) => new SignalArrayT(width, depth);
 
 /**
  * A constant logic-level HIGH signal

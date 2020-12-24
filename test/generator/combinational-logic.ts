@@ -1,7 +1,7 @@
 import * as mocha from 'mocha';
 import * as chai from 'chai';
 import { MODULE_CODE_ELEMENTS } from '../../src/constants';
-import { Signal } from '../../src/signals';
+import { Concat, ConcatT, Constant, Signal, SignalArray } from '../../src/signals';
 import { CodeGenerator } from '../../src/generator/index';
 import { GWModule, CombinationalSwitchAssignment } from '../../src/index';
 
@@ -155,5 +155,51 @@ describe('combinationalLogic', () => {
     expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
       `Combinational Drive Type Error: Cannot drive UUT.o as both a register and a wire.`
     );
-  })
+  });
+
+  it('should correctly generate signal arrays', () => {
+    class UUT extends GWModule {
+      value = this.input(Signal(8));
+      regArr = this.internal(SignalArray(2, 4));
+      o = this.output(Signal(4));
+      o2 = this.output(Signal(4));
+
+      describe() {
+        this.combinationalLogic([
+          this.regArr.at(Constant(2, 0)) ['='] (this.value.slice(7, 6)),
+          this.regArr.at(Constant(2, 1)) ['='] (this.value.slice(5, 4)),
+          this.regArr.at(Constant(2, 2)) ['='] (this.value.slice(3, 2)),
+          this.regArr.at(Constant(2, 3)) ['='] (this.value.slice(1, 0)),
+
+          this.o ['='] (Concat([
+            this.regArr.at(Constant(2, 0)),
+            this.regArr.at(Constant(2, 2)),
+          ])),
+
+          this.o2 ['='] (Concat([
+            this.regArr.at(Constant(2, 1)),
+            this.regArr.at(Constant(2, 3)),
+          ]))
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    const result = cg.generateVerilogCodeForModule(m, false);
+
+    if (result.code.type !== MODULE_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.internalRegisters).to.eq('  wire [1:0] regArr [0:3];');
+    expect(result.code.combAssigns).to.eq([
+      `  assign regArr[2'b00] = value[7:6];`,
+      `  assign regArr[2'b01] = value[5:4];`,
+      `  assign regArr[2'b10] = value[3:2];`,
+      `  assign regArr[2'b11] = value[1:0];`,
+      `  assign o = {regArr[2'b00], regArr[2'b10]};`,
+      `  assign o2 = {regArr[2'b01], regArr[2'b11]};`,
+    ].join('\n'));
+  });
 });

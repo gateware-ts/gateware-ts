@@ -2,7 +2,7 @@ import { SIMULATION_CODE_ELEMENTS } from './../../src/constants';
 import { nanoseconds, picoseconds, edge, edges, assert } from './../../src/simulation';
 import { SIf } from '../../src/block-statements';
 import { Edge, SimulationCodeElements, UnsliceableExpressionMap } from './../../src/main-types';
-import { Signal, Ternary, Constant, SubmodulePath } from './../../src/signals';
+import { Signal, Ternary, Constant, SubmodulePath, SignalArray, Concat } from './../../src/signals';
 import * as mocha from 'mocha';
 import * as chai from 'chai';
 import { SimulationEvaluator } from '../../src/generator/simulation-evaluation';
@@ -548,6 +548,54 @@ describe('simulationEvaluation', () => {
       '    assign gwGeneratedSlice0 = in & (in2);',
       '    assign gwGeneratedSlice1 = in | (in2);',
       '  end',
+    ].join('\n'));
+  });
+
+  it('should correctly generate signal arrays', () => {
+    class UUT extends GWModule {
+      value = this.input(Signal(8));
+      regArr = this.internal(SignalArray(2, 4));
+      o = this.output(Signal(4));
+      o2 = this.output(Signal(4));
+
+      describe() {
+        this.simulation.run([
+          this.regArr.at(Constant(2, 0)) ['='] (this.value.slice(7, 6)),
+          this.regArr.at(Constant(2, 1)) ['='] (this.value.slice(5, 4)),
+          this.regArr.at(Constant(2, 2)) ['='] (this.value.slice(3, 2)),
+          this.regArr.at(Constant(2, 3)) ['='] (this.value.slice(1, 0)),
+
+          this.o ['='] (Concat([
+            this.regArr.at(Constant(2, 0)),
+            this.regArr.at(Constant(2, 2)),
+          ])),
+
+          this.o2 ['='] (Concat([
+            this.regArr.at(Constant(2, 1)),
+            this.regArr.at(Constant(2, 3)),
+          ]))
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m, simulationOpts);
+    const result = cg.generateVerilogCodeForModule(m, true);
+
+    if (result.code.type !== SIMULATION_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.simulationRunBlock).to.eq([
+      `  initial begin`,
+      `    regArr[2'b00] = value[7:6];`,
+      `    regArr[2'b01] = value[5:4];`,
+      `    regArr[2'b10] = value[3:2];`,
+      `    regArr[2'b11] = value[1:0];`,
+      `    o = {regArr[2'b00], regArr[2'b10]};`,
+      `    o2 = {regArr[2'b01], regArr[2'b11]};`,
+      `    $finish;`,
+      `  end`,
     ].join('\n'));
   });
 });

@@ -11,9 +11,10 @@ import {
   ModuleDescriptorObject,
   SubmodulePortMappping,
   CombinationalLogic,
-  VendorModuleReference
+  VendorModuleReference,
+  PortOrSignalArray
 } from './main-types';
-import { SignalT, WireT } from './signals';
+import { SignalT, WireT, SignalArrayT } from './signals';
 import { mapNamesToSignals } from './generator/common';
 
 /**
@@ -38,7 +39,7 @@ export abstract class GWModule {
   /** @internal */
   private outputs: SignalT[] = [];
   /** @internal */
-  private internals: SignalT[] = [];
+  private internals: PortOrSignalArray[] = [];
   /** @internal */
   private submodules: SubmoduleReference[] = [];
   /** @internal */
@@ -105,7 +106,7 @@ export abstract class GWModule {
   }
 
   /** @internal */
-  private checkIfSignalWasPreviouslyAdded(s:SignalT) {
+  private checkIfSignalWasPreviouslyAdded(s:PortOrSignalArray) {
     if (this.signalMap) {
       try {
         this.getModuleSignalDescriptor(s);
@@ -114,7 +115,7 @@ export abstract class GWModule {
         return false;
       }
     } else {
-      return this.inputs.includes(s) || this.outputs.includes(s) || this.internals.includes(s);
+      return this.inputs.includes(s as SignalT) || this.outputs.includes(s as SignalT) || this.internals.includes(s);
     }
   }
 
@@ -196,7 +197,7 @@ export abstract class GWModule {
    * Create an internal signal on this module
    * @param s A signal definition
    */
-  internal(s:SignalT) : SignalT {
+  internal<T extends SignalT | SignalArrayT>(s:T) {
     if (this.checkIfSignalWasPreviouslyAdded(s)) {
       throw new Error(`Cannot register the same signal more than once`);
     }
@@ -246,8 +247,8 @@ export abstract class GWModule {
   createSignalMap():void {
     const allSignals = [];
 
-    const createSignalMap = (signals:Port[]) => {
-      const map = new Map<Port, string>();
+    const createSignalMap = (signals:PortOrSignalArray[]) => {
+      const map = new Map<PortOrSignalArray, string>();
 
       signals.forEach(signal => {
         if (allSignals.includes(signal)) {
@@ -281,9 +282,12 @@ export abstract class GWModule {
 
   // TODO: Rename all things that should be called port*
   /** @internal */
-  getModuleSignalDescriptor(s:Port):ModuleSignalDescriptor {
+  getModuleSignalDescriptor(s:Port | SignalArrayT):ModuleSignalDescriptor {
     const inputSignal = this.signalMap.input.get(s);
     if (inputSignal) {
+      if (s instanceof SignalArrayT) {
+        throw new Error('input cannot be associated with a SignalArray');
+      }
       return { type: 'input', name: inputSignal, signal: s };
     }
 
@@ -294,11 +298,17 @@ export abstract class GWModule {
 
     const outputSignal = this.signalMap.output.get(s);
     if (outputSignal) {
+      if (s instanceof SignalArrayT) {
+        throw new Error('output cannot be associated with a SignalArray');
+      }
       return { type: 'output', name: outputSignal, signal: s };
     }
 
     const wireSignal = this.signalMap.wire.get(s);
     if (wireSignal) {
+      if (s instanceof SignalArrayT) {
+        throw new Error('wire cannot be associated with a SignalArray');
+      }
       return { type: 'wire', name: wireSignal, signal: s };
     }
 

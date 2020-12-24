@@ -2,9 +2,23 @@
  * @internal
  * @packageDocumentation
  */
-import { Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT, BinaryT } from './../signals';
-import { COMPARRISON_EXPRESSION, BINARY_EXPRESSION, SLICE, BOOLEAN_EXPRESSION, CONCAT, INVERSE, EXPLICIT_SIGNEDNESS, TERNARY_EXPRESSION, SIGNAL, WIRE, CONSTANT, UNARY_EXPRESSION } from './../constants';
-import { Operation, SignalLikeOrValue, ComparrisonOperation, SignalLike, BooleanOperation, Signedness, UnsliceableExpression, UnsliceableExpressionMap } from './../main-types';
+import { Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT, BinaryT, SignalArrayMemberReference } from './../signals';
+import {
+  SIGNAL_ARRAY_REFERENCE,
+  COMPARRISON_EXPRESSION,
+  BINARY_EXPRESSION,
+  SLICE,
+  BOOLEAN_EXPRESSION,
+  CONCAT,
+  INVERSE,
+  EXPLICIT_SIGNEDNESS,
+  TERNARY_EXPRESSION,
+  SIGNAL,
+  WIRE,
+  CONSTANT,
+  UNARY_EXPRESSION
+} from './../constants';
+import { Operation, SignalLikeOrValue, ComparrisonOperation, BooleanOperation, Signedness, UnsliceableExpression, UnsliceableExpressionMap } from './../main-types';
 import { GWModule } from "../gw-module"
 import { SignalT, WireT, ConstantT, SliceT, ConcatT, BooleanExpressionT } from "../signals";
 
@@ -59,6 +73,9 @@ export class ExpressionEvaluator {
       case SIGNAL:{
         return this.evaluateSignalOrWire(expr as SignalT);
       }
+      case SIGNAL_ARRAY_REFERENCE:{
+        return this.evaluateSignalArrayReference(expr as SignalArrayMemberReference);
+      }
       case WIRE:{
         return this.evaluateSignalOrWire(expr as WireT);
       }
@@ -105,6 +122,11 @@ export class ExpressionEvaluator {
 
   evaluateSignalOrWire(s:SignalT | WireT) {
     return this.workingModule.getModuleSignalDescriptor(s).name;
+  }
+
+  evaluateSignalArrayReference(s:SignalArrayMemberReference) {
+    const parent = this.workingModule.getModuleSignalDescriptor(s.parent);
+    return `${parent.name}[${this.evaluate(s.index)}]`;
   }
 
   evaluateConstant(c:ConstantT) {

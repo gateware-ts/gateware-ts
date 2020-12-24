@@ -1,5 +1,22 @@
 import { IfStatement, ElseIfStatement, IfElseBlock } from './block-statements';
-import { SignalT, ConstantT, SliceT, WireT, BaseSignalLike, ConcatT, BooleanExpressionT, Inverse, ExplicitSignednessT, ComparrisonT, TernaryT, UnaryT, BinaryT, SubmodulePathT } from './signals';
+import {
+  SignalT,
+  ConstantT,
+  SliceT,
+  WireT,
+  BaseSignalLike,
+  ConcatT,
+  BooleanExpressionT,
+  Inverse,
+  ExplicitSignednessT,
+  ComparrisonT,
+  TernaryT,
+  UnaryT,
+  BinaryT,
+  SubmodulePathT,
+  SignalArrayT,
+  SignalArrayMemberReference
+} from './signals';
 import { GWModule } from './gw-module';
 import { VendorModule } from './vendor-module';
 
@@ -66,7 +83,7 @@ export enum LogicExpressionType {
 
 /** @internal */
 export interface AssignmentStatement {
-  a: SignalT;
+  a: SignalT | SignalArrayMemberReference;
   b: SignalLikeOrValue;
   type: 'assignmentExpression';
   width: number;
@@ -121,7 +138,8 @@ export type SignalLike  = BaseSignalLike
                         | BinaryT
                         | TernaryT
                         | BooleanExpressionT
-                        | ExplicitSignednessT;
+                        | ExplicitSignednessT
+                        | SignalArrayMemberReference;
 
 /**
  * Regular [[SignalLike]]s, plus SignalLike types that can only be used in simulation
@@ -183,8 +201,12 @@ export type SyncBlock  = {
 
 /** @internal */
 export type ModuleSignalDescriptor = {
-  type: 'input' | 'internal' | 'output' | 'wire';
+  type: 'input' | 'output' | 'wire';
   signal: Port;
+  name: string;
+} | {
+  type: 'internal';
+  signal: PortOrSignalArray;
   name: string;
 };
 
@@ -255,11 +277,14 @@ export type ModuleDescriptorObject = {
 };
 
 /** @internal */
+export type PortOrSignalArray = Port | SignalArrayT;
+
+/** @internal */
 export type SignalMap = {
-  input: Map<Port, string>,
-  internal: Map<Port, string>,
-  output: Map<Port, string>,
-  wire: Map<Port, string>
+  input: Map<PortOrSignalArray, string>,
+  internal: Map<PortOrSignalArray, string>,
+  output: Map<PortOrSignalArray, string>,
+  wire: Map<PortOrSignalArray, string>
 };
 
 /** @internal */
