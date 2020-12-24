@@ -307,14 +307,8 @@ describe('syncBlocks', () => {
       throw new Error('Wrong module type generated');
     }
 
-    expect(result.code.initialBlock).to.eq([
-      '  initial begin',
-      '    o = 0;',
-      '  end'
-    ].join('\n'));
-
+    expect(result.code.initialBlock).to.eq('');
     expect(result.code.internalRegisters).to.eq('  reg [7:0] regArr [0:3];');
-
     expect(result.code.syncBlocks).to.eq([
       '  always @(posedge clk) begin',
       '    regArr[addr] <= value;',
