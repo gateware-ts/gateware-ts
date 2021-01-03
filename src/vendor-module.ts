@@ -28,11 +28,11 @@ export class VendorModule<Params> {
   /**
    * For for this instantiated vendor module
    */
-  name:string;
+  moduleName:string;
 
-  constructor(name:string, params:Params) {
+  constructor(moduleName:string, params:Params) {
     this.params = params;
-    this.name = name;
+    this.moduleName = moduleName;
   }
 
   /** @internal */
