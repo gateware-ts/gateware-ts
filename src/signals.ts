@@ -796,6 +796,7 @@ export class ComparrisonT extends BaseSignalLike {
     super();
     this.a = a;
     this.b = b;
+    this.width = 1;
     this.comparrisonOp = comparrisonOp;
   }
 };
