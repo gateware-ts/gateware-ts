@@ -212,7 +212,8 @@ export class CodeGenerator {
         ]);
       }
 
-      throw ex;
+      console.error(ex);
+      process.exit(1);
     }
   }
 
