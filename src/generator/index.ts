@@ -1,3 +1,4 @@
+import { SignalArrayT } from './../signals';
 import * as path from 'path';
 import { writeFile } from 'fs';
 import { exec } from 'child_process';
@@ -322,7 +323,13 @@ export class CodeGenerator {
     const cDriven = combEval.getDrivenSignals();
     const sDriven = [
       ...syncEval.getDrivenSignals(),
-      // If an output has a default value, it implies it must be a register
+      // If an output or internal has a default value, it implies it must be a register
+      ...m.getInternalSignals().filter(s => {
+        if (s instanceof SignalArrayT) {
+          return false;
+        }
+        return (s as SignalT).hasDefaultValue;
+      }),
       ...m.getOutputSignals().filter(s => s.hasDefaultValue)
     ];
     const cSignalTypes = combEval.getSignalTypes();
