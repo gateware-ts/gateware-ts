@@ -22,91 +22,12 @@ class Submodule extends GWModule {
 }
 
 describe('generation', () => {
-  it('should error if a module has submodules and synchronous logic', () => {
-    class Dummy extends GWModule {
-      in = this.input(Signal());
-      o = this.output(Signal());
-
-      describe() {
-      }
-    }
-    
-    class UUT extends GWModule {
-      in = this.input(Signal());
-      in2 = this.input(Signal());
-      o = this.output(Signal());
-      o2 = this.output(Signal());
-
-      describe() {
-        const sm = new Dummy();
-        this.addSubmodule(sm, 'sm', {
-          inputs: {
-            in: this.in
-          },
-          outputs: {
-            o: [this.o]
-          }
-        });
-
-        this.syncBlock(this.in, Edge.Positive, [
-          this.o2 ['='] (this.in2)
-        ]);
-      }
-    }
-
-    const m = new UUT();
-    const cg = new CodeGenerator(m);
-    expect(() => cg.toVerilog()).to.throw(
-      `Module "UUT" is a parent module, but also contains combinational and/or synchronous logic.`
-    );
-  });
-
-
-  it('should error if a module has submodules and combinational logic', () => {
-    class Dummy extends GWModule {
-      in = this.input(Signal());
-      o = this.output(Signal());
-
-      describe() {
-      }
-    }
-
-    class UUT extends GWModule {
-      in = this.input(Signal());
-      in2 = this.input(Signal());
-      o = this.output(Signal());
-      o2 = this.output(Signal());
-
-      describe() {
-        const sm = new Dummy();
-        this.addSubmodule(sm, 'sm', {
-          inputs: {
-            in: this.in
-          },
-          outputs: {
-            o: [this.o]
-          }
-        });
-
-        this.combinationalLogic([
-          this.o2 ['='] (this.in2)
-        ]);
-      }
-    }
-
-    const m = new UUT();
-    const cg = new CodeGenerator(m);
-    expect(() => cg.toVerilog()).to.throw(
-      `Module "UUT" is a parent module, but also contains combinational and/or synchronous logic.`
-    );
-  });
-
   it('should allow constants in submodules', () => {
     class UUT extends GWModule {
       clk = this.input(Signal());
       in = this.input(Signal());
       o = this.output(Signal());
-    
+
       describe() {
         const sm = new Submodule();
         this.addSubmodule(sm, 'sm', {
@@ -133,9 +54,9 @@ describe('generation', () => {
     expect(result.code.submodules).to.equal([
       '  Submodule sm(',
       `    .in2(1'b0),`,
-      `    .clk(w0),`, // Wires should be generated for clk, in, and o
-      `    .in(w1),`,
-      `    .o(w2)`,
+      `    .clk(clk),`,
+      `    .in(in),`,
+      `    .o(sm_o_wire)`,
       '  );',
     ].join('\n'));
   });
@@ -150,7 +71,7 @@ describe('generation', () => {
 
       describe() {
         const vm = new SB_SPRAM256KA('ram');
-        this.addVendorModule(vm, {
+        this.addVendorModule(vm, 'vm', {
           inputs: {
             DATAIN: this.dataIn,
             ADDRESS: this.address,
@@ -184,11 +105,11 @@ describe('generation', () => {
       `    .STANDBY(1'b1),`,
       `    .SLEEP(1'b1),`,
       `    .POWEROFF(1'b1),`,
-      `    .DATAIN(w0),`,
-      `    .ADDRESS(w1),`,
-      `    .WREN(w2),`,
-      `    .CLOCK(w3),`,
-      `    .DATAOUT(w4)`,
+      `    .DATAIN(dataIn),`,
+      `    .ADDRESS(address),`,
+      `    .WREN(writeEn),`,
+      `    .CLOCK(clk),`,
+      `    .DATAOUT(vm_DATAOUT_wire)`,
       '  );',
     ].join('\n'));
   });

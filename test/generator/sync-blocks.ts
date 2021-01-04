@@ -1,7 +1,8 @@
+import { Signedness } from './../../src/main-types';
 import * as mocha from 'mocha';
 import * as chai from 'chai';
 import { MODULE_CODE_ELEMENTS } from './../../src/constants';
-import { Constant, Signal, SignalArray } from '../../src/signals';
+import { asSigned, Constant, LogicalNot, Not, Signal, SignalArray } from '../../src/signals';
 import { CodeGenerator } from '../../src/generator/index';
 import { GWModule, Edge, If, Switch, Case, Default } from '../../src/index';
 
@@ -315,5 +316,249 @@ describe('syncBlocks', () => {
       `    o <= regArr[2'b01][7:4];`,
       '  end'
     ].join('\n'));
+  });
+
+  it('should error when trying to refer to a non-owned signal synchronously (signal)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = Signal();
+
+        this.syncBlock(this.clk, Edge.Positive, [
+          nonOwnedSignal ['='] (1)
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Synchronous]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal synchronously (slice)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = Signal(5).slice(4, 1);
+
+        this.syncBlock(this.clk, Edge.Positive, [
+          this.o ['='] (nonOwnedSignal)
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Synchronous]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal synchronously (concat)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = this.a.concat([Signal(5).slice(4, 3)]);
+
+        this.syncBlock(this.clk, Edge.Positive, [
+          this.o ['='] (nonOwnedSignal)
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Synchronous]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal synchronously (inverse)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = Not(Signal(5).slice(4, 1));
+
+        this.syncBlock(this.clk, Edge.Positive, [
+          this.o ['='] (nonOwnedSignal)
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Synchronous]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal synchronously (unary)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = LogicalNot(Signal(5).bit(0));
+
+        this.syncBlock(this.clk, Edge.Positive, [
+          this.o ['='] (nonOwnedSignal)
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Synchronous]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal synchronously (Comparrison)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = Signal() ['=='] (this.a);
+
+        this.syncBlock(this.clk, Edge.Positive, [
+          this.o ['='] (nonOwnedSignal)
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Synchronous]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal synchronously (Binary)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = Signal() ['+'] (this.a);
+
+        this.syncBlock(this.clk, Edge.Positive, [
+          this.o ['='] (nonOwnedSignal)
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Synchronous]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal synchronously (Ternary)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = this.a ['?'] (
+          Constant(1, 1),
+          Signal(1)
+        );
+
+        this.syncBlock(this.clk, Edge.Positive, [
+          this.o ['='] (nonOwnedSignal)
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Synchronous]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal synchronously (Boolean)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = this.a ['&'] (Signal(1));
+
+        this.syncBlock(this.clk, Edge.Positive, [
+          this.o ['='] (nonOwnedSignal)
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Synchronous]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal synchronously (Explicit Signedness)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal =  asSigned(Signal(1));
+
+        this.syncBlock(this.clk, Edge.Positive, [
+          this.o ['='] (nonOwnedSignal)
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Synchronous]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal synchronously (Explicit Signedness)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignalArray = SignalArray(1, 16);
+        const nonOwnedSignal = nonOwnedSignalArray.at(Constant(4, 0));
+
+        this.syncBlock(this.clk, Edge.Positive, [
+          this.o ['='] (nonOwnedSignal)
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Synchronous]'
+    )
   });
 });
