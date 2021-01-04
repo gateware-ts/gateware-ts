@@ -4,12 +4,46 @@
  */
 import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
-import { AssignmentStatement, BlockStatement, SwitchStatement, SubjectiveCaseStatement, SyncBlock, Edge, UnsliceableExpressionMap, SignalLike, PortOrSignalArray } from '../main-types';
-import { SignalArrayMemberReference, SignalArrayT, SignalT } from '../signals';
-import { ASSIGNMENT_EXPRESSION, IF_STATEMENT, SWITCH_STATEMENT, CASE_STATEMENT, ELSE_IF_STATEMENT, ELSE_STATEMENT } from '../constants';
+import {
+  AssignmentStatement,
+  BlockStatement,
+  SwitchStatement,
+  SubjectiveCaseStatement,
+  SyncBlock,
+  Edge,
+  UnsliceableExpressionMap,
+  SignalLike,
+  PortOrSignalArray,
+  SignalLikeOrValue
+} from '../main-types';
+import {
+  ConcatT,
+  Inverse,
+  SignalArrayMemberReference,
+  SignalArrayT,
+  SignalT,
+  SliceT,
+  UnaryT,
+  WireT,
+  ComparrisonT,
+  ConstantT,
+  BinaryT,
+  TernaryT,
+  BooleanExpressionT,
+  ExplicitSignednessT
+} from '../signals';
+import {
+  ASSIGNMENT_EXPRESSION,
+  IF_STATEMENT,
+  SWITCH_STATEMENT,
+  CASE_STATEMENT,
+  ELSE_IF_STATEMENT,
+  ELSE_STATEMENT
+} from '../constants';
 import { IfStatement, ElseIfStatement, IfElseBlock } from '../block-statements';
 import { TabLevel } from '../helpers';
 import { getRegSize } from './common';
+
 
 export class SyncBlockEvaluator {
   private workingModule: GWModule;
@@ -55,6 +89,53 @@ export class SyncBlockEvaluator {
     }).join('\n');
   }
 
+  validatePrimitiveOwnership(s:PortOrSignalArray) {
+    if (s.owner !== this.workingModule) {
+      throw new Error(`Cannot evaluate signal not owned by this module [module=${this.workingModule.moduleName}, logic=Synchronous]`);
+    }
+  }
+
+  validateSignalOwnership(s:SignalLikeOrValue) {
+    if (typeof s === 'number') return;
+    if (s instanceof ConstantT) return;
+
+    if (s instanceof SignalArrayMemberReference) {
+      return this.validatePrimitiveOwnership(s.owner as SignalArrayT);
+    }
+
+    if (s instanceof SignalT || s instanceof WireT) {
+      return this.validatePrimitiveOwnership(s);
+    }
+
+    if (s instanceof ConcatT) {
+      return s.signals.forEach(cs => this.validateSignalOwnership(cs));
+    }
+
+    if (s instanceof SliceT || s instanceof Inverse || s instanceof UnaryT) {
+      return this.validateSignalOwnership(s.a);
+    }
+
+    if (s instanceof ComparrisonT || s instanceof BinaryT || s instanceof BooleanExpressionT) {
+      return this.validateSignalOwnership(s.a) || this.validateSignalOwnership(s.b);
+    }
+
+    if (s instanceof TernaryT) {
+      return (
+        this.validateSignalOwnership(s.a)
+        || this.validateSignalOwnership(s.b)
+        || this.validateSignalOwnership(s.comparrison)
+      );
+    }
+
+    if (s instanceof ExplicitSignednessT) {
+      return this.validateSignalOwnership(s.signal);
+    }
+
+    if (s.owner !== this.workingModule) {
+      throw new Error(`Cannot evaluate signal not owned by this module [module=${this.workingModule.moduleName}]`);
+    }
+  }
+
   evaluate(expr:BlockStatement) {
     switch (expr.type) {
       case ASSIGNMENT_EXPRESSION: {
@@ -80,6 +161,8 @@ export class SyncBlockEvaluator {
   }
 
   evaluateBlock(s:SyncBlock) {
+    this.validateSignalOwnership(s.signal);
+
     const sensitivitySignalName = this.workingModule.getModuleSignalDescriptor(s.signal).name;
     let out = [
       `${this.t.l()}always @(${s.edge === Edge.Positive ? 'posedge' : 'negedge' } ${sensitivitySignalName}) begin`,
@@ -94,6 +177,9 @@ export class SyncBlockEvaluator {
   }
 
   evaluateAssignmentExpression(aExpr:AssignmentStatement) {
+    this.validateSignalOwnership(aExpr.a);
+    this.validateSignalOwnership(aExpr.b);
+
     const assigningRegister = (aExpr.a instanceof SignalArrayMemberReference)
       ? this.workingModule.getModuleSignalDescriptor((aExpr.a as SignalArrayMemberReference).parent)
       : this.workingModule.getModuleSignalDescriptor(aExpr.a);
@@ -121,6 +207,8 @@ export class SyncBlockEvaluator {
   }
 
   evaluateIfStatement(iExpr:IfStatement<SignalLike, BlockStatement>) {
+    this.validateSignalOwnership(iExpr.subject);
+
     const out = [];
 
     out.push(`${this.t.l()}if (${this.expr.evaluate(iExpr.subject)}) begin`);
@@ -155,6 +243,8 @@ export class SyncBlockEvaluator {
   }
 
   evaluateElseIfStatement(iExpr:ElseIfStatement<SignalLike, BlockStatement>) {
+    this.validateSignalOwnership(iExpr.elseSubject);
+
     const out = [];
 
     const parentIf = iExpr.parentStatement.type === IF_STATEMENT
@@ -176,6 +266,8 @@ export class SyncBlockEvaluator {
   }
 
   evaluateSwitchStatement(sExpr:SwitchStatement) {
+    this.validateSignalOwnership(sExpr.subject);
+
     const out = [];
     out.push(`${this.t.l()}case (${this.expr.evaluate(sExpr.subject)})`);
     this.t.push();
@@ -186,6 +278,8 @@ export class SyncBlockEvaluator {
 
         if (expr.type === CASE_STATEMENT) {
           const caseExpr = expr as SubjectiveCaseStatement;
+          this.validateSignalOwnership(caseExpr.subject);
+
           caseOut.push(`${this.t.l()}${this.expr.evaluate(caseExpr.subject)} : begin`);
         } else {
           caseOut.push(`${this.t.l()}default : begin`);

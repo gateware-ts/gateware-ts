@@ -234,10 +234,6 @@ export class CodeGenerator {
     const syncLogic = m.getSyncBlocks();
     const combLogic = m.getCombinationalLogic();
 
-    if (thisModuleHasSubmodules && (syncLogic.length || combLogic.length)) {
-      throw new Error(`Module "${m.moduleName}" is a parent module, but also contains combinational and/or synchronous logic.`);
-    }
-
     const signalMap = m.getSignalMap();
     const namesToSignals = {
       input: mapNamesToSignals(signalMap.input),
@@ -254,6 +250,19 @@ export class CodeGenerator {
     const paramEval = new ParameterEvaluator();
 
     if (thisIsASimulation) {
+      if (syncLogic.length) {
+        console.warn([
+          'Warning: Synchronous logic detected in the top level simulation module.',
+          'This logic will have no effect. Use GWModule.simulation.run() instead.'
+        ].join(' '))
+      }
+      if (combLogic.length) {
+        console.warn([
+          'Warning: Combinational logic detected in the top level simulation module.',
+          'This logic will have no effect. Use GWModule.simulation.run() instead.'
+        ].join(' '))
+      }
+
       const everyTimescaleBlocks = simEval.getEveryTimescaleBlocks();
       const simulationRunBlock = simEval.getRunBlock();
       const unsliceableWires = unsliceableExpressionMap.map(([signal, name]) => {
@@ -431,6 +440,15 @@ export class CodeGenerator {
           if (m.isOwnOutput(writtenPort)) {
             const desc = m.getModuleSignalDescriptor(writtenPort);
             const [wireName] = portWireMap.get(sm.m[submoduleOutputName]);
+
+            const errorBase = `Cannot drive ${m.moduleName}.${desc.name} from submodule output ${sm.submoduleName}.${submoduleOutputName} `;
+            if (sDriven.includes(writtenPort)) {
+              throw new Error(`${errorBase} because it is already driven by the synchronous logic of ${m.moduleName}`);
+            }
+            if (cDriven.includes(writtenPort)) {
+              throw new Error(`${errorBase} because it is already driven by the combinational logic of ${m.moduleName}`);
+            }
+
             parentOutputAssignments.push(
               `${t.l()}assign ${desc.name} = ${wireName};`
             );
