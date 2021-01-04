@@ -27,6 +27,7 @@ import {
   SUBMODULE_PATH_EXPRESSION,
   SIMULATION_ASSIGNMENT_EXPRESSION
 } from "./constants";
+import { GWModule } from "./gw-module";
 
 /**
  * Base class for all [[SignalLike]]s.
@@ -35,6 +36,9 @@ import {
 export abstract class BaseSignalLike {
   type:string;
   width:number;
+
+  /** @internal */
+  owner:GWModule | SignalArrayT | null;
 
   /**
    * Compare two [[SignalLike]]s
@@ -400,6 +404,9 @@ export class SignalArrayT {
   width: number;
   depth: number;
 
+  /** @internal */
+  owner:GWModule | null;
+
   constructor(width: number, depth: number) {
     this.width = width;
     this.depth = depth;
@@ -429,6 +436,7 @@ export class SignalArrayMemberReference extends BaseSignalLike {
   constructor(parent:SignalArrayT, index: SignalLike) {
     super();
     this.parent = parent;
+    this.owner = parent;
     this.index = index;
     this.width = parent.width;
   }

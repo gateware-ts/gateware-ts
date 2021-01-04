@@ -128,6 +128,11 @@ export abstract class GWModule {
       throw new Error(`Cannot register the same signal more than once`);
     }
 
+    if (s.owner) {
+      throw new Error(`Cannot register an input signal that is already owned`);
+    }
+
+    s.owner = this;
     this.inputs.push(s);
     return s;
   }
@@ -138,16 +143,11 @@ export abstract class GWModule {
    * @param s A signal definition
    */
   createInput(name:string, s:SignalT) : SignalT {
-    if (this.checkIfSignalWasPreviouslyAdded(s)) {
-      throw new Error(`Cannot register the same signal more than once`);
-    }
-
     if (typeof this[name] !== 'undefined') {
       throw new Error(`${this.moduleName}.${name} already exists`);
     }
 
-    this[name] = s;
-    this.inputs.push(s);
+    this[name] = this.input(s);
     return s;
   }
 
@@ -170,6 +170,11 @@ export abstract class GWModule {
       throw new Error(`Cannot register the same signal more than once`);
     }
 
+    if (s.owner) {
+      throw new Error(`Cannot register an output signal that is already owned`);
+    }
+
+    s.owner = this;
     this.outputs.push(s);
     return s;
   }
@@ -180,16 +185,11 @@ export abstract class GWModule {
    * @param s A signal definition
    */
   createOutput(name:string, s:SignalT) : SignalT {
-    if (this.checkIfSignalWasPreviouslyAdded(s)) {
-      throw new Error(`Cannot register the same signal more than once`);
-    }
-
     if (typeof this[name] !== 'undefined') {
       throw new Error(`${this.moduleName}.${name} already exists`);
     }
 
-    this[name] = s;
-    this.outputs.push(s);
+    this[name] = this.output(s);
     return s;
   }
 
@@ -202,6 +202,11 @@ export abstract class GWModule {
       throw new Error(`Cannot register the same signal more than once`);
     }
 
+    if (s.owner) {
+      throw new Error(`Cannot register an internal signal that is already owned`);
+    }
+
+    s.owner = this;
     this.internals.push(s);
     return s;
   }
@@ -211,17 +216,12 @@ export abstract class GWModule {
    * @param name The name for this signal
    * @param s A signal definition
    */
-  createInternal(name:string, s:SignalT) : SignalT {
-    if (this.checkIfSignalWasPreviouslyAdded(s)) {
-      throw new Error(`Cannot register the same signal more than once`);
-    }
-
+  createInternal<T extends SignalT | SignalArrayT>(name:string, s:T) : T {
     if (typeof this[name] !== 'undefined') {
       throw new Error(`${this.moduleName}.${name} already exists`);
     }
 
-    this[name] = s;
-    this.internals.push(s);
+    this[name] = this.internal(s);
     return s;
   }
 
