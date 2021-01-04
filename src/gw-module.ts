@@ -128,6 +128,11 @@ export abstract class GWModule {
       throw new Error(`Cannot register the same signal more than once`);
     }
 
+    if (s.owner) {
+      throw new Error(`Cannot register an input signal that is already owned`);
+    }
+
+    s.owner = this;
     this.inputs.push(s);
     return s;
   }
@@ -138,16 +143,11 @@ export abstract class GWModule {
    * @param s A signal definition
    */
   createInput(name:string, s:SignalT) : SignalT {
-    if (this.checkIfSignalWasPreviouslyAdded(s)) {
-      throw new Error(`Cannot register the same signal more than once`);
-    }
-
     if (typeof this[name] !== 'undefined') {
       throw new Error(`${this.moduleName}.${name} already exists`);
     }
 
-    this[name] = s;
-    this.inputs.push(s);
+    this[name] = this.input(s);
     return s;
   }
 
@@ -170,6 +170,11 @@ export abstract class GWModule {
       throw new Error(`Cannot register the same signal more than once`);
     }
 
+    if (s.owner) {
+      throw new Error(`Cannot register an output signal that is already owned`);
+    }
+
+    s.owner = this;
     this.outputs.push(s);
     return s;
   }
@@ -180,16 +185,11 @@ export abstract class GWModule {
    * @param s A signal definition
    */
   createOutput(name:string, s:SignalT) : SignalT {
-    if (this.checkIfSignalWasPreviouslyAdded(s)) {
-      throw new Error(`Cannot register the same signal more than once`);
-    }
-
     if (typeof this[name] !== 'undefined') {
       throw new Error(`${this.moduleName}.${name} already exists`);
     }
 
-    this[name] = s;
-    this.outputs.push(s);
+    this[name] = this.output(s);
     return s;
   }
 
@@ -202,6 +202,11 @@ export abstract class GWModule {
       throw new Error(`Cannot register the same signal more than once`);
     }
 
+    if (s.owner) {
+      throw new Error(`Cannot register an internal signal that is already owned`);
+    }
+
+    s.owner = this;
     this.internals.push(s);
     return s;
   }
@@ -211,17 +216,12 @@ export abstract class GWModule {
    * @param name The name for this signal
    * @param s A signal definition
    */
-  createInternal(name:string, s:SignalT) : SignalT {
-    if (this.checkIfSignalWasPreviouslyAdded(s)) {
-      throw new Error(`Cannot register the same signal more than once`);
-    }
-
+  createInternal<T extends SignalT | SignalArrayT>(name:string, s:T) : T {
     if (typeof this[name] !== 'undefined') {
       throw new Error(`${this.moduleName}.${name} already exists`);
     }
 
-    this[name] = s;
-    this.internals.push(s);
+    this[name] = this.internal(s);
     return s;
   }
 
@@ -312,7 +312,7 @@ export abstract class GWModule {
       return { type: 'wire', name: wireSignal, signal: s };
     }
 
-    throw new Error(`Unable to find internal signal ${s}`);
+    throw new Error(`Unable to find internal signal [type=${s.type}, width=${s.width}]`);
   }
 
   /** @internal */
@@ -359,6 +359,11 @@ export abstract class GWModule {
     throw new Error(`Unable to find signal ${s} in this module or any of it's submodules.`);
   }
 
+  /** @internal */
+  isOwnOutput(s:Port) {
+    return this.getOutputSignals().some(o => o === s);
+  }
+
   // TODO: Throw if not all ports are mapped. Allow for an explicit NO_CONNECT, but don't silently fail
   // TODO: If I reset before I call init/describe, then I should be able to use the same instance
   // of a module multiple times. Combined with an automatic name detection like for the signals, this
@@ -391,7 +396,7 @@ export abstract class GWModule {
 
         // Assert that the target signal is indeed an input
         if (descriptor.type !== 'input') {
-          throw new Error(`${descriptor.name} is not an input of module ${this.moduleName}.`);
+          throw new Error(`${descriptor.name} is not an input of module ${submoduleName}.`);
         }
       } else {
         throw new Error(`Submodule error: No such port ${m.moduleName}.${name}`);
@@ -410,7 +415,7 @@ export abstract class GWModule {
 
           // Assert that the target signal is indeed an input
           if (descriptor.type !== 'output') {
-            throw new Error(`${descriptor.name} is not an output of module ${this.moduleName}.`);
+            throw new Error(`${descriptor.name} is not an output of module ${submoduleName}.`);
           }
         } else {
           throw new Error(`Submodule error: No such port ${m.moduleName}.${name}`);
@@ -428,9 +433,10 @@ export abstract class GWModule {
   /**
    * Add a vendor specific module (IP) to this module
    * @param m The vendor module to add
+   * @param submoduleName The name of the instance of this vendor module
    * @param signalMapping A mapping for this modules inputs and outputs
    */
-  addVendorModule(m:VendorModule<any>, signalMapping:SubmodulePortMappping):void {
+  addVendorModule(m:VendorModule<any>, submoduleName:string, signalMapping:SubmodulePortMappping):void {
     m.init();
     const signalMap = m.getVendorSignalMap();
     const nameSignalMap = {
@@ -476,6 +482,6 @@ export abstract class GWModule {
       })
     });
 
-    this.vendorModules.push({ m, mapping: signalMapping });
+    this.vendorModules.push({ m, submoduleName, mapping: signalMapping });
   }
 }

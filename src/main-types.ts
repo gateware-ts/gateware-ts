@@ -267,6 +267,7 @@ export type SubmoduleReference = {
 /** @internal */
 export type VendorModuleReference = {
   m: VendorModule<any>;
+  submoduleName: string;
   mapping: SubmodulePortMappping;
 };
 

@@ -4,11 +4,11 @@
  */
 import { ExpressionEvaluator } from './expression-evaluation';
 import { GWModule } from "../gw-module";
-import { AssignmentStatement, CombinationalLogic, PortOrSignalArray, UnsliceableExpressionMap } from '../main-types';
+import { AssignmentStatement, CombinationalLogic, PortOrSignalArray, SignalLikeOrValue, UnsliceableExpressionMap } from '../main-types';
 import { ASSIGNMENT_EXPRESSION, COMBINATIONAL_SWITCH_ASSIGNMENT_STATEMENT } from '../constants';
 import { TabLevel } from '../helpers';
 import { CombinationalSwitchAssignmentStatement, Port, CombinationalSignalType } from './../main-types';
-import { SignalArrayMemberReference, SignalT } from '../signals';
+import { BinaryT, BooleanExpressionT, ComparrisonT, ConcatT, ConstantT, ExplicitSignednessT, Inverse, SignalArrayMemberReference, SignalT, SliceT, TernaryT, UnaryT, WireT, SignalArrayT } from '../signals';
 
 export class CombLogicEvaluator {
   private workingModule: GWModule;
@@ -63,7 +63,57 @@ export class CombLogicEvaluator {
     }
   }
 
+  validatePrimitiveOwnership(s:PortOrSignalArray | SignalArrayMemberReference) {
+    if (s.owner !== this.workingModule) {
+      throw new Error(`Cannot evaluate signal not owned by this module [module=${this.workingModule.moduleName}, logic=Combinational]`);
+    }
+  }
+
+  validateSignalOwnership(s:SignalLikeOrValue) {
+    if (typeof s === 'number') return;
+    if (s instanceof ConstantT) return;
+
+    if (s instanceof SignalArrayMemberReference) {
+      return this.validatePrimitiveOwnership(s.owner as SignalArrayT);
+    }
+
+    if (s instanceof SignalT || s instanceof WireT) {
+      return this.validatePrimitiveOwnership(s);
+    }
+
+    if (s instanceof ConcatT) {
+      return s.signals.forEach(cs => this.validateSignalOwnership(cs));
+    }
+
+    if (s instanceof SliceT || s instanceof Inverse || s instanceof UnaryT) {
+      return this.validateSignalOwnership(s.a);
+    }
+
+    if (s instanceof ComparrisonT || s instanceof BinaryT || s instanceof BooleanExpressionT) {
+      return this.validateSignalOwnership(s.a) || this.validateSignalOwnership(s.b);
+    }
+
+    if (s instanceof TernaryT) {
+      return (
+        this.validateSignalOwnership(s.a)
+        || this.validateSignalOwnership(s.b)
+        || this.validateSignalOwnership(s.comparrison)
+      );
+    }
+
+    if (s instanceof ExplicitSignednessT) {
+      return this.validateSignalOwnership(s.signal);
+    }
+
+    if (s.owner !== this.workingModule) {
+      throw new Error(`Cannot evaluate signal not owned by this module [module=${this.workingModule.moduleName}]`);
+    }
+  }
+
   evaluateAssignmentExpression(expr:AssignmentStatement) {
+    this.validateSignalOwnership(expr.a);
+    this.validateSignalOwnership(expr.b);
+
     const assigningRegister = (expr.a instanceof SignalArrayMemberReference)
       ? this.workingModule.getModuleSignalDescriptor((expr.a as SignalArrayMemberReference).parent)
       : this.workingModule.getModuleSignalDescriptor(expr.a);
@@ -89,6 +139,10 @@ export class CombLogicEvaluator {
   }
 
   evaluateSwitchAssignmentExpression(expr:CombinationalSwitchAssignmentStatement) {
+    this.validateSignalOwnership(expr.conditionalSignal);
+    this.validateSignalOwnership(expr.defaultCase);
+    expr.cases.forEach(([_, rhs]) => this.validateSignalOwnership(rhs));
+
     const assigningRegister = this.workingModule.getModuleSignalDescriptor(expr.to);
     if (assigningRegister.type === 'input') {
       throw new Error('Cannot assign to an input in combinational logic.');

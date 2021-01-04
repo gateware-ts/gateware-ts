@@ -1,3 +1,4 @@
+import { SignalArrayT } from './../signals';
 import * as path from 'path';
 import { writeFile } from 'fs';
 import { exec } from 'child_process';
@@ -30,6 +31,10 @@ import {
   TimeScaleValue
 } from "../main-types";
 import { ExpressionEvaluator } from './expression-evaluation';
+
+type ModuleName = string;
+type WireName = string;
+type PortToWire = Map<Port, [WireName, ModuleName]>;
 
 /** @internal */
 const codeElementsToString = (ce:CodeElements) => {
@@ -211,7 +216,8 @@ export class CodeGenerator {
         ]);
       }
 
-      throw ex;
+      console.error(ex);
+      process.exit(1);
     }
   }
 
@@ -227,10 +233,6 @@ export class CodeGenerator {
 
     const syncLogic = m.getSyncBlocks();
     const combLogic = m.getCombinationalLogic();
-
-    if (thisModuleHasSubmodules && (syncLogic.length || combLogic.length)) {
-      throw new Error(`Module "${m.moduleName}" is a parent module, but also contains combinational and/or synchronous logic.`);
-    }
 
     const signalMap = m.getSignalMap();
     const namesToSignals = {
@@ -248,6 +250,19 @@ export class CodeGenerator {
     const paramEval = new ParameterEvaluator();
 
     if (thisIsASimulation) {
+      if (syncLogic.length) {
+        console.warn([
+          'Warning: Synchronous logic detected in the top level simulation module.',
+          'This logic will have no effect. Use GWModule.simulation.run() instead.'
+        ].join(' '))
+      }
+      if (combLogic.length) {
+        console.warn([
+          'Warning: Combinational logic detected in the top level simulation module.',
+          'This logic will have no effect. Use GWModule.simulation.run() instead.'
+        ].join(' '))
+      }
+
       const everyTimescaleBlocks = simEval.getEveryTimescaleBlocks();
       const simulationRunBlock = simEval.getRunBlock();
       const unsliceableWires = unsliceableExpressionMap.map(([signal, name]) => {
@@ -322,7 +337,13 @@ export class CodeGenerator {
     const cDriven = combEval.getDrivenSignals();
     const sDriven = [
       ...syncEval.getDrivenSignals(),
-      // If an output has a default value, it implies it must be a register
+      // If an output or internal has a default value, it implies it must be a register
+      ...m.getInternalSignals().filter(s => {
+        if (s instanceof SignalArrayT) {
+          return false;
+        }
+        return (s as SignalT).hasDefaultValue;
+      }),
       ...m.getOutputSignals().filter(s => s.hasDefaultValue)
     ];
     const cSignalTypes = combEval.getSignalTypes();
@@ -389,108 +410,62 @@ export class CodeGenerator {
     const internalRegisters = syncEval.generateInternalRegisterDeclarations(sDriven);
     const internalWires = syncEval.generateInternalWireDeclarations();
 
-    const wireMap = new Map<GWModule | VendorModule<any>, PortWiring>();
-    let wireIndex = 0;
-
-    const inputWires = flatten(allChildModules.map(sm => {
-      const portWiring:PortWiring = {};
-      wireMap.set(sm.m, portWiring);
-
-      const wireSizePairs =  [];
-      for (let [portName, port] of Object.entries(sm.mapping.inputs)) {
-        if (port instanceof ConstantT)  {
-          // This input is hardwired to a constant, ignore it in the port map
-          continue;
-        }
-        const wire = `w${wireIndex++}`;
-        console.log(`${portName} wire ${wire} associated with input `);
-        portWiring[portName] = wire;
-        wireSizePairs.push([wire, getRegSize(port)]);
-      }
-
-      return wireSizePairs;
-    }));
-
-    const globalPortWiring:PortWiring = {};
-    wireMap.set(m, globalPortWiring);
-    const globalOutputAssignments = [];
-    const globalOutputWires = [...signalMap.output.entries()].map(([port, portName]) => {
-      const wire = `w${wireIndex++}`;
-      globalPortWiring[portName] = wire;
-      globalOutputAssignments.push(`${t.l()}assign ${portName} = ${wire};`);
-      return [wire, getRegSize(port)];
-    });
-
-    const secondaryAssignments = [];
+    const portWireMap: PortToWire = new Map();
     allChildModules.forEach(sm => {
-      Object.entries(sm.mapping.outputs).forEach(([portName, associatedSignals]) => {
-        try {
-          const firstSignal = associatedSignals[0];
-          const portDescriptor = m.findAnyModuleSignalDescriptor(firstSignal);
-          const drivenWire = wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name];
+      const submoduleName = sm.submoduleName;
+      sm.m.getOutputSignals().forEach(oPort => {
+        const desc = sm.m.getModuleSignalDescriptor(oPort);
+        const wireName = `${submoduleName}_${desc.name}_wire`;
 
-          // Place this into the port mapping
-          wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name] = drivenWire;
-          wireMap.get(sm.m)[portName] = drivenWire;
-
-          // For any other inputs driven by this output, an assignment to the
-          // driven wire needs to happen.
-          associatedSignals.slice(1).forEach(s => {
-            const portDescriptor = m.findAnyModuleSignalDescriptor(s);
-            const inputWire = wireMap.get(portDescriptor.m)[portDescriptor.descriptor.name];
-            secondaryAssignments.push(`${t.l()}assign ${inputWire} = ${drivenWire};`);
-          });
-        } catch (ex) {
-          let ref = ('submoduleName' in sm ? `${sm.submoduleName}.` : '') + portName;
-          throw new Error(`Error wiring net for ${ref}.`)
+        // Add to the map, which will be used to check if an Signal should actually be
+        // replaced with it's wire instead
+        if (portWireMap.has(oPort)) {
+          throw new Error(`${submoduleName}.${desc.name} has already been mapped to an output wire`);
         }
+        portWireMap.set(oPort, [wireName, desc.name]);
       });
     });
 
-    const globalInputAssignments = [];
-    const tiedWiresAssignments = [];
-    [...signalMap.input.entries()].forEach(([port, portName]) => {
-      const connectedWires = [];
-      allChildModules.forEach(sm => {
-        Object.entries(sm.mapping.inputs).forEach(([inputPortName, inputPort]) => {
-          if (port === inputPort) {
-            const wireName = wireMap.get(sm.m)[inputPortName];
-            globalInputAssignments.push(
-              `${t.l()}assign ${wireName} = ${portName};`
+    const submoduleOutputWireDeclarations = [...portWireMap.entries()].map(([port, [wireName, _]]) => (
+      [wireName, getRegSize(port)]
+    ));
+
+
+    // Generate an assign for every output going to the parent module
+    const parentOutputAssignments = [];
+    allChildModules.forEach(sm => {
+      Object.entries(sm.mapping.outputs).forEach(([submoduleOutputName, writtenPorts]) => {
+        // Loop over every port, check if it belongs to the parent
+        writtenPorts.forEach(writtenPort => {
+          if (m.isOwnOutput(writtenPort)) {
+            const desc = m.getModuleSignalDescriptor(writtenPort);
+            const [wireName] = portWireMap.get(sm.m[submoduleOutputName]);
+
+            const errorBase = `Cannot drive ${m.moduleName}.${desc.name} from submodule output ${sm.submoduleName}.${submoduleOutputName} `;
+            if (sDriven.includes(writtenPort)) {
+              throw new Error(`${errorBase} because it is already driven by the synchronous logic of ${m.moduleName}`);
+            }
+            if (cDriven.includes(writtenPort)) {
+              throw new Error(`${errorBase} because it is already driven by the combinational logic of ${m.moduleName}`);
+            }
+
+            parentOutputAssignments.push(
+              `${t.l()}assign ${desc.name} = ${wireName};`
             );
-            connectedWires.push(wireName);
           }
         });
       });
-
-      if (connectedWires.length > 1) {
-        // Tie all the rest of the wires to the first wire
-        let firstWire = connectedWires[0];
-        let otherWires = connectedWires.slice(1);
-        while (otherWires.length > 0) {
-          otherWires.forEach(otherWire => {
-            tiedWiresAssignments.push(`${t.l()}assign ${otherWire} = ${firstWire};`)
-          });
-          firstWire = otherWires[0];
-          otherWires = otherWires.slice(1);
-        }
-      }
     });
 
     const wireDeclarations = [
-      // TODO: Be careful here that user-defined wires don't have the same names
-      // as ones I generate
-      ...(thisModuleHasSubmodules ? inputWires : []),
-      ...(thisModuleHasSubmodules ? globalOutputWires : [])
+      // TODO: Be careful here that user-defined wires don't clash with generated names
+      ...(thisModuleHasSubmodules ? submoduleOutputWireDeclarations : []),
     ].map(([w, regSize]) => `${t.l()}wire ${regSize}${w};`)
     .concat(internalWires).join('\n')
     + unsliceableWires;
 
     const allAssignments = [
-      ...(thisModuleHasSubmodules ? globalOutputAssignments : []),
-      ...(thisModuleHasSubmodules ? globalInputAssignments : []),
-      ...(thisModuleHasSubmodules ? secondaryAssignments : []),
-      ...(thisModuleHasSubmodules ? tiedWiresAssignments : []),
+      ...parentOutputAssignments
     ].join('\n');
 
     const submodules = mSubmodules.map(submoduleReference => {
@@ -499,20 +474,44 @@ export class CodeGenerator {
       ];
       t.push();
 
-      // Find any inputs that were specified as constants
+      // Iterate over the inputs of this submodule. If the Port they refer to is a constant,
+      // push the declaration into the constantInputs.
+      // If it's in the portWireMap, use the wireName instead
+      // Otherwise (for now), it must be a parent module signal, and can be wired directly
       const constantInputs = [];
+      const nonConstantInputs = [];
       Object.entries(submoduleReference.mapping.inputs).forEach(([name, port]) => {
         if (port instanceof ConstantT) {
           constantInputs.push(`${t.l()}.${name}(${exprEval.evaluate(port)})`);
+          return;
         }
+
+        if (port instanceof SignalT) {
+          if (portWireMap.has(port)) {
+            const [wireName] = portWireMap.get(port);
+            nonConstantInputs.push(`${t.l()}.${name}(${wireName})`);
+          } else {
+            nonConstantInputs.push(`${t.l()}.${name}(${exprEval.evaluate(port)})`);
+          }
+          return;
+        }
+
+        throw new Error(`${submoduleReference.submoduleName}.${name} is neither ConstantT or SignalT`);
       });
 
+      // Map the outputs to the autogenerated wires
+      const wireOutputs = [];
+      submoduleReference.m.getOutputSignals().forEach(port => {
+        const [wireName, portName] = portWireMap.get(port);
+        wireOutputs.push(`${t.l()}.${portName}(${wireName})`);
+      });
+
+      // Push the strings for all ports
       out.push(
-        constantInputs.concat(
-          Object.entries(wireMap.get(submoduleReference.m)).map(([portName, wire]) => {
-            return `${t.l()}.${portName}(${wire})`
-          })
-        ).join(',\n')
+        constantInputs
+        .concat(nonConstantInputs)
+        .concat(wireOutputs)
+        .join(',\n')
       );
 
       t.pop();
@@ -538,27 +537,47 @@ export class CodeGenerator {
         );
 
         t.pop();
-        out.push(`${t.l()}) ${vendorModuleReference.m.name} (`);
+        out.push(`${t.l()}) ${vendorModuleReference.m.moduleName} (`);
         t.push();
       } else {
-        out[0] += ` ${vendorModuleReference.m.name} (`;
+        out[0] += ` ${vendorModuleReference.m.moduleName} (`;
         t.push();
       }
 
       // Find any inputs that were specified as constants
       const constantInputs = [];
+      const nonConstantInputs = [];
       Object.entries(vendorModuleReference.mapping.inputs).forEach(([name, port]) => {
         if (port instanceof ConstantT) {
           constantInputs.push(`${t.l()}.${name}(${exprEval.evaluate(port)})`);
+          return;
         }
+
+        if (port instanceof SignalT) {
+          if (portWireMap.has(port)) {
+            const [wireName] = portWireMap.get(port);
+            nonConstantInputs.push(`${t.l()}.${name}(${wireName})`);
+          } else {
+            nonConstantInputs.push(`${t.l()}.${name}(${exprEval.evaluate(port)})`);
+          }
+          return;
+        }
+
+        throw new Error(`${vendorModuleReference.submoduleName}.${name} is neither ConstantT or SignalT`);
+      });
+
+      // Map the outputs to the autogenerated wires
+      const wireOutputs = [];
+      vendorModuleReference.m.getOutputSignals().forEach(port => {
+        const [wireName, portName] = portWireMap.get(port);
+        wireOutputs.push(`${t.l()}.${portName}(${wireName})`);
       });
 
       out.push(
-        constantInputs.concat(
-          Object.entries(wireMap.get(vendorModuleReference.m)).map(([portName, wire]) => {
-            return `${t.l()}.${portName}(${wire})`
-          })
-        ).join(',\n')
+        constantInputs
+        .concat(nonConstantInputs)
+        .concat(wireOutputs)
+        .join(',\n')
       );
 
       t.pop();

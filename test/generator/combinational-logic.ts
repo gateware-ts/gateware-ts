@@ -1,7 +1,7 @@
 import * as mocha from 'mocha';
 import * as chai from 'chai';
 import { MODULE_CODE_ELEMENTS } from '../../src/constants';
-import { Concat, ConcatT, Constant, Signal, SignalArray } from '../../src/signals';
+import { asSigned, Concat, ConcatT, Constant, LogicalNot, Not, Signal, SignalArray } from '../../src/signals';
 import { CodeGenerator } from '../../src/generator/index';
 import { GWModule, CombinationalSwitchAssignment } from '../../src/index';
 
@@ -202,4 +202,249 @@ describe('combinationalLogic', () => {
       `  assign o2 = {regArr[2'b01], regArr[2'b11]};`,
     ].join('\n'));
   });
+
+  it('should error when trying to refer to a non-owned signal combinationally (signal)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = Signal();
+
+        this.combinationalLogic([
+          nonOwnedSignal ['='] (1)
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Combinational]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal combinationally (slice)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = Signal(5).slice(4, 1);
+
+        this.combinationalLogic([
+          this.o ['='] (nonOwnedSignal)
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Combinational]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal combinationally (concat)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = this.a.concat([Signal(5).slice(4, 3)]);
+
+        this.combinationalLogic([
+          this.o ['='] (nonOwnedSignal)
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Combinational]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal combinationally (inverse)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = Not(Signal(5).slice(4, 1));
+
+        this.combinationalLogic([
+          this.o ['='] (nonOwnedSignal)
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Combinational]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal combinationally (unary)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = LogicalNot(Signal(5).bit(0));
+
+        this.combinationalLogic([
+          this.o ['='] (nonOwnedSignal)
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Combinational]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal combinationally (Comparrison)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = Signal() ['=='] (this.a);
+
+        this.combinationalLogic([
+          this.o ['='] (nonOwnedSignal)
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Combinational]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal combinationally (Binary)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = Signal() ['+'] (this.a);
+
+        this.combinationalLogic([
+          this.o ['='] (nonOwnedSignal)
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Combinational]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal combinationally (Ternary)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = this.a ['?'] (
+          Constant(1, 1),
+          Signal(1)
+        );
+
+        this.combinationalLogic([
+          this.o ['='] (nonOwnedSignal)
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Combinational]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal combinationally (Boolean)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal = this.a ['&'] (Signal(1));
+
+        this.combinationalLogic([
+          this.o ['='] (nonOwnedSignal)
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Combinational]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal combinationally (Explicit Signedness)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignal =  asSigned(Signal(1));
+
+        this.combinationalLogic([
+          this.o ['='] (nonOwnedSignal)
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Combinational]'
+    )
+  });
+
+  it('should error when trying to refer to a non-owned signal combinationally (Explicit Signedness)', () => {
+    class UUT extends GWModule {
+      clk = this.input(Signal());
+      a = this.internal(Signal(2));
+      o = this.output(Signal(4));
+
+      describe() {
+        const nonOwnedSignalArray = SignalArray(1, 16);
+        const nonOwnedSignal = nonOwnedSignalArray.at(Constant(4, 0));
+
+        this.combinationalLogic([
+          this.o ['='] (nonOwnedSignal)
+        ]);
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    expect(() => cg.generateVerilogCodeForModule(m, false)).to.throw(
+      'Cannot evaluate signal not owned by this module [module=UUT, logic=Combinational]'
+    )
+  });
+
 });

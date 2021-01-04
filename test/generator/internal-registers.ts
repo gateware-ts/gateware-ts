@@ -181,7 +181,7 @@ describe('internalRegisters', () => {
       in = this.input(Signal());
       o = this.output(Signal());
 
-      int = this.internal(Signal(1, Signedness.Unsigned, 1));
+      int = this.internal(Signal());
 
       describe() {
         this.combinationalLogic([
