@@ -84,6 +84,21 @@ const execP = promisify(exec);
 /** @internal */
 const cleanupFiles = (filenames:string[]) => exec(`rm ${filenames.join(' ')}`);
 
+export enum DeviceTypes {
+  lp384 = 'lp384',
+  lp1k = 'lp1k',
+  lp4k = 'lp4k',
+  lp8k = 'lp8k',
+  hx1k = 'hx1k',
+  hx4k = 'hx4k',
+  hx8k = 'hx8k',
+  up3k = 'up3k',
+  up5k = 'up5k',
+  u1k = 'u1k',
+  u2k = 'u2k',
+  u4k = 'u4k',
+};
+
 interface SimulationOptions {
   enabled: boolean;
   timescale: TimeScaleValue[]
@@ -92,6 +107,7 @@ interface SimulationOptions {
 interface CodeGeneratorOptions {
   simulation?: SimulationOptions;
   pcfPath?: string;
+  deviceType?: DeviceTypes;
 };
 
 /**
@@ -194,7 +210,11 @@ export class CodeGenerator {
         ? path.join(process.cwd(), this.options.pcfPath)
         : path.join(__dirname, '../../board-constraints/icebreaker.pcf');
 
-      const nextpnrCommand = `nextpnr-ice40 --up5k --json ${projectName}.json --pcf ${constraintsFile} --asc ${projectName}.asc`;
+      const deviceTypeArgument = this.options.deviceType
+        ? `--${this.options.deviceType}`
+        : `--up5k`;
+
+      const nextpnrCommand = `nextpnr-ice40 ${deviceTypeArgument} --json ${projectName}.json --pcf ${constraintsFile} --asc ${projectName}.asc`;
       await execP(nextpnrCommand);
       process.stdout.write(`Completed place and route.\n`);
 
