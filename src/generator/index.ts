@@ -91,6 +91,7 @@ interface SimulationOptions {
 
 interface CodeGeneratorOptions {
   simulation?: SimulationOptions;
+  pcfPath?: string;
 };
 
 /**
@@ -189,7 +190,10 @@ export class CodeGenerator {
       await execP(yosysCommand);
       process.stdout.write(`Completed synthesis.\n`);
 
-      const constraintsFile = path.join(__dirname, '../../board-constraints/icebreaker.pcf');
+      const constraintsFile = this.options.pcfPath
+        ? path.join(process.cwd(), this.options.pcfPath)
+        : path.join(__dirname, '../../board-constraints/icebreaker.pcf');
+
       const nextpnrCommand = `nextpnr-ice40 --up5k --json ${projectName}.json --pcf ${constraintsFile} --asc ${projectName}.asc`;
       await execP(nextpnrCommand);
       process.stdout.write(`Completed place and route.\n`);
