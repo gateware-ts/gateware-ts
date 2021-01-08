@@ -461,7 +461,7 @@ export class CodeGenerator {
       Object.entries(sm.mapping.outputs).forEach(([submoduleOutputName, writtenPorts]) => {
         // Loop over every port, check if it belongs to the parent
         writtenPorts.forEach(writtenPort => {
-          if (m.isOwnOutput(writtenPort)) {
+          if (m.isOwnWritable(writtenPort)) {
             const desc = m.getModuleSignalDescriptor(writtenPort);
             const [wireName] = portWireMap.get(sm.m[submoduleOutputName]);
 

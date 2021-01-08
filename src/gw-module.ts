@@ -364,6 +364,19 @@ export abstract class GWModule {
     return this.getOutputSignals().some(o => o === s);
   }
 
+  /** @internal */
+  isOwnInternal<T extends Port | SignalT | SignalArrayT>(s:T) {
+    return this.getInternalSignals().some(o => o === s);
+  }
+
+  /** @internal */
+  isOwnWritable<T extends Port | SignalT | SignalArrayT>(s: T) {
+    if (s instanceof SignalT) {
+      return this.isOwnOutput(s) || this.isOwnInternal(s);
+    }
+    return this.isOwnInternal(s);
+  }
+
   // TODO: Throw if not all ports are mapped. Allow for an explicit NO_CONNECT, but don't silently fail
   // TODO: If I reset before I call init/describe, then I should be able to use the same instance
   // of a module multiple times. Combined with an automatic name detection like for the signals, this
