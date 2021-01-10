@@ -1,8 +1,9 @@
 import { CodeGenerator } from './../../src/generator/index';
-import { Not, Signedness, HIGH, Switch, Case, Default, Constant, LOW, edge, microseconds, nanoseconds, picoseconds, Concat } from './../../src/index';
+import { Not, Signedness, HIGH, Switch, Case, Default, Constant, LOW, edge, microseconds, nanoseconds, picoseconds, Concat, Ternary } from './../../src/index';
 import { GWModule, Signal, Edge, If } from '../../src/index';
 import { SB_PLL40_PAD } from '../../vendor-modules/lattice-ice40/SB_PLL40_PAD';
 import { ParamString } from '../../src/vendor-module';
+import { createDebouncer } from './debouncer';
 
 // WS2812B Timing
 const ZERO_HIGH_TIME = 24-1;
@@ -10,7 +11,7 @@ const ZERO_LOW_TIME = 51-1;
 const ONE_HIGH_TIME = 48-1;
 const ONE_LOW_TIME = 27-1;
 // I found the reset timing found to require a higher minimum than the data sheet states
-const RESET_TIME = (3000) * 3;
+const RESET_TIME = (3000) * 1.25;
 
 const TOTAL_BIT_TIME = ZERO_HIGH_TIME + ZERO_LOW_TIME;
 
@@ -28,13 +29,14 @@ class BitEncoder extends GWModule {
 
   state = this.internal(Signal(3, Signedness.Unsigned, BitEncoderStates.READY_AND_WAITING));
   counter = this.internal(Signal(6));
-  latch = this.output(Signal(1, Signedness.Unsigned, 0));
 
   ack = this.output(Signal());
   data = this.output(Signal());
 
   describe() {
+
     this.syncBlock(this.clk, Edge.Positive, [
+
       Switch(this.state, [
 
         Case(BitEncoderStates.READY_AND_WAITING, [
@@ -44,8 +46,6 @@ class BitEncoder extends GWModule {
           // If the module feeding us the bit is ready, change state
           If (this.senderReady, [
             this.ack ['='] (HIGH),
-
-            this.latch ['='] (Not(this.bit)),
 
             // Depending on whether we're sending a one or a zero, we enter
             // a certain state
@@ -131,7 +131,6 @@ class BitEncoder extends GWModule {
         Default([
           this.state ['='] (BitEncoderStates.READY_AND_WAITING),
           this.ack ['='] (LOW),
-          this.latch ['='] (0)
         ])
       ])
     ]);
@@ -240,7 +239,6 @@ class ByteStreamParent extends GWModule {
   senderReady = this.input(Signal());
 
   data = this.output(Signal());
-  bitOut = this.output(Signal());
   ack = this.output(Signal());
 
   describe() {
@@ -270,7 +268,6 @@ class ByteStreamParent extends GWModule {
       outputs: {
         ack: [byteStream.receiveAck],
         data: [this.data],
-        latch: [this.bitOut]
       }
     });
 
@@ -405,24 +402,34 @@ class SingleLightTimingControl extends GWModule {
   clk = this.input(Signal());
   receiveAck = this.input(Signal());
   clkReady = this.input(Signal());
+  isLit = this.input(Signal());
 
   counter = this.internal(Signal(21));
   cycleCounter = this.internal(Signal(20));
   state = this.internal(Signal(3));
-  g = this.internal(Signal(8, Signedness.Unsigned, 0x11));
+  isLitLatch = this.internal(Signal());
+  g = this.internal(Signal(8, Signedness.Unsigned, 0x00));
   r = this.internal(Signal(8, Signedness.Unsigned, 0xFF));
-  b = this.internal(Signal(8, Signedness.Unsigned, 0x22));
+  b = this.internal(Signal(8, Signedness.Unsigned, 0x00));
   bitCount = this.internal(Signal(3));
 
   ready = this.output(Signal());
   rgb = this.output(Signal(24));
 
   describe() {
+    const assignRGB = this.rgb ['='] (Ternary(
+      this.isLitLatch,
+      Constant(24, 0),
+      Concat([ this.g, this.r, this.b ]),
+    ));
+
     this.combinationalLogic([
-      this.rgb ['='] (Concat([ this.g, this.r, this.b ])),
-    ])
+      assignRGB,
+    ]);
 
     this.syncBlock(this.clk, Edge.Positive, [
+      this.isLitLatch ['='] (this.isLit),
+
       Switch (this.state, [
 
         Case (SingleLightTimingControlStates.START, [
@@ -441,14 +448,6 @@ class SingleLightTimingControl extends GWModule {
 
           If (this.receiveAck, [
             this.state ['='] (SingleLightTimingControlStates.COLOR),
-            this.cycleCounter ['='] (this.cycleCounter ['+'] (1)),
-
-            If (this.cycleCounter ['=='] (0x0800), [
-              this.r ['='] (this.g ['+'] (2) ['&'] (0x7F)),
-              this.g ['='] (this.b ['+'] (4) ['&'] (0x7F)),
-              this.b ['='] (this.r ['+'] (6) ['&'] (0x7F)),
-              this.cycleCounter ['='] (0)
-            ])
           ])
         ]),
 
@@ -457,7 +456,7 @@ class SingleLightTimingControl extends GWModule {
 
           // TOTAL_BIT_TIME * BITS_PER_BYTE * BYTES_PER_COLOR + State transiitions for each bit
           If (this.counter ['=='] ((TOTAL_BIT_TIME * 8 * 3) + (8 * 3)), [
-            If (this.bitCount ['=='] (0b111), [
+            If (this.bitCount ['=='] (0b011), [ //  (0b111), [
               this.state ['='] (SingleLightTimingControlStates.BLANKING),
               this.counter ['='] (0),
               this.bitCount ['='] (0)
@@ -472,7 +471,7 @@ class SingleLightTimingControl extends GWModule {
 
         Case (SingleLightTimingControlStates.BLANKING, [
           If (this.counter ['=='] (RESET_TIME), [
-            this.state ['='] (SingleLightTimingControlStates.READY)
+            this.state ['='] (SingleLightTimingControlStates.READY),
           ]) .Else ([
             this.counter ['='] (this.counter ['+'] (1))
           ])
@@ -504,7 +503,7 @@ class PLL extends GWModule {
       DELAY_ADJUSTMENT_MODE_FEEDBACK: ParamString("FIXED"),
     });
 
-    this.addVendorModule(pll, {
+    this.addVendorModule(pll, 'pll', {
       inputs: {
         PACKAGEPIN: this.clkIn,
         RESETB: Constant(1, 1),
@@ -512,7 +511,6 @@ class PLL extends GWModule {
       },
       outputs: {
         PLLOUTGLOBAL: [this.clkOut],
-        // PLLOUTCORE: [this.clkOut],
         LOCK: [this.lock]
       }
     })
@@ -530,11 +528,44 @@ class Inverter extends GWModule {
   }
 }
 
+class BrightnessValue extends GWModule {
+  clk = this.input(Signal());
+  btnPulse = this.input(Signal());
+  value = this.internal(Signal(4, Signedness.Unsigned, 0x0));
+  counter = this.internal(Signal(4, Signedness.Unsigned, 0x0));
+  selfCounter = this.internal(Signal(8, Signedness.Unsigned, 0x0));
+  isLit = this.output(Signal());
+
+  describe() {
+    this.combinationalLogic([
+      this.isLit ['='] (this.counter ['<='] (this.value))
+    ]);
+
+    this.syncBlock(this.clk, Edge.Positive, [
+      this.counter ['='] (this.counter ['+'] (1)),
+      this.selfCounter ['='] (this.selfCounter ['+'] (1)),
+
+      If (this.btnPulse ['=='] (HIGH), [
+      // If (this.btnPulse ['=='] (HIGH) .or (this.selfCounter ['=='] (0)), [
+        this.value ['='] (this.value ['+'] (0x1))
+      ]) .Else ([
+        this.value ['='] (this.value)
+      ])
+    ]);
+  }
+}
+
+const SinglePulseDebouncer = createDebouncer(21);
+
 class SingleLightTimingControlParent extends GWModule {
   CLK = this.input(Signal());
+  BTN1 = this.input(Signal());
   P1A1 = this.output(Signal());
+  P1A2 = this.output(Signal());
+  P1A3 = this.output(Signal());
   LEDR_N = this.output(Signal());
   LEDG_N = this.output(Signal());
+  LED1 = this.output(Signal());
 
   describe() {
     const singleLightTimingControl = new SingleLightTimingControl();
@@ -542,16 +573,42 @@ class SingleLightTimingControlParent extends GWModule {
     const pll = new PLL();
     const clkDiv = new ClkDownscaler();
 
-    const inverter = new Inverter();
+    const pllLockInverter = new Inverter();
+    const osd = new SinglePulseDebouncer();
+    const brightnessValue = new BrightnessValue();
 
-    this.addSubmodule(inverter, 'inverter', {
+    this.combinationalLogic([
+      this.LED1 ['='] (this.BTN1)
+    ]);
+
+    this.addSubmodule(pllLockInverter, 'pllLockInverter', {
       inputs: {
         i: pll.lock
       },
       outputs: {
-        o: [this.LEDR_N]
+        o: [singleLightTimingControl.clkReady]
       }
-    })
+    });
+
+    this.addSubmodule(osd, 'osd', {
+      inputs: {
+        clk: pll.clkOut,
+        i: this.BTN1
+      },
+      outputs: {
+        o: [brightnessValue.btnPulse]
+      }
+    });
+
+    this.addSubmodule(brightnessValue, 'brightnessValue', {
+      inputs: {
+        clk: pll.clkOut,
+        btnPulse: osd.o
+      },
+      outputs: {
+        isLit: [singleLightTimingControl.isLit]
+      }
+    });
 
     this.addSubmodule(pll, 'pll', {
       inputs: {
@@ -561,9 +618,10 @@ class SingleLightTimingControlParent extends GWModule {
         clkOut: [
           singleLightTimingControl.clk,
           rgbStream.clk,
-          clkDiv.clk
+          clkDiv.clk,
+          brightnessValue.clk
         ],
-        lock: [inverter.i, singleLightTimingControl.clkReady],
+        lock: [singleLightTimingControl.clkReady],
       }
     });
 
@@ -579,8 +637,9 @@ class SingleLightTimingControlParent extends GWModule {
     this.addSubmodule(singleLightTimingControl, 'singleLightTimingControl', {
       inputs: {
         clk: pll.clkOut,
-        clkReady: inverter.o,
-        receiveAck: rgbStream.ack
+        clkReady: pllLockInverter.o,
+        receiveAck: rgbStream.ack,
+        isLit: brightnessValue.isLit
       },
       outputs: {
         ready: [rgbStream.senderReady],
@@ -611,6 +670,7 @@ class SimRGBStream extends GWModule {
   // Helps read the waveforms
   counter = this.input(Signal(12));
 
+  datax = this.output(Signal());
   data = this.output(Signal());
   ack = this.output(Signal());
 
@@ -671,7 +731,8 @@ class ClkDownscaler extends GWModule {
   }
 }
 
-const cg = new CodeGenerator(new SingleLightTimingControlParent('top'));
+const cg = new CodeGenerator(new SingleLightTimingControlParent('top'), {});
+
 cg.buildBitstream('with-inverter', false);
 
 // const testBench = new SimRGBStream();
@@ -682,3 +743,10 @@ cg.buildBitstream('with-inverter', false);
 //   }
 // });
 // tbCg.runSimulation('ws2812-rgb-stream', 'ws2812-rgb-stream.vcd', false);
+
+
+// Module 1 -> timed data
+// Byte Sending
+// RGB Stream
+// ...
+// Serial Port talk computer
