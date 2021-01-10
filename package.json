@@ -10,8 +10,9 @@
     "test": "mocha --reporter spec --require ts-node/register test/**/*.ts",
     "testware": "./examples/run-example-tests.sh",
     "test:coverage": "nyc --reporter=lcov npm run test",
-    "docs": "typedoc --stripInternal --out docs src"
+    "docs": "typedoc --stripInternal --out docs src && touch ./src/docs/.nojekyll"
   },
+  "homepage": "https://gateware-ts.github.io/gateware-ts/",
   "author": "",
   "license": "ISC",
   "dependencies": {
