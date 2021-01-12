@@ -56,7 +56,7 @@ const comparrisonTest = (op:string, a:SignalT, b:SignalT, expectation:string) =>
 }
 
 describe('signals', () => {
-  it('should able to be sliced', () => {
+  it('should able to be sliced MSB->LSB', () => {
     class UUT extends GWModule {
       in = this.input(Signal(8));
       // Leaving this as a 1 bit signal, so when I implement strict mode this will fail
@@ -78,6 +78,70 @@ describe('signals', () => {
     }
 
     expect(result.code.combAssigns).to.eq('  assign o = in[7:4];');
+  });
+
+  it('should able to be sliced LSB->MSB', () => {
+    class UUT extends GWModule {
+      in = this.input(Signal(8));
+      // Leaving this as a 1 bit signal, so when I implement strict mode this will fail
+      o = this.output(Signal());
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (this.in.slice(4, 7))
+        ])
+      }
+    }
+
+    const m = new UUT();
+    const cg = new CodeGenerator(m);
+    const result = cg.generateVerilogCodeForModule(m, false);
+
+    if (result.code.type !== MODULE_CODE_ELEMENTS) {
+      throw new Error('Wrong module type generated');
+    }
+
+    expect(result.code.combAssigns).to.eq('  assign o = in[4:7];');
+  });
+
+  it('should fail to create a slice larger than the signal being sliced', () => {
+    class UUT extends GWModule {
+      in = this.input(Signal(8));
+      // Leaving this as a 1 bit signal, so when I implement strict mode this will fail
+      o = this.output(Signal());
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (this.in.slice(8, 0)) // 9-bit slice
+        ])
+      }
+    }
+
+    const expectedFail = () => new CodeGenerator(new UUT());
+
+    expect(expectedFail).to.throw(
+      'Slice cannot have a larger width than the signal being sliced (slice=9, signal=8)'
+    )
+  });
+
+  it('should fail to create a slice with non-integer width', () => {
+    class UUT extends GWModule {
+      in = this.input(Signal(8));
+      // Leaving this as a 1 bit signal, so when I implement strict mode this will fail
+      o = this.output(Signal());
+
+      describe() {
+        this.combinationalLogic([
+          this.o ['='] (this.in.slice(1.23, 5.3))
+        ])
+      }
+    }
+
+    const expectedFail = () => new CodeGenerator(new UUT());
+
+    expect(expectedFail).to.throw(
+      'Slice width must be integer, but got 5.07'
+    )
   });
 
   it('should able to be zero extended', () => {

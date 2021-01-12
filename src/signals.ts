@@ -646,11 +646,24 @@ export class SliceT extends BaseSignalLike {
 
   constructor(a:SignalLike, fromBit:number, toBit:number) {
     super();
+
+    const smallest = Math.min(fromBit, toBit);
+    const largest = Math.max(fromBit, toBit);
+    const sliceWidth = largest - smallest + 1;
+
+    if (!Number.isInteger(sliceWidth)) {
+      throw new Error(`Slice width must be integer, but got ${sliceWidth}`);
+    }
+
+    if (sliceWidth > a.width) {
+      throw new Error(`Slice cannot have a larger width than the signal being sliced (slice=${sliceWidth}, signal=${a.width})`);
+    }
+
     // TODO: Assert logical stuff like bit ranges being valid
     this.a = a;
     this.fromBit = fromBit;
     this.toBit = toBit;
-    this.width = fromBit - toBit + 1;
+    this.width = sliceWidth;
   }
 
   clone():SliceT {
