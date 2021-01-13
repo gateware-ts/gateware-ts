@@ -1,19 +1,28 @@
 {
   "name": "gateware-ts",
-  "version": "1.0.0",
-  "description": "",
-  "main": "./src/index.ts",
+  "version": "0.0.4",
+  "description": "gateware-ts is a hardware definition library and environment for designing and building digital hardware for FPGAs, using only open source tools",
+  "repository": "https://github.com/gateware-ts/gateware-ts",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "files": [
+    "dist",
+    "bin",
+    "board-constraints"
+  ],
   "bin": {
     "testware": "./bin/testware.js"
   },
   "scripts": {
+    "build": "tsc && cp -R board-constraints ./dist/",
+    "prepare": "npm run build",
     "test": "mocha --reporter spec --require ts-node/register test/**/*.ts",
     "testware": "./examples/run-example-tests.sh",
     "test:coverage": "nyc --reporter=lcov npm run test",
     "docs": "typedoc --stripInternal --out docs src"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Francis Stokes",
+  "license": "MIT",
   "dependencies": {
     "@types/node": "^13.7.7",
     "arcsecond": "^2.0.4"
