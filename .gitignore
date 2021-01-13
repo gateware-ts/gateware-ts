@@ -7,3 +7,4 @@ coverage/
 .vscode
 docs/
 .DS_Store/
+dist/
