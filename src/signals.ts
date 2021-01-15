@@ -87,7 +87,11 @@ export abstract class BaseSignalLike {
       throw new Error(`Non integer number of bits specified (${toWidth})`);
     }
     const bitDiff = toWidth - this.width;
-    const extension = Array.from({ length: bitDiff }, () => this.bit(this.width - 1));
+    const extension = Array.from({ length: bitDiff }, () => (
+      this.width > 1
+        ? this.bit(this.width - 1)
+        : this
+    ));
     return new ConcatT([ ...extension, this ]);
   }
 
