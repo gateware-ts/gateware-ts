@@ -1,6 +1,6 @@
 {
   "name": "gateware-ts",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "gateware-ts is a hardware definition library and environment for designing and building digital hardware for FPGAs, using only open source tools",
   "repository": "https://github.com/gateware-ts/gateware-ts",
   "main": "./dist/src/index.js",
