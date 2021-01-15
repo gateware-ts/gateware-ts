@@ -370,7 +370,7 @@ describe('signals', () => {
 
       describe() {
         this.combinationalLogic([
-          this.o ['='] (Not(this.in))
+          this.o ['='] (this.in.invert())
         ])
       }
     }
