@@ -262,6 +262,20 @@ export abstract class BaseSignalLike {
   }
 
   /**
+   * Invert the bits of this [[SignalLike]]
+   */
+  invert() {
+    return new Inverse(this);
+  }
+
+  /**
+   * Alias of [[BaseSignalLike.invert]]
+   */
+  ['~']() {
+    return this.invert();
+  }
+
+  /**
    * Alias of [[BaseSignalLike.plus]]
    */
   ['+'](b:SignalLikeOrValue) {
