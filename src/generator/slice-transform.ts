@@ -1,4 +1,4 @@
-import { BitwiseUnaryOperationSignal, BooleanUnaryOperationSignal } from '../signal';
+import { BitwiseUnaryOperationSignal, BooleanUnaryOperationSignal, SignalReference } from '../signal';
 import { partialHash } from '../util';
 import { Block, BlockElement, BlockElementType } from '../block/index';
 import {
@@ -73,15 +73,21 @@ function visitSignal(s: BaseSignalReference, ctx: TransformCtx): void {
       visitSignal(slice.root, ctx);
 
       if (!simpleRoots.includes(slice.root.type)) {
-        const sliceHash = partialHash(slice.toString() + slice.id);
+        const sliceHash = partialHash(slice.toString());
         const internalSignalName = `generatedSlice${sliceHash}`;
 
-        const signal = ctx.m.addInternal(internalSignalName, slice.root.width);
-        ctx.slices[internalSignalName] = {
-          name: internalSignalName,
-          signal: slice.root,
-          width: slice.root.width
-        };
+        let signal: SignalReference;
+
+        if (!(internalSignalName in ctx.slices)) {
+          signal = ctx.m.addInternal(internalSignalName, slice.root.width);
+          ctx.slices[internalSignalName] = {
+            name: internalSignalName,
+            signal: slice.root,
+            width: slice.root.width
+          };
+        } else {
+          signal = ctx.m.internal[internalSignalName];
+        }
 
         slice.root = signal;
       }
@@ -131,8 +137,8 @@ function visitSignal(s: BaseSignalReference, ctx: TransformCtx): void {
       visitSignal(b.rhs, ctx);
       return;
     }
-    case SignalNodeType.BooleanUnaryOperation: return visitSignal(s as BooleanUnaryOperationSignal, ctx);
-    case SignalNodeType.BitwiseUnaryOperation: return visitSignal(s as BitwiseUnaryOperationSignal, ctx);
+    case SignalNodeType.BooleanUnaryOperation: return visitSignal((s as BooleanUnaryOperationSignal).signal, ctx);
+    case SignalNodeType.BitwiseUnaryOperation: return visitSignal((s as BitwiseUnaryOperationSignal).signal, ctx);
 
     default: {
       throw new Error(`Not implemented: ${s.type}`);
