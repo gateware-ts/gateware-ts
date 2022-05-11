@@ -313,6 +313,16 @@ export class SignalReference extends BaseSignalReference {
     return `Signal<${this.signalName}, ${this.width}>`;
   }
 
+  setToConstant(value: number | bigint | ConstantSignal) {
+    if (typeof value === 'number') {
+      return this.setTo(Constant(this.width, BigInt(value)));
+    } else if (typeof value === 'bigint') {
+      return this.setTo(Constant(this.width, value));
+    }
+    return this.setTo(value);
+  }
+  ['K='] (value: number | bigint | ConstantSignal) { return this.setToConstant(value); }
+
   setTo(value: BaseSignalReference) { return new Assignment(this, value); }
   ['='](value: BaseSignalReference) { return this.setTo(value); }
 
@@ -383,6 +393,7 @@ export class ConstantSignal extends BaseSignalReference {
 }
 
 export const Constant = (width: number, value: bigint) => new ConstantSignal({ width, value });
+export const SmallConstant = (width: number, value: number) => new ConstantSignal({ width, value: BigInt(value) });
 
 type BitwiseBinaryParams = BaseSignalParams & {
   lhs: BaseSignalReference;
