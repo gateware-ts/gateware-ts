@@ -7,5 +7,7 @@
     "sourceMap": true,
     "target": "ESNext",
     "esModuleInterop": true,
+    "outDir": "dist",
+    "declaration": true
   },
 }

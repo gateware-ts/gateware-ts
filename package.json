@@ -10,21 +10,17 @@
   ],
   "scripts": {
     "build": "tsc",
-    "prepare": "npm run build",
+    "prepare": "npm run test && npm run build",
     "test": "true",
-    "testware": "./examples/run-example-tests.sh",
     "test:coverage": "nyc --reporter=lcov npm run test",
     "docs": "typedoc --stripInternal --out docs src"
   },
   "author": "Francis Stokes",
   "license": "MIT",
-  "dependencies": {
-    "@types/node": "^13.7.7",
-    "arcsecond": "^2.0.4"
-  },
   "devDependencies": {
     "@types/chai": "^4.2.11",
     "@types/mocha": "^7.0.2",
+    "@types/node": "^17.0.33",
     "chai": "^4.2.0",
     "mocha": "^7.1.1",
     "nyc": "^15.0.0",
