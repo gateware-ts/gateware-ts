@@ -1,6 +1,7 @@
 import { Assignment } from './block/element';
 import { SignalWidthError, ValidNumericTypeError, SliceError, ExtensionError, ConcatError, RepeatError } from './gw-error';
 import { GWModule, SimulationModule } from "./module";
+import { VendorModule } from './vendor';
 
 let globalId = 0;
 const getNextId = () => globalId++;
@@ -16,6 +17,7 @@ export enum SignalNodeType {
   Constant                  = 'Constant',
   Extended                  = 'Extended',
   ProxySignal               = 'ProxySignal',
+  VendorOutput              = 'VendorOutput',
   BitwiseBinary             = 'BitwiseBinary',
   MemoryElement             = 'MemoryElement',
   ReadonlySignal            = 'ReadonlySignal',
@@ -868,6 +870,39 @@ export class ReadonlySignalReference extends BaseSignalReference {
 
   toString() {
     return `ReadonlySignal<${this.signalName}, ${this.width}>`;
+  }
+}
+
+export type VendorOutputParams = Omit<SignalReferenceParams, 'module'> & {
+  vendorInstance: VendorModule;
+  signalName: string;
+};
+export class VendorOutputReference extends BaseSignalReference {
+  readonly type: SignalNodeType = SignalNodeType.VendorOutput;
+  vendorInstance: VendorModule;
+  signalName: string;
+
+  clone() {
+    return new VendorOutputReference({
+      signalName: this.signalName,
+      vendorInstance: this.vendorInstance,
+      width: this.width,
+      id: this.id
+    });
+  }
+
+  constructor(params: VendorOutputParams) {
+    super({...params, module: null});
+    this.vendorInstance = params.vendorInstance;
+    this.signalName = params.signalName;
+  }
+
+  toWireName() {
+    return `${this.vendorInstance.getModuleIdentifier()}_${this.signalName}`;
+  }
+
+  toString() {
+    return `VendorOutputReference<${this.vendorInstance.getModuleIdentifier()}, ${this.signalName}, ${this.width}>`;
   }
 }
 

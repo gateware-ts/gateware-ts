@@ -1,6 +1,6 @@
-import { ComparisonOperation, RepeatSignal, SignedSignal } from './../signal';
+import { ComparisonOperation, RepeatSignal, SignedSignal, VendorOutputReference } from './../signal';
 import { Indent } from './indent';
-import { SignalOwnershipError } from './../gw-error';
+import { SignalOwnershipError, VendorSignalError } from './../gw-error';
 import { EvaluationError } from "../gw-error";
 import { SubmoduleOutputMap } from '.';
 import { GWModule, SimulationModule } from "../module";
@@ -52,12 +52,12 @@ const BooleanSymbolMap: Record<BooleanOperation | BooleanUnaryOperation, string>
 };
 
 const ComparisonSymbolMap: Record<ComparisonOperation, string> = {
-  [ComparisonOperation.Equals]: '==',
-  [ComparisonOperation.NotEquals]: '!=',
-  [ComparisonOperation.LessThan]: '<',
-  [ComparisonOperation.LessThanOrEquality]: '<=',
-  [ComparisonOperation.GreaterThan]: '>',
-  [ComparisonOperation.GreaterThanOrEquality]: '>=',
+  [ComparisonOperation.Equals]:                 '==',
+  [ComparisonOperation.NotEquals]:              '!=',
+  [ComparisonOperation.LessThan]:               '<',
+  [ComparisonOperation.LessThanOrEquality]:     '<=',
+  [ComparisonOperation.GreaterThan]:            '>',
+  [ComparisonOperation.GreaterThanOrEquality]:  '>=',
 };
 
 type Module = SimulationModule | GWModule;
@@ -94,6 +94,7 @@ export class Evaluator {
       case SignalNodeType.BooleanOperation: return this.evaluateBoolean(s as BooleanOperationSignal);
       case SignalNodeType.BooleanUnaryOperation: return this.evaluateUnaryBoolean(s as BooleanUnaryOperationSignal);
       case SignalNodeType.BitwiseUnaryOperation: return this.evaluateUnaryBitwise(s as BitwiseUnaryOperationSignal);
+      case SignalNodeType.VendorOutput: return this.evaluateVendorOutputReference(s as VendorOutputReference);
 
       default: {
         throw new Error(`Not implemented: ${s.type}`);
@@ -113,6 +114,26 @@ export class Evaluator {
       `Cannot evaluate non-owned reference signal ${s.module.moduleName}.${s.signalName} from module ${this.m.moduleName}.\n`
       + `Did you forget to add ${s.module.moduleName} as a submodule?`
     );
+  }
+
+  evaluateVendorOutputReference(s: VendorOutputReference) {
+    // This should only ever occur in a regular module...
+    if (this.m instanceof SimulationModule) {
+      throw new VendorSignalError(
+        `Cannot evaluate vendor output signal ${s.vendorInstance.instanceName}.${s.signalName} in Simulation module ${this.m.moduleName}`
+      );
+    }
+
+    // ...where this signal is owned by the module
+    const foundInParent = Object.values(this.m.description.vendorModules).find(v => v === s.vendorInstance);
+    if (!foundInParent) {
+      throw new SignalOwnershipError(
+        `Cannot evaluate non-owned vendor output signal ${s.vendorInstance.instanceName}.${s.signalName} in module ${this.m.moduleName}`
+      );
+    }
+
+    // Return the the name of the generated wire
+    return s.toWireName();
   }
 
   evaluateProxySignal(s: ProxySignalReference) {

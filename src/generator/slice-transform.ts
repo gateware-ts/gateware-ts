@@ -95,6 +95,7 @@ function visitSignal(s: BaseSignalReference, ctx: TransformCtx): void {
       return;
     }
 
+    case SignalNodeType.VendorOutput: return;
     case SignalNodeType.Signal: return;
     case SignalNodeType.ProxySignal: return;
     case SignalNodeType.MemoryElement: return;

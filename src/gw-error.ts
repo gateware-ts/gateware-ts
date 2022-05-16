@@ -12,3 +12,5 @@ export class SimulationModuleError extends Error {}
 export class UndrivenSignalError extends Error {}
 export class ValidNumericTypeError extends Error {}
 export class MissingPortError extends Error {}
+export class VendorSignalError extends Error {}
+export class ChildModuleError extends Error {}

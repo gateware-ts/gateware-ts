@@ -1,7 +1,8 @@
-import { SignalOwnershipError, SimulationModuleError, SubmoduleError } from './gw-error';
+import { ChildModuleError, SignalOwnershipError, SimulationModuleError, SubmoduleError } from './gw-error';
 import { Edge, BlockElement } from './block';
 import { SignalReference, Memory, ReadonlySignalReference, ProxySignalReference } from "./signal";
 import { arrayDiff } from './util';
+import { VendorModule } from './vendor';
 
 enum ModuleSignalType {
   Input     = 'Input',
@@ -24,6 +25,7 @@ type ModuleDescription = {
   syncProcesses: SyncProcess[];
   combinationalProcesses: Array<BlockElement[]>;
   submodules: Record<string, Submodule>;
+  vendorModules: Record<string, VendorModule>;
 }
 
 export abstract class GWModule {
@@ -32,6 +34,7 @@ export abstract class GWModule {
   output: Record<string, SignalReference> = {};
   memories: Record<string, Memory> = {};
   private signals: Record<string, SignalReference> = {};
+  private allModules: Record<string, GWModule | VendorModule> = {};
 
   description: ModuleDescription = this.clearDescription();
 
@@ -45,7 +48,8 @@ export abstract class GWModule {
     this.description = {
       combinationalProcesses: [],
       syncProcesses: [],
-      submodules: {}
+      submodules: {},
+      vendorModules: {}
     };
     return this.description;
   }
@@ -146,6 +150,19 @@ export abstract class GWModule {
     }
 
     this.description.submodules[name] = { instance, inputs };
+    this.allModules[name] = instance;
+  }
+
+  addVendorModule(instance: VendorModule) {
+    if (instance.instanceName in this.allModules) {
+      const isVendor = this.allModules instanceof VendorModule;
+      throw new ChildModuleError(
+        `${isVendor ? 'Vendor ' : ''}Module named ${instance.instanceName} already a child of module ${this.moduleName}`
+      );
+    }
+
+    this.description.vendorModules[instance.instanceName] = instance;
+    this.allModules[instance.instanceName] = instance;
   }
 
   abstract describe(): void;

@@ -1,5 +1,5 @@
 import { sliceTransform } from './slice-transform';
-import { BaseSignalReference, SignalReference } from './../signal';
+import { BaseSignalReference, ConstantSignal, SignalReference } from './../signal';
 import { arrayDiff, partialHash, whenNotEmpty } from './../util';
 import { ProcessEvaluator, ProcessMode } from './process-eval';
 import { Indent } from './indent';
@@ -53,7 +53,7 @@ const generateVerilogForModule = (m: GWModule, generatedModules: GeneratedModule
   const submoduleOutputMap: SubmoduleOutputMap = new Map();
   for (let [instanceName, submodule] of Object.entries(m.description.submodules)) {
     for (let [outputName, outputSignal] of Object.entries(submodule.instance.output)) {
-      // (Reproducably) avoid naming collisions by hashing the submodule name + output
+      // (Reproducibly) avoid naming collisions by hashing the submodule name + output
       let wireName = `${instanceName}_${outputName}`;
       wireName += `_${partialHash(wireName)}`;
       submoduleOutputMap.set(outputSignal, wireName);
@@ -134,6 +134,58 @@ const generateVerilogForModule = (m: GWModule, generatedModules: GeneratedModule
   });
   i.pop();
 
+  // Vendor module output wires
+  i.push();
+  const vmOutputWires: Array<string> = [];
+  Object.values(m.description.vendorModules).forEach(vm => {
+    Object.values(vm.outputSignals).forEach(outputSignal => {
+      vmOutputWires.push(
+        `${i.get()}wire ${verilogWidth(outputSignal.width)} ${outputSignal.toWireName()};`
+      );
+    });
+  });
+  i.pop();
+
+  // Vendor module instantiations
+  i.push();
+  const vmModuleStrings: Array<string> = [];
+
+  for (let [instanceName, vendorModule] of Object.entries(m.description.vendorModules)) {
+    let vmVerilog = `${i.get()}${vendorModule.moduleName} `;
+    if (Object.keys(vendorModule.params).length > 0) {
+      const parameterStrings: Array<string> = [];
+
+      vmVerilog += '#(\n';
+      i.push();
+      for (let [paramName, paramValue] of Object.entries(vendorModule.params)) {
+        const paramValueStr = paramValue instanceof ConstantSignal
+          ? evaluator.evaluateConstant(paramValue)
+          : `"${paramValue.value}"`;
+
+          parameterStrings.push(`${i.get()}.${paramName}(${paramValueStr})`);
+      }
+      i.pop();
+      vmVerilog += parameterStrings.join(',\n') + '\n';
+      vmVerilog += `${i.get()}) `;
+    }
+
+    vmVerilog += instanceName + ' (\n';
+    i.push();
+    const argStrings: Array<string> = [];
+    for (let [inputName, inputSignal] of Object.entries(vendorModule.inputs)) {
+      argStrings.push(`${i.get()}.${inputName}(${evaluator.evaluate(inputSignal)})`);
+    }
+    for (let [outputName, outputSignal] of Object.entries(vendorModule.outputSignals)) {
+      argStrings.push(`${i.get()}.${outputName}(${outputSignal.toWireName()})`);
+    }
+    i.pop();
+    vmVerilog += argStrings.join(',\n') + '\n';
+    vmVerilog += `${i.get()});`;
+
+    vmModuleStrings.push(vmVerilog);
+  }
+  i.pop();
+
 
   // Add submodule instantiations
   let submoduleDeclarations = '';
@@ -162,7 +214,7 @@ const generateVerilogForModule = (m: GWModule, generatedModules: GeneratedModule
   i.pop();
 
   i.push();
-  let smOutputWires: Array<string> = [];
+  const smOutputWires: Array<string> = [];
   for (let [signal, name] of submoduleOutputMap.entries()) {
     smOutputWires.push(`${i.get()}wire ${verilogWidth(signal.width)} ${name};`);
   }
@@ -170,8 +222,10 @@ const generateVerilogForModule = (m: GWModule, generatedModules: GeneratedModule
 
   verilog += moduleInternalStrings.join('\n') + whenNotEmpty(moduleInternalStrings, '\n');
   verilog += smOutputWires.join('\n') + whenNotEmpty(smOutputWires, '\n\n');
+  verilog += vmOutputWires.join('\n') + whenNotEmpty(vmOutputWires, '\n\n');
   verilog += moduleMemoryStrings.join('\n') + whenNotEmpty(moduleMemoryStrings, '\n\n');
   verilog += sliceAssignStrings.join('\n') + whenNotEmpty(sliceAssignStrings, '\n\n');
+  verilog += vmModuleStrings.join('\n') + whenNotEmpty(vmModuleStrings, '\n\n');
   verilog += submoduleDeclarations;
   verilog += combBlocks + whenNotEmpty(syncBlocks, '\n\n');
   verilog += syncBlocks;
