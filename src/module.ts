@@ -4,10 +4,11 @@ import { SignalReference, Memory, ReadonlySignalReference, ProxySignalReference 
 import { arrayDiff } from './util';
 import { VendorModule } from './vendor';
 
-enum ModuleSignalType {
-  Input     = 'Input',
-  Internal  = 'Internal',
-  Output    = 'Output',
+export enum ModuleSignalType {
+  Input         = 'Input',
+  Internal      = 'Internal',
+  Output        = 'Output',
+  Bidirectional = 'Bidirectional',
 }
 
 type SyncProcess = {
@@ -32,6 +33,7 @@ export abstract class GWModule {
   input: Record<string, SignalReference> = {};
   internal: Record<string, SignalReference> = {};
   output: Record<string, SignalReference> = {};
+  bidirectional: Record<string, SignalReference> = {};
   memories: Record<string, Memory> = {};
   private signals: Record<string, SignalReference> = {};
   private allModules: Record<string, GWModule | VendorModule> = {};
@@ -83,6 +85,7 @@ export abstract class GWModule {
       case ModuleSignalType.Input: { this.input[name] = signal; break; }
       case ModuleSignalType.Internal: { this.internal[name] = signal; break; }
       case ModuleSignalType.Output: { this.output[name] = signal; break; }
+      case ModuleSignalType.Bidirectional: { this.bidirectional[name] = signal; break; }
     }
 
     return signal;
@@ -91,6 +94,7 @@ export abstract class GWModule {
   addInput(name: string, width: number) { return this.addSignal(ModuleSignalType.Input, name, width); }
   addInternal(name: string, width: number) { return this.addSignal(ModuleSignalType.Internal, name, width); }
   addOutput(name: string, width: number) { return this.addSignal(ModuleSignalType.Output, name, width); }
+  addBidirectional(name: string, width: number) { return this.addSignal(ModuleSignalType.Bidirectional, name, width); }
 
   addMemory(name: string, width: number, depth: number) {
     if (name in this.memories) {
@@ -117,6 +121,19 @@ export abstract class GWModule {
       throw new Error(`getSignal: Signal "${name}" doesn't exist on module "${this.moduleName}"`);
     }
     return this.signals[name];
+  }
+
+  getSignalType(name: string) {
+    if (!(name in this.signals)) {
+      throw new Error(`getSignalType: Signal "${name}" doesn't exist on module "${this.moduleName}"`);
+    }
+
+    if (name in this.input) return ModuleSignalType.Input;
+    if (name in this.output) return ModuleSignalType.Output;
+    if (name in this.bidirectional) return ModuleSignalType.Bidirectional;
+    if (name in this.internal) return ModuleSignalType.Internal;
+
+    throw new Error('Signal type is unknown');
   }
 
   getMemory(name: string) {
@@ -191,7 +208,10 @@ export abstract class SimulationModule {
 
   input: Record<string, ProxySignalReference> = {};
   output: Record<string, ReadonlySignalReference> = {};
+  bidirectional: Record<string, ReadonlySignalReference> = {};
   internal: Record<string, ProxySignalReference> = {};
+
+  private signals: Record<string, ProxySignalReference | ReadonlySignalReference> = {};
 
   constructor(name: string, moduleUnderTest: GWModule) {
     this.moduleName = name;
@@ -206,6 +226,18 @@ export abstract class SimulationModule {
         signalName: moduleUnderTest.input[inputName].signalName,
         testModule: this
       });
+      this.signals[inputName] = this.input[inputName];
+    }
+
+    // Create signals for controlling the MUT bidirectional signals
+    for (const bidirectionalName of Object.keys(moduleUnderTest.input)) {
+      this.bidirectional[bidirectionalName] = new ProxySignalReference({
+        module: this.moduleUnderTest,
+        width: moduleUnderTest.input[bidirectionalName].width,
+        signalName: moduleUnderTest.input[bidirectionalName].signalName,
+        testModule: this
+      });
+      this.signals[bidirectionalName] = this.bidirectional[bidirectionalName];
     }
 
     // Create read-only reference signals for the MUT outputs
@@ -216,6 +248,7 @@ export abstract class SimulationModule {
         signalName: moduleUnderTest.output[outputName].signalName,
         testModule: this
       });
+      this.signals[outputName] = this.output[outputName];
     }
   }
 
@@ -272,6 +305,26 @@ export abstract class SimulationModule {
       throw new SimulationModuleError(`No readable output signal ${name} on simulation module ${this.moduleName}`);
     }
     return this.output[name];
+  }
+
+  getBidirectional(name: string) {
+    if (!(name in this.output)) {
+      throw new SimulationModuleError(`No bidirectional signal ${name} on simulation module ${this.moduleName}`);
+    }
+    return this.bidirectional[name];
+  }
+
+  getSignalType(name: string) {
+    if (!(name in this.signals)) {
+      throw new Error(`getSignalType: Signal "${name}" doesn't exist on module "${this.moduleName}"`);
+    }
+
+    if (name in this.input) return ModuleSignalType.Input;
+    if (name in this.output) return ModuleSignalType.Output;
+    if (name in this.bidirectional) return ModuleSignalType.Bidirectional;
+    if (name in this.internal) return ModuleSignalType.Internal;
+
+    throw new Error('Signal type is unknown');
   }
 
   abstract describe(): void;

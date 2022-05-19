@@ -1,5 +1,5 @@
 import { MemoryElement, ProxySignalReference, SliceSignal } from './../signal';
-import { SignalOwnershipError, MultiDriverConflictError, SimulationModuleError, SliceError } from '../gw-error';
+import { SignalOwnershipError, MultiDriverConflictError, SimulationModuleError, SliceError, BidirectionalSignalError } from '../gw-error';
 import { Indent } from './indent';
 import { DriverMap } from ".";
 import { GWModule, SimulationModule } from "../module";
@@ -137,6 +137,12 @@ export class ProcessEvaluator {
   evaluateEdge(e: Edge) { return e === Edge.Positive ? 'posedge' : 'negedge'; }
 
   evaluateAssignment(e: Assignment) {
+    if (this.mode === ProcessMode.Combinational) {
+      if (this.m.getSignalType(e.lhs.signalName)) {
+        throw new BidirectionalSignalError(`Cannot assign bidirectional signal "${e.lhs.signalName}" in a combinational process`);
+      }
+    }
+
     switch (e.lhs.type) {
       case SignalNodeType.Signal: return this.evaluateAssignmentSignal(e);
       case SignalNodeType.ProxySignal: return this.evaluateProxyAssignmentSignal(e);

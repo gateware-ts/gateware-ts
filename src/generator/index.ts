@@ -74,6 +74,7 @@ const generateVerilogForModule = (m: GWModule, generatedModules: GeneratedModule
 
   // Understand if all outputs of this module are being driven
   const outputSignalNames = Object.keys(m.output);
+  const bidirectionalSignalNames = Object.keys(m.bidirectional);
   const drivenSignals = [...Object.keys(drivers.comb), ...Object.keys(drivers.sync)];
   const nonDrivenOutputs = arrayDiff(outputSignalNames, drivenSignals);
 
@@ -81,8 +82,8 @@ const generateVerilogForModule = (m: GWModule, generatedModules: GeneratedModule
     throw new UndrivenSignalError(`${m.moduleName}: The following outputs are not driven by any process: ${nonDrivenOutputs.join(', ')}`);
   }
 
-  if (outputSignalNames.length <= 0) {
-    throw new MissingPortError(`${m.moduleName} contains no output signals.`);
+  if (outputSignalNames.length <= 0 && bidirectionalSignalNames.length <= 0) {
+    throw new MissingPortError(`${m.moduleName} contains no output or bidirectional signals.`);
   }
 
   // Generate module declaration
@@ -101,7 +102,14 @@ const generateVerilogForModule = (m: GWModule, generatedModules: GeneratedModule
     return `${i.get()}output ${regPart} ${verilogWidth(signal.width)} ${name}`;
   });
 
-  verilog += moduleInputStrings.join(',\n') + ',';
+  const moduleBidirectionalStrings = bidirectionalSignalNames.map(name => {
+    const signal = m.getSignal(name);
+    const regPart = 'reg';
+    return `${i.get()}inout ${regPart} ${verilogWidth(signal.width)} ${name}`;
+  });
+
+  verilog += moduleInputStrings.join(',\n') + ',\n';
+  verilog += moduleBidirectionalStrings.join(',\n') + whenNotEmpty(moduleBidirectionalStrings, ',');
   verilog += '\n' + moduleOutputStrings.join(',\n');
 
   i.pop();

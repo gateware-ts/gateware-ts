@@ -14,3 +14,4 @@ export class ValidNumericTypeError extends Error {}
 export class MissingPortError extends Error {}
 export class VendorSignalError extends Error {}
 export class ChildModuleError extends Error {}
+export class BidirectionalSignalError extends Error {}
