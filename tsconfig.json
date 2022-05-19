@@ -1,26 +1,13 @@
 {
   "compilerOptions": {
-    "target": "es2020",
-    "lib": ["es2020", "dom"],
-    "types": ["node"],
+    "target": "ESNext",
+    "module": "commonjs",
+    "outDir": "dist",
     "sourceMap": true,
-
-    "declaration": true,
-    "declarationDir": "./dist",
-    "outDir": "./dist",
-    "module": "CommonJS",
-    "moduleResolution": "node"
+    "noImplicitAny": true,
+    "removeComments": false,
+    "preserveConstEnums": true,
+    "esModuleInterop": true,
+    "declaration": true
   },
-
-  "include": [
-    "./src/**/*",
-    "./vendor-modules/**/*",
-    "./testware/**/*",
-  ],
-  "exclude": [
-    "./dist",
-    "./node_modules",
-    "./test",
-  ]
 }
-

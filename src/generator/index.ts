@@ -1,665 +1,308 @@
-import { SignalArrayT } from './../signals';
-import * as path from 'path';
-import { writeFile } from 'fs';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { sliceTransform } from './slice-transform';
+import { BaseSignalReference, ConstantSignal, SignalReference } from './../signal';
+import { arrayDiff, partialHash, whenNotEmpty } from './../util';
+import { ProcessEvaluator, ProcessMode } from './process-eval';
+import { Indent } from './indent';
+import { GWModule, SimulationModule } from "../module";
+import { MissingPortError, UndrivenSignalError } from '../gw-error';
+import { Evaluator } from './evaluator';
 
-import { MODULE_CODE_ELEMENTS, SIMULATION_CODE_ELEMENTS, ASSIGNMENT_EXPRESSION, SIGNAL_ARRAY } from './../constants';
-import {
-  CodeElements,
-  SimulationCodeElements,
-  ModuleCodeElements,
-  CombinationalSignalType,
-  Port,
-  UnsliceableExpressionMap,
-  PortOrSignalArray
-} from './../main-types';
-import { TabLevel, flatten } from '../helpers';
-import { GWModule } from "../gw-module";
-import { SignalT, ConstantT } from "../signals";
-import { getRegSize, mapNamesToSignals } from './common';
-import { VendorModule } from "../vendor-module";
-import { timescaleToUnit } from '../simulation';
-import { SyncBlockEvaluator } from './sync-block-evaluation';
-import { CombLogicEvaluator } from './comb-logic-evaluation';
-import { ParameterEvaluator } from './parameter-evaluation';
-import { SimulationEvaluator } from './simulation-evaluation';
-import {
-  PortWiring,
-  GeneratedVerilogObject,
-  ParameterString,
-  TimeScaleValue
-} from "../main-types";
-import { ExpressionEvaluator } from './expression-evaluation';
+type GeneratedModules = Map<GWModule, boolean>;
+export type DriverMap = {
+  sync: Record<string, number>;
+  comb: Record<string, number>;
+}
+export type SubmoduleOutputMap = Map<SignalReference, string>;
 
-type ModuleName = string;
-type WireName = string;
-type PortToWire = Map<Port, [WireName, ModuleName]>;
-
-/** @internal */
-const codeElementsToString = (ce:CodeElements) => {
-  if (ce.type === MODULE_CODE_ELEMENTS) {
-    return (
-      ce.header + '\n' +
-      ce.internalRegisters + (ce.internalRegisters ? '\n' : '') +
-      ce.internalWires + (ce.internalWires ? '\n' : '') +
-      ce.wireDeclarations + (ce.wireDeclarations ? '\n\n' : '') +
-      ce.initialBlock + (ce.initialBlock ? '\n\n' : '') +
-      ce.assignments + (ce.assignments ? '\n\n' : '') +
-      ce.vendorModules + (ce.vendorModules ? '\n\n' : '') +
-      ce.submodules + (ce.submodules ? '\n' : '') +
-      ce.combAssigns + (ce.combAssigns ? '\n' : '') +
-      ce.combAlways + (ce.combAlways ? '\n' : '') +
-      ce.syncBlocks + (ce.syncBlocks ? '\n' : '') +
-      'endmodule'
-    );
-  } else if (ce.type === SIMULATION_CODE_ELEMENTS) {
-    return (
-      ce.timescale + '\n\n' +
-      ce.header + '\n' +
-      ce.registers + '\n' +
-      ce.wires + '\n\n' +
-      ce.alwaysStarBlock + '\n\n' +
-      ce.submodules + '\n\n' +
-      ce.everyTimescaleBlocks + '\n\n' +
-      ce.simulationRunBlock + '\n' +
-      ce.vcdBlock + '\n' +
-      'endmodule'
-    );
-  }
+export type GeneratedSliceSource = {
+  name: string;
+  width: number;
+  signal: BaseSignalReference;
 };
+export type GeneratedSliceMap = Record<string, GeneratedSliceSource>;
 
-/** @internal */
-const isSyncDriven = (s:PortOrSignalArray, syncDrivenSignals:PortOrSignalArray[]):boolean => syncDrivenSignals.includes(s);
+const verilogWidth = (n: number) => n === 1 ? '' : `[${n-1}:0]`;
 
-/** @internal */
-const isCombinationalRegister = (s:PortOrSignalArray, signalTypes:Map<PortOrSignalArray, CombinationalSignalType>):boolean => {
-  return signalTypes.get(s) === CombinationalSignalType.Register;
+const useSliceTransform = true;
+
+const generateVerilogForModule = (m: GWModule, generatedModules: GeneratedModules) => {
+  // Skip generating code for this module if it has already been done
+  if (generatedModules.get(m)) return '';
+
+  m.clearDescription();
+  m.describe();
+  generatedModules.set(m, true);
+
+  // Generated wire assigns
+  const generatedSliceSources: GeneratedSliceMap = {};
+
+  if (useSliceTransform) {
+    m.description.syncProcesses.forEach(syncProcess => {
+      sliceTransform(syncProcess.elements, m, generatedSliceSources);
+    });
+
+    m.description.combinationalProcesses.forEach(combProcess => {
+      sliceTransform(combProcess, m, generatedSliceSources);
+    });
+  }
+
+  const i = new Indent();
+  let verilog = '';
+
+  // Populate the submodule output map
+  const submoduleOutputMap: SubmoduleOutputMap = new Map();
+  for (let [instanceName, submodule] of Object.entries(m.description.submodules)) {
+    for (let [outputName, outputSignal] of Object.entries(submodule.instance.output)) {
+      // (Reproducibly) avoid naming collisions by hashing the submodule name + output
+      let wireName = `${instanceName}_${outputName}`;
+      wireName += `_${partialHash(wireName)}`;
+      submoduleOutputMap.set(outputSignal, wireName);
+    }
+  }
+
+  // Keep track of which kind of process drives each signal
+  const drivers: DriverMap = { sync: {}, comb: {} };
+  const evaluator = new Evaluator(m, i, submoduleOutputMap);
+  const syncEval = new ProcessEvaluator(ProcessMode.Synchronous, m, evaluator, i, drivers);
+  const combEval = new ProcessEvaluator(ProcessMode.Combinational, m, evaluator, i, drivers);
+
+  // Generate verilog for processes
+  i.push();
+  const syncBlocks = syncEval.evaluate();
+  const combBlocks = combEval.evaluate();
+  i.pop();
+
+  // Understand if all outputs of this module are being driven
+  const outputSignalNames = Object.keys(m.output);
+  const bidirectionalSignalNames = Object.keys(m.bidirectional);
+  const drivenSignals = [...Object.keys(drivers.comb), ...Object.keys(drivers.sync)];
+  const nonDrivenOutputs = arrayDiff(outputSignalNames, drivenSignals);
+
+  if (nonDrivenOutputs.length > 0) {
+    throw new UndrivenSignalError(`${m.moduleName}: The following outputs are not driven by any process: ${nonDrivenOutputs.join(', ')}`);
+  }
+
+  if (outputSignalNames.length <= 0 && bidirectionalSignalNames.length <= 0) {
+    throw new MissingPortError(`${m.moduleName} contains no output or bidirectional signals.`);
+  }
+
+  // Generate module declaration
+  verilog += `module ${m.moduleName} (\n`;
+  i.push();
+
+  const inputSignalNames = Object.keys(m.input);
+  const moduleInputStrings = inputSignalNames.map(name => {
+    const signal = m.getSignal(name);
+    return `${i.get()}input ${verilogWidth(signal.width)} ${name}`;
+  });
+
+  const moduleOutputStrings = outputSignalNames.map(name => {
+    const signal = m.getSignal(name);
+    const regPart = 'reg';
+    return `${i.get()}output ${regPart} ${verilogWidth(signal.width)} ${name}`;
+  });
+
+  const moduleBidirectionalStrings = bidirectionalSignalNames.map(name => {
+    const signal = m.getSignal(name);
+    const regPart = 'reg';
+    return `${i.get()}inout ${regPart} ${verilogWidth(signal.width)} ${name}`;
+  });
+
+  verilog += moduleInputStrings.join(',\n') + ',\n';
+  verilog += moduleBidirectionalStrings.join(',\n') + whenNotEmpty(moduleBidirectionalStrings, ',');
+  verilog += '\n' + moduleOutputStrings.join(',\n');
+
+  i.pop();
+  verilog += `\n);\n`;
+
+  // Declare internal signals
+  i.push();
+  const internalSignalNames = Object.keys(m.internal);
+  const moduleInternalStrings = internalSignalNames.map(name => {
+    const signal = m.getSignal(name);
+    const regPart = name in generatedSliceSources ? 'wire' : 'reg';
+    return `${i.get()}${regPart} ${verilogWidth(signal.width)} ${name};`;
+  });
+  i.pop();
+
+  // Declare memories
+  i.push();
+  const memoryNames = Object.keys(m.memories);
+  const moduleMemoryStrings = memoryNames.map(name => {
+    const memory = m.getMemory(name);
+    const regPart = 'reg';
+    return `${i.get()}${regPart} ${verilogWidth(memory.width)} ${name} ${verilogWidth(memory.depth)};`;
+  });
+  i.pop();
+
+  // Generated slice source assigns
+  i.push();
+  const sliceAssignStrings = Object.values(generatedSliceSources).map(s => {
+    return `${i.get()}assign ${s.name} = ${evaluator.evaluate(s.signal)};`;
+  });
+  i.pop();
+
+  // Vendor module output wires
+  i.push();
+  const vmOutputWires: Array<string> = [];
+  Object.values(m.description.vendorModules).forEach(vm => {
+    Object.values(vm.outputSignals).forEach(outputSignal => {
+      vmOutputWires.push(
+        `${i.get()}wire ${verilogWidth(outputSignal.width)} ${outputSignal.toWireName()};`
+      );
+    });
+  });
+  i.pop();
+
+  // Vendor module instantiations
+  i.push();
+  const vmModuleStrings: Array<string> = [];
+
+  for (let [instanceName, vendorModule] of Object.entries(m.description.vendorModules)) {
+    let vmVerilog = `${i.get()}${vendorModule.moduleName} `;
+    if (Object.keys(vendorModule.params).length > 0) {
+      const parameterStrings: Array<string> = [];
+
+      vmVerilog += '#(\n';
+      i.push();
+      for (let [paramName, paramValue] of Object.entries(vendorModule.params)) {
+        const paramValueStr = paramValue instanceof ConstantSignal
+          ? evaluator.evaluateConstant(paramValue)
+          : `"${paramValue.value}"`;
+
+          parameterStrings.push(`${i.get()}.${paramName}(${paramValueStr})`);
+      }
+      i.pop();
+      vmVerilog += parameterStrings.join(',\n') + '\n';
+      vmVerilog += `${i.get()}) `;
+    }
+
+    vmVerilog += instanceName + ' (\n';
+    i.push();
+    const argStrings: Array<string> = [];
+    for (let [inputName, inputSignal] of Object.entries(vendorModule.inputs)) {
+      argStrings.push(`${i.get()}.${inputName}(${evaluator.evaluate(inputSignal)})`);
+    }
+    for (let [outputName, outputSignal] of Object.entries(vendorModule.outputSignals)) {
+      argStrings.push(`${i.get()}.${outputName}(${outputSignal.toWireName()})`);
+    }
+    i.pop();
+    vmVerilog += argStrings.join(',\n') + '\n';
+    vmVerilog += `${i.get()});`;
+
+    vmModuleStrings.push(vmVerilog);
+  }
+  i.pop();
+
+
+  // Add submodule instantiations
+  let submoduleDeclarations = '';
+  i.push();
+  for (let [instanceName, submodule] of Object.entries(m.description.submodules)) {
+    let smVerilog = `${i.get()}${submodule.instance.moduleName} ${instanceName}(\n`;
+    i.push();
+
+    for (let [inputName, signal] of Object.entries(submodule.inputs)) {
+      smVerilog += `${i.get()}.${inputName}(${evaluator.evaluateSignal(signal)}),\n`;
+    }
+
+    const smOutputNamesSignals = Object.entries(submodule.instance.output);
+    for (let idx = 0; idx < smOutputNamesSignals.length; idx++) {
+      const [outputName, signal] = smOutputNamesSignals[idx];
+      // Sigh. If only every language allowed trailing commas...
+      const commaPart = idx < smOutputNamesSignals.length - 1 ? ',' : '';
+      smVerilog += `${i.get()}.${outputName}(${submoduleOutputMap.get(signal)})${commaPart}\n`;
+    }
+
+    i.pop();
+    smVerilog += `${i.get()});\n`;
+
+    submoduleDeclarations += smVerilog;
+  }
+  i.pop();
+
+  i.push();
+  const smOutputWires: Array<string> = [];
+  for (let [signal, name] of submoduleOutputMap.entries()) {
+    smOutputWires.push(`${i.get()}wire ${verilogWidth(signal.width)} ${name};`);
+  }
+  i.pop();
+
+  verilog += moduleInternalStrings.join('\n') + whenNotEmpty(moduleInternalStrings, '\n');
+  verilog += smOutputWires.join('\n') + whenNotEmpty(smOutputWires, '\n\n');
+  verilog += vmOutputWires.join('\n') + whenNotEmpty(vmOutputWires, '\n\n');
+  verilog += moduleMemoryStrings.join('\n') + whenNotEmpty(moduleMemoryStrings, '\n\n');
+  verilog += sliceAssignStrings.join('\n') + whenNotEmpty(sliceAssignStrings, '\n\n');
+  verilog += vmModuleStrings.join('\n') + whenNotEmpty(vmModuleStrings, '\n\n');
+  verilog += submoduleDeclarations;
+  verilog += combBlocks + whenNotEmpty(syncBlocks, '\n\n');
+  verilog += syncBlocks;
+
+  verilog += '\nendmodule';
+
+  const submoduleDefinitions = Object.values(m.description.submodules).map(submodule =>
+    generateVerilogForModule(submodule.instance, generatedModules)
+  );
+
+  verilog += whenNotEmpty(submoduleDefinitions, '\n\n' + submoduleDefinitions.join('\n\n')) ;
+
+  return verilog;
 }
 
-/** @internal */
-const writeFileP = promisify(writeFile);
-/** @internal */
-const execP = promisify(exec);
-/** @internal */
-const cleanupFiles = (filenames:string[]) => exec(`rm ${filenames.join(' ')}`);
+export const toVerilog = (topModule: GWModule) => {
+  const generatedModules: GeneratedModules = new Map();
+  return `\`default_nettype none\n\n${generateVerilogForModule(topModule, generatedModules)}`;
+}
 
-export enum DeviceTypes {
-  lp384 = 'lp384',
-  lp1k = 'lp1k',
-  lp4k = 'lp4k',
-  lp8k = 'lp8k',
-  hx1k = 'hx1k',
-  hx4k = 'hx4k',
-  hx8k = 'hx8k',
-  up3k = 'up3k',
-  up5k = 'up5k',
-  u1k = 'u1k',
-  u2k = 'u2k',
-  u4k = 'u4k',
-};
+export const toSimulation = (simulationModule: SimulationModule) => {
+  const {moduleUnderTest} = simulationModule;
+  moduleUnderTest.describe();
+  simulationModule.describe();
+  const mainCode = toVerilog(moduleUnderTest);
 
-interface SimulationOptions {
-  enabled: boolean;
-  timescale: TimeScaleValue[]
-};
+  const i = new Indent();
+  const e = new Evaluator(simulationModule, i, new Map());
+  const evaluator = new ProcessEvaluator(ProcessMode.Test, simulationModule, e, i, {comb: {}, sync: {}});
 
-interface CodeGeneratorOptions {
-  simulation?: SimulationOptions;
-  pcfPath?: string;
-  deviceType?: DeviceTypes;
-};
+  const mutSignals = [...Object.keys(moduleUnderTest.input), ...Object.keys(moduleUnderTest.output)];
 
-/**
- * Class for generating verilog, bitstreams, and running simulations
- */
-export class CodeGenerator {
-  /** @internal */
-  options:CodeGeneratorOptions;
-  /**
-   * the working module
-   */
-  m:GWModule;
+  const generatedSliceSources: GeneratedSliceMap = {};
 
-  /**
-   * Creates a new CodeGenerator
-   * @param m top level module
-   * @param options configuration options
-   */
-  constructor(m:GWModule, options:CodeGeneratorOptions = {}) {
-    this.options = options || {};
-    this.m = m;
-
-    // Reinitialise module
-    m.reset();
-    m.init();
-    m.describe();
+  if (useSliceTransform) {
+    sliceTransform(simulationModule.description.simulation, simulationModule, generatedSliceSources);
   }
 
-  /**
-   * Compiles [[CodeGenerator.m]] to verilog as if it were a simulation, creating an associated
-   * VCD wave file if provided
-   * Cleans up all associated files after simulating, except the VCD
-   * @param projectName the name of the project (generated files will use this name)
-   * @param vcdFile the name of VCD wave file to generate
-   */
-  async runSimulation(projectName:string, vcdFile?:string, cleanupIntermediateFiles = true) {
-    try {
-      if (vcdFile) {
-        this.m.simulation.outputVcdFile(vcdFile);
-      }
-
-      await this.writeVerilogToFile(`${projectName}-tb`);
-      const iverilogCommand = `iverilog -o ${projectName}.vpp ${projectName}-tb.v`;
-      await execP(iverilogCommand);
-
-      const vvpCommand = `vvp ${projectName}.vpp`;
-      await execP(vvpCommand).then(({stdout}) => {
-        process.stdout.write(stdout);
-      });
-    } catch (ex) {
-      if (cleanupIntermediateFiles) {
-        await cleanupFiles([
-          `${projectName}-tb.v`,
-          `${projectName}.vpp`
-        ]);
-      }
-      throw ex;
-    }
-
-    process.stdout.write('gateware-ts: Finished running simulation. Cleaning up...');
-    if (cleanupIntermediateFiles) {
-      await cleanupFiles([
-        `${projectName}-tb.v`,
-        `${projectName}.vpp`
-      ]);
-    }
-
-    process.exit(0);
-  }
-
-  /**
-   * Compiles [[CodeGenerator.m]] to verilog and writes it to a file
-   * @param projectName the name of the project (generated files will use this name)
-   */
-  async writeVerilogToFile(projectName:string) {
-    const filename = /\.v$/.test(projectName)
-      ? projectName
-      : projectName + '.v';
-    const verilog = this.toVerilog();
-    await writeFileP(`${filename}`, verilog);
-    process.stdout.write(`Wrote verilog to ${filename}\n`);
-  }
-
-  /**
-   * Compiles [[CodeGenerator.m]] to verilog, performs synthesis, routing, and creates a bitstream
-   * @param projectName the name of the project (generated files will use this name)
-   * @param cleanupIntermediateFiles if true, the files generated during compilation, synthesis, and routing will be removed
-   */
-  async buildBitstream(projectName:string, cleanupIntermediateFiles:boolean = true) {
-    try {
-      const verilog = this.toVerilog();
-      await writeFileP(`${projectName}.v`, verilog);
-      process.stdout.write(`Wrote verilog (${projectName}.v)\n`);
-
-      const yosysCommand = `yosys -q -p 'synth_ice40 -top ${this.m.moduleName} -json ${projectName}.json' ${projectName}.v`;
-      await execP(yosysCommand);
-      process.stdout.write(`Completed synthesis.\n`);
-
-      const constraintsFile = this.options.pcfPath
-        ? path.join(process.cwd(), this.options.pcfPath)
-        : path.join(__dirname, '../../board-constraints/icebreaker.pcf');
-
-      const deviceTypeArgument = this.options.deviceType
-        ? `--${this.options.deviceType}`
-        : `--up5k`;
-
-      const nextpnrCommand = `nextpnr-ice40 ${deviceTypeArgument} --json ${projectName}.json --pcf ${constraintsFile} --asc ${projectName}.asc`;
-      await execP(nextpnrCommand);
-      process.stdout.write(`Completed place and route.\n`);
-
-      const icepackCommand = `icepack ${projectName}.asc ${projectName}.bin`;
-      await execP(icepackCommand);
-      process.stdout.write(`Built bitstream.\n`);
-
-      if (cleanupIntermediateFiles) {
-        process.stdout.write(`Cleaning up intermediate files.\n`);
-        await cleanupFiles([
-          `${projectName}.v`,
-          `${projectName}.json`,
-          `${projectName}.asc`
-        ]);
-      }
-      process.stdout.write(`Done!\n`);
-    } catch (ex) {
-      if (cleanupIntermediateFiles) {
-        await cleanupFiles([
-          `${projectName}.v`,
-          `${projectName}.json`,
-          `${projectName}.asc`
-        ]);
-      }
-
-      console.error(ex);
-      process.exit(1);
-    }
-  }
-
-  /** @internal */
-  generateVerilogCodeForModule(m:GWModule, thisIsASimulation:boolean):GeneratedVerilogObject {
-    const t = new TabLevel('  ', 1);
-
-    const mSubmodules = m.getSubmodules();
-    const mVendorModules = m.getVendorModules();
-    const allChildModules = [...mSubmodules, ...mVendorModules];
-
-    const thisModuleHasSubmodules = (mSubmodules.length + mVendorModules.length) > 0;
-
-    const syncLogic = m.getSyncBlocks();
-    const combLogic = m.getCombinationalLogic();
-
-    const signalMap = m.getSignalMap();
-    const namesToSignals = {
-      input: mapNamesToSignals(signalMap.input),
-      output: mapNamesToSignals(signalMap.output),
-      internal: mapNamesToSignals(signalMap.internal),
-    };
-
-    const unsliceableExpressionMap:UnsliceableExpressionMap = [];
-
-    const syncEval = new SyncBlockEvaluator(m, unsliceableExpressionMap, 1);
-    const combEval = new CombLogicEvaluator(m, unsliceableExpressionMap, 1);
-    const simEval = new SimulationEvaluator(m, unsliceableExpressionMap, 1);
-    const exprEval = new ExpressionEvaluator(m, unsliceableExpressionMap);
-    const paramEval = new ParameterEvaluator();
-
-    if (thisIsASimulation) {
-      if (syncLogic.length) {
-        console.warn([
-          'Warning: Synchronous logic detected in the top level simulation module.',
-          'This logic will have no effect. Use GWModule.simulation.run() instead.'
-        ].join(' '))
-      }
-      if (combLogic.length) {
-        console.warn([
-          'Warning: Combinational logic detected in the top level simulation module.',
-          'This logic will have no effect. Use GWModule.simulation.run() instead.'
-        ].join(' '))
-      }
-
-      const everyTimescaleBlocks = simEval.getEveryTimescaleBlocks();
-      const simulationRunBlock = simEval.getRunBlock();
-      const unsliceableWires = unsliceableExpressionMap.map(([signal, name]) => {
-        return `${t.l()}wire ${getRegSize(signal as Port)}${name};`;
-      }).join('\n');
-      const header = `module ${this.m.moduleName};`;
-      const registers = simEval.getRegisterBlock();
-      const wires = simEval.getWireBlock() + '\n' + unsliceableWires;
-      const submodules = simEval.getSubmodules();
-      const vcdBlock = simEval.getVcdBlock();
-
-      const alwaysStarBlock = [
-        `${t.l()}always @(*) begin`,
-        ...unsliceableExpressionMap.map(([_, name, code]) =>  {
-          return `${t.l(1)}assign ${name} = ${code};`;
-        }),
-        `${t.l()}end`,
-      ].join('\n');
-
-
-      const ts = this.options.simulation.timescale;
-      const timescale = `\`timescale ${''
-      }${ts[0].value}${timescaleToUnit(ts[0].timescale)}${''
-      }/${ts[1].value}${timescaleToUnit(ts[1].timescale)}`;
-
-      const code:SimulationCodeElements = {
-        type: SIMULATION_CODE_ELEMENTS,
-        timescale,
-        header,
-        registers,
-        wires,
-        alwaysStarBlock,
-        submodules,
-        everyTimescaleBlocks,
-        simulationRunBlock,
-        vcdBlock
-      };
-
-      return {
-        code,
-        submodules: m.getSubmodules().map(submoduleReference => submoduleReference.m)
-      };
-    }
-
-    const syncBlocks = syncLogic.map(block => syncEval.evaluateBlock(block)).join('\n\n');
-
-    let combAssigns = '';
-    let combAlways = `${t.l()}always @(*) begin\n`;
-    combLogic.forEach(expr => {
-      const code = combEval.evaluate(expr);
-      if (expr.type === ASSIGNMENT_EXPRESSION) {
-        combAssigns += `${code}\n`;
-      } else {
-        combAlways += `${code}\n`;
-      }
-    });
-
-    const unsliceableWires = unsliceableExpressionMap.map(([signal, name]) => {
-      return `${t.l()}wire ${getRegSize(signal as Port)}${name};`;
-    }).join('\n');
-    combAssigns = unsliceableExpressionMap.map(([_, name, value]) => {
-      return `${t.l()}assign ${name} = ${value};\n`;
-    }).join('\n') + combAssigns;
-
-    combAlways += `${t.l()}end`;
-    combAssigns = combAssigns.trimEnd();
-
-    if (combAlways === `${t.l()}always @(*) begin\n${t.l()}end`) {
-      combAlways = '';
-    }
-
-    const cDriven = combEval.getDrivenSignals();
-    const sDriven = [
-      ...syncEval.getDrivenSignals(),
-      // If an output or internal has a default value, it implies it must be a register
-      ...m.getInternalSignals().filter(s => {
-        if (s instanceof SignalArrayT) {
-          return false;
-        }
-        return (s as SignalT).hasDefaultValue;
-      }),
-      ...m.getOutputSignals().filter(s => s.hasDefaultValue)
-    ];
-    const cSignalTypes = combEval.getSignalTypes();
-
-    cDriven.forEach(cs => sDriven.forEach(ss => {
-      if (cs === ss) {
-        const signalName = m.getModuleSignalDescriptor(cs).name;
-        throw new Error(`Driver-driver conflict on ${m.moduleName}.${signalName}. A signal cannot${
-        ''} be driven by both syncronous and combinational logic.`);
-      }
-    }));
-
-    const nIns = Object.keys(namesToSignals.input).length;
-    const nOuts = Object.keys(namesToSignals.output).length;
-    const headerParts = [`module ${m.moduleName}(`];
-    let header;
-
-    if (nIns + nOuts === 0) {
-      headerParts[0] += ');';
-    } else {
-      if (nIns > 0) {
-        headerParts.push(
-          Object
-          .entries(namesToSignals.input)
-          .map(([signalName, s]) => `input ${getRegSize(s)}${signalName}`)
-          .map(t.indent)
-          .join(',\n') + (nOuts > 0 ? ',' : '')
-        );
-      }
-      if (nOuts > 0) {
-        headerParts.push(
-          Object
-          .entries(namesToSignals.output)
-          .map(([signalName, s]) => {
-            const typeInformation = isSyncDriven(s as SignalT, sDriven) || isCombinationalRegister(s as SignalT, cSignalTypes)
-              ? 'reg '
-              : '';
-            return `output ${typeInformation}${getRegSize(s)}${signalName}`;
-          })
-          .map(t.indent)
-          .join(',\n')
-        );
-      }
-      headerParts.push(');');
-    }
-
-    header = headerParts.join('\n');
-
-    const outputsAndInternals = [...signalMap.output.entries(), ...signalMap.internal.entries()];
-    const initialRegisterAssignments = outputsAndInternals.reduce<string[]>((acc, [port, portName]) => {
-      if (isSyncDriven(port as SignalT, sDriven)
-          && port.type !== SIGNAL_ARRAY
-          && (port as SignalT).hasDefaultValue) {
-        acc.push(`${t.l(1)}${portName} = ${(port as SignalT).defaultValue};`);
-      }
-      return acc;
-    }, []);
-    const initialBlock = initialRegisterAssignments.length ? [
-      `${t.l()}initial begin`,
-      initialRegisterAssignments.join('\n'),
-      `${t.l()}end`
-    ].join('\n') : '';
-
-    const internalRegisters = syncEval.generateInternalRegisterDeclarations(sDriven);
-    const internalWires = syncEval.generateInternalWireDeclarations();
-
-    const portWireMap: PortToWire = new Map();
-    allChildModules.forEach(sm => {
-      const submoduleName = sm.submoduleName;
-      sm.m.getOutputSignals().forEach(oPort => {
-        const desc = sm.m.getModuleSignalDescriptor(oPort);
-        const wireName = `${submoduleName}_${desc.name}_wire`;
-
-        // Add to the map, which will be used to check if an Signal should actually be
-        // replaced with it's wire instead
-        if (portWireMap.has(oPort)) {
-          throw new Error(`${submoduleName}.${desc.name} has already been mapped to an output wire`);
-        }
-        portWireMap.set(oPort, [wireName, desc.name]);
-      });
-    });
-
-    const submoduleOutputWireDeclarations = [...portWireMap.entries()].map(([port, [wireName, _]]) => (
-      [wireName, getRegSize(port)]
-    ));
-
-
-    // Generate an assign for every output going to the parent module
-    const parentOutputAssignments = [];
-    allChildModules.forEach(sm => {
-      Object.entries(sm.mapping.outputs).forEach(([submoduleOutputName, writtenPorts]) => {
-        // Loop over every port, check if it belongs to the parent
-        writtenPorts.forEach(writtenPort => {
-          if (m.isOwnWritable(writtenPort)) {
-            const desc = m.getModuleSignalDescriptor(writtenPort);
-            const [wireName] = portWireMap.get(sm.m[submoduleOutputName]);
-
-            const errorBase = `Cannot drive ${m.moduleName}.${desc.name} from submodule output ${sm.submoduleName}.${submoduleOutputName} `;
-            if (sDriven.includes(writtenPort)) {
-              throw new Error(`${errorBase} because it is already driven by the synchronous logic of ${m.moduleName}`);
-            }
-            if (cDriven.includes(writtenPort)) {
-              throw new Error(`${errorBase} because it is already driven by the combinational logic of ${m.moduleName}`);
-            }
-
-            parentOutputAssignments.push(
-              `${t.l()}assign ${desc.name} = ${wireName};`
-            );
-          }
-        });
-      });
-    });
-
-    const wireDeclarations = [
-      // TODO: Be careful here that user-defined wires don't clash with generated names
-      ...(thisModuleHasSubmodules ? submoduleOutputWireDeclarations : []),
-    ].map(([w, regSize]) => `${t.l()}wire ${regSize}${w};`)
-    .concat(internalWires).join('\n')
-    + unsliceableWires;
-
-    const allAssignments = [
-      ...parentOutputAssignments
-    ].join('\n');
-
-    const submodules = mSubmodules.map(submoduleReference => {
-      const out = [
-        `${t.l()}${submoduleReference.m.moduleName} ${submoduleReference.submoduleName}(`
-      ];
-      t.push();
-
-      // Iterate over the inputs of this submodule. If the Port they refer to is a constant,
-      // push the declaration into the constantInputs.
-      // If it's in the portWireMap, use the wireName instead
-      // Otherwise (for now), it must be a parent module signal, and can be wired directly
-      const constantInputs = [];
-      const nonConstantInputs = [];
-      Object.entries(submoduleReference.mapping.inputs).forEach(([name, port]) => {
-        if (port instanceof ConstantT) {
-          constantInputs.push(`${t.l()}.${name}(${exprEval.evaluate(port)})`);
-          return;
-        }
-
-        if (port instanceof SignalT) {
-          if (portWireMap.has(port)) {
-            const [wireName] = portWireMap.get(port);
-            nonConstantInputs.push(`${t.l()}.${name}(${wireName})`);
-          } else {
-            nonConstantInputs.push(`${t.l()}.${name}(${exprEval.evaluate(port)})`);
-          }
-          return;
-        }
-
-        throw new Error(`${submoduleReference.submoduleName}.${name} is neither ConstantT or SignalT`);
-      });
-
-      // Map the outputs to the autogenerated wires
-      const wireOutputs = [];
-      submoduleReference.m.getOutputSignals().forEach(port => {
-        const [wireName, portName] = portWireMap.get(port);
-        wireOutputs.push(`${t.l()}.${portName}(${wireName})`);
-      });
-
-      // Push the strings for all ports
-      out.push(
-        constantInputs
-        .concat(nonConstantInputs)
-        .concat(wireOutputs)
-        .join(',\n')
-      );
-
-      t.pop();
-      out.push(`${t.l()});`);
-
-      return out.join('\n');
-    }).join('\n\n');
-
-    const vendorModules = mVendorModules.map(vendorModuleReference => {
-      const out = [
-        `${t.l()}${vendorModuleReference.m.constructor.name}`
-      ];
-
-      const pd = vendorModuleReference.m.getParameterDeclarations();
-      if (Object.keys(pd).length) {
-        out[0] += ' #(';
-        t.push();
-
-        out.push(
-          Object.entries(pd).map(([paramName, paramValue]:[string, ConstantT | ParameterString]) => {
-            return `${t.l()}.${paramName}(${paramEval.evaluate(paramValue)})`
-          }).join(',\n')
-        );
-
-        t.pop();
-        out.push(`${t.l()}) ${vendorModuleReference.m.moduleName} (`);
-        t.push();
-      } else {
-        out[0] += ` ${vendorModuleReference.m.moduleName} (`;
-        t.push();
-      }
-
-      // Find any inputs that were specified as constants
-      const constantInputs = [];
-      const nonConstantInputs = [];
-      Object.entries(vendorModuleReference.mapping.inputs).forEach(([name, port]) => {
-        if (port instanceof ConstantT) {
-          constantInputs.push(`${t.l()}.${name}(${exprEval.evaluate(port)})`);
-          return;
-        }
-
-        if (port instanceof SignalT) {
-          if (portWireMap.has(port)) {
-            const [wireName] = portWireMap.get(port);
-            nonConstantInputs.push(`${t.l()}.${name}(${wireName})`);
-          } else {
-            nonConstantInputs.push(`${t.l()}.${name}(${exprEval.evaluate(port)})`);
-          }
-          return;
-        }
-
-        throw new Error(`${vendorModuleReference.submoduleName}.${name} is neither ConstantT or SignalT`);
-      });
-
-      // Map the outputs to the autogenerated wires
-      const wireOutputs = [];
-      vendorModuleReference.m.getOutputSignals().forEach(port => {
-        const [wireName, portName] = portWireMap.get(port);
-        wireOutputs.push(`${t.l()}.${portName}(${wireName})`);
-      });
-
-      out.push(
-        constantInputs
-        .concat(nonConstantInputs)
-        .concat(wireOutputs)
-        .join(',\n')
-      );
-
-      t.pop();
-      out.push(`${t.l()});`);
-      return out.join('\n');
-    }).join('\n\n');
-
-    const moduleCode:ModuleCodeElements = {
-      type: MODULE_CODE_ELEMENTS,
-      header,
-      internalRegisters,
-      internalWires,
-      wireDeclarations,
-      initialBlock,
-      assignments: allAssignments,
-      vendorModules,
-      submodules,
-      combAlways,
-      combAssigns,
-      syncBlocks
-    }
-
-    return {
-      code: moduleCode,
-      submodules: m.getSubmodules().map(submoduleReference => submoduleReference.m)
-    };
-  }
-
-  /**
-   * Compiles [[CodeGenerator.m]] to verilog
-   */
-  toVerilog() {
-    const verilogModulesGenerated = [this.m.moduleName];
-
-    const thisIsASimulation = this.options.simulation && this.options.simulation.enabled;
-    let thisIsTheTopLevelModule = true;
-
-    const allCode:string[] = [];
-    const moduleQueue = [this.m];
-    while (moduleQueue.length) {
-      const nextM = moduleQueue.pop();
-      // TODO: Might just be better to split this out into a separate method
-      const generated = this.generateVerilogCodeForModule(nextM, thisIsASimulation && thisIsTheTopLevelModule);
-      allCode.push(codeElementsToString(generated.code));
-
-      generated.submodules.forEach(m => {
-        if (!verilogModulesGenerated.includes(m.moduleName)) {
-          moduleQueue.push(m);
-          verilogModulesGenerated.push(m.moduleName);
-        }
-      });
-
-      thisIsTheTopLevelModule = false;
-    }
-
-    return (
-      '`default_nettype none\n\n' +
-      allCode.join('\n\n')
-    );
-  }
+  let verilog = '';
+  const ts = simulationModule.description.timescale;
+  verilog = `\`timescale ${ts.unit.join('')}/${ts.precision.join('')}\n${mainCode}\n\n`;
+
+  verilog += `module ${simulationModule.moduleName};\n`
+  i.push();
+
+  const inputDelcatations = Object.entries(moduleUnderTest.input).map(([signalName, signal]) => {
+    return `${i.get()}reg ${verilogWidth(signal.width)} ${signalName};`
+  });
+  const internalDelcatations = Object.entries(simulationModule.internal).map(([signalName, signal]) => {
+    return `${i.get()}reg ${verilogWidth(signal.width)} ${signalName};`
+  });
+  const outputDelcatations = Object.entries(moduleUnderTest.output).map(([signalName, signal]) => {
+    return `${i.get()}wire ${verilogWidth(signal.width)} ${signalName};`
+  });
+
+  verilog += inputDelcatations.join('\n') + '\n';
+  verilog += internalDelcatations.join('\n') + '\n';
+  verilog += outputDelcatations.join('\n') + '\n\n';
+
+  verilog += `${i.get()}${moduleUnderTest.moduleName} mut(\n`;
+  i.push();
+  verilog += mutSignals.map(signalName =>
+    `${i.get()}.${signalName}(${signalName})`
+  ).join(',\n') + '\n';
+  i.pop();
+  verilog += `${i.get()});\n\n`;
+
+  verilog += evaluator.evaluate();
+  verilog += `\nendmodule`;
+
+  return verilog;
 }
